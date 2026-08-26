@@ -75,10 +75,7 @@ function loadEnvironment(workspacePath: string | null): void {
   const candidates: string[] = [];
 
   if (workspacePath) {
-    candidates.push(
-      path.join(workspacePath, ".env"),
-      path.join(workspacePath, "..", ".env"),
-    );
+    candidates.push(path.join(workspacePath, ".env"), path.join(workspacePath, "..", ".env"));
   }
 
   candidates.push(path.join(os.homedir(), ".agent-remote", ".env"));
@@ -117,8 +114,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const config = vscode.workspace.getConfiguration("agentRemote");
   const relayUrl =
     config.get<string>("relayUrl") || process.env["RELAY_URL"] || "http://localhost:3001";
-  const model =
-    config.get<string>("model") || process.env["AGENT_MODEL"] || "gemini-2.0-flash";
+  const model = config.get<string>("model") || process.env["AGENT_MODEL"] || undefined;
 
   // 1. Check for active session in the workspace (e.g. started via CLI) or generate fresh PIN
   const activeRecord = loadActiveSession(workspacePath ?? undefined);
@@ -168,18 +164,19 @@ export function activate(context: vscode.ExtensionContext): void {
     // relay-only mode (no local filesystem operations).
     const resolvedPath = workspacePath ?? "";
 
-    const trueForgeClient = new TrueForgeClient({ defaultModel: model });
-    activeSession = trueForgeClient.createSession({
-      sessionId: rawPin,
-      workspacePath: resolvedPath,
-    });
-
     activeBridge = new SocketBridge({
       relayUrl,
       pin: rawPin,
       hostName: os.hostname(),
       workspacePath: resolvedPath,
       autoConnect: true,
+    });
+
+    const trueForgeClient = new TrueForgeClient(model ? { defaultModel: model } : undefined);
+    activeSession = trueForgeClient.createSession({
+      sessionId: rawPin,
+      workspacePath: resolvedPath,
+      approvalManager: activeBridge.approvalManager,
     });
 
     // Persist active session for cross-tool synchronization (CLI, VS Code, Mobile)
@@ -207,7 +204,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
     // Remote prompt → local turn
     activeBridge.onPrompt((clientPrompt) => {
-      void dispatchTurn(clientPrompt.prompt, "remote");
+      void dispatchTurn(clientPrompt.prompt, "remote", clientPrompt.byokConfig);
     });
 
     // Mobile reconnect → replay buffered events
@@ -218,35 +215,31 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     });
 
-    // Mobile paired notification
-    activeBridge.onSessionConnected((sessionConn) => {
-      void vscode.window.showInformationMessage(
-        `📱 Mobile remote paired to session ${formatPin(sessionConn.sessionId)}`,
+    // Peer connection
+    activeBridge.onSessionConnected((conn) => {
+      chatProvider.addSystemMessage(
+        `📱 Mobile client paired (${conn.deviceName || "Remote"}). PIN: ${formatPin(rawPin)}`,
       );
     });
 
-    // Approval flow: show both webview card AND VS Code notification
-    activeBridge.onHostApprovalPrompt((req) => {
-      chatProvider.handleApprovalRequest(req);
+    // Host approval modal
+    activeBridge.onHostApprovalPrompt(async (request) => {
+      const toolLabel = request.toolName;
+      const details = request.command || request.path || JSON.stringify(request.metadata || {});
 
-      const msg = `⚠️ Approval: [${req.toolName}] ${req.commandOrDiff.slice(0, 100)}`;
-      void vscode.window
-        .showWarningMessage(msg, { modal: false }, "Approve", "Deny")
-        .then((selection) => {
-          if (selection === "Approve" || selection === "Deny") {
-            const approved = selection === "Approve";
-            if (activeBridge) {
-              activeBridge.approvalManager.resolveApproval(
-                req.approvalId,
-                approved,
-                approved
-                  ? "Approved via VS Code Notification"
-                  : "Denied via VS Code Notification",
-              );
-              chatProvider.handleApprovalResolved(req.approvalId, approved);
-            }
-          }
-        });
+      const choice = await vscode.window.showWarningMessage(
+        `Agent Remote — Tool Approval Required\n\nTool: ${toolLabel}\nDetails: ${details}`,
+        { modal: true },
+        "Approve",
+        "Deny",
+      );
+
+      const approved = choice === "Approve";
+      activeBridge?.approvalManager.resolveApproval(
+        request.approvalId,
+        approved,
+        approved ? "Approved via VS Code host modal" : "Denied by developer",
+      );
     });
   }
 
@@ -273,7 +266,11 @@ export function activate(context: vscode.ExtensionContext): void {
 
   let isExecuting = false;
 
-  async function dispatchTurn(promptText: string, origin: "local" | "remote"): Promise<void> {
+  async function dispatchTurn(
+    promptText: string,
+    origin: "local" | "remote",
+    byokConfig?: import("@agent-remote/protocol").BYOKConfig,
+  ): Promise<void> {
     if (!activeSession || !activeBridge) return;
     if (isExecuting) {
       void vscode.window.showWarningMessage("Agent Remote: a turn is already running.");
@@ -324,7 +321,9 @@ export function activate(context: vscode.ExtensionContext): void {
     } else if (action === "test") {
       const wp = requireWorkspace();
       if (!wp) return;
-      chatProvider.addSystemMessage(`🧪 Running workspace tests${arg ? ` (filter: ${arg})` : ""}...`);
+      chatProvider.addSystemMessage(
+        `🧪 Running workspace tests${arg ? ` (filter: ${arg})` : ""}...`,
+      );
       const result = await runWorkspaceTests(wp, arg);
       chatProvider.addSystemMessage(
         `${result.success ? "✔ Tests Passed" : "❌ Tests Failed"} (${result.durationMs}ms):\n\n${result.output}`,
@@ -370,9 +369,7 @@ export function activate(context: vscode.ExtensionContext): void {
         chatProvider.addSystemMessage(
           `✔ Session PIN updated to ${formatPin(cleaned)}. Relay room active.`,
         );
-        void vscode.window.showInformationMessage(
-          `Agent Remote PIN set to ${formatPin(cleaned)}`,
-        );
+        void vscode.window.showInformationMessage(`Agent Remote PIN set to ${formatPin(cleaned)}`);
       }
     } else if (action === "copyPin") {
       const pairUrl = `https://agent-remote.dev/pair?pin=${currentPin}`;
@@ -384,9 +381,7 @@ export function activate(context: vscode.ExtensionContext): void {
         activeSession.clearHistory();
         chatProvider.clearMessages();
         clearActiveSession(workspacePath ?? undefined);
-        chatProvider.addSystemMessage(
-          "✔ Conversation history and in-memory ring buffer reset.",
-        );
+        chatProvider.addSystemMessage("✔ Conversation history and in-memory ring buffer reset.");
       }
     }
     // ── Future actions: add new else-if blocks here.
@@ -432,9 +427,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (input) {
         const cleaned = input.replace(/\D/g, "");
         initializeBridge(cleaned);
-        void vscode.window.showInformationMessage(
-          `Agent Remote PIN set to ${formatPin(cleaned)}`,
-        );
+        void vscode.window.showInformationMessage(`Agent Remote PIN set to ${formatPin(cleaned)}`);
       }
     }),
 
@@ -466,9 +459,7 @@ export function activate(context: vscode.ExtensionContext): void {
         activeSession.clearHistory();
         chatProvider.clearMessages();
         clearActiveSession(workspacePath ?? undefined);
-        chatProvider.addSystemMessage(
-          "✔ Conversation history and in-memory ring buffer reset.",
-        );
+        chatProvider.addSystemMessage("✔ Conversation history and in-memory ring buffer reset.");
       }
     }),
 
@@ -484,8 +475,7 @@ export function activate(context: vscode.ExtensionContext): void {
       const issueNum = await vscode.window.showInputBox({
         prompt: "Enter GitHub Issue Number to load context (e.g. 42)",
         placeHolder: "42",
-        validateInput: (v) =>
-          /^\d+$/.test(v.trim()) ? null : "Enter a numeric issue number",
+        validateInput: (v) => (/^\d+$/.test(v.trim()) ? null : "Enter a numeric issue number"),
       });
       if (issueNum) {
         const cleaned = issueNum.replace(/\D/g, "");

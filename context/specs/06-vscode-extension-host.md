@@ -51,4 +51,3 @@ Implement the VS Code Extension host & interactive client in `apps/vscode-extens
 - Status Bar item, chat Webview provider, and notification hooks typecheck without errors.
 - Activating the extension establishes socket connection, renders the Chat Webview, and displays pairing PIN in the Status Bar.
 - Directives typed in the VS Code chat view stream live to both the editor view and the paired mobile app.
-

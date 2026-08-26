@@ -64,7 +64,8 @@ export function parseCliArgs(argv: string[]): CliOptions {
   let relayUrl = process.env["RELAY_URL"] || "http://localhost:3001";
   let pin = "";
   let workspacePath = process.env["INIT_CWD"] || process.cwd();
-  let model = process.env["AGENT_MODEL"] || (process.env["GEMINI_API_KEY"] ? "gemini-2.0-flash" : "0x-alpha");
+  let model =
+    process.env["AGENT_MODEL"] || (process.env["GEMINI_API_KEY"] ? "gemini-2.0-flash" : "0x-alpha");
   let daemon = false;
   let issueNumber: number | undefined;
   let autoPr: boolean | undefined;
@@ -135,20 +136,21 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
     updatedAt: Date.now(),
   });
 
-  // 1. Initialize TrueForge Client & Session
-  const trueForgeClient = new TrueForgeClient({ defaultModel: options.model });
-  const session: TrueForgeSession = trueForgeClient.createSession({
-    sessionId,
-    workspacePath: options.workspacePath,
-  });
-
-  // 2. Initialize SocketBridge to Relay server
+  // 1. Initialize SocketBridge to Relay server
   const bridge = new SocketBridge({
     relayUrl: options.relayUrl,
     pin: options.pin,
     hostName: options.hostName || "workstation",
     workspacePath: options.workspacePath,
     autoConnect: true,
+  });
+
+  // 2. Initialize TrueForge Client & Session with approval manager attached
+  const trueForgeClient = new TrueForgeClient({ defaultModel: options.model });
+  const session: TrueForgeSession = trueForgeClient.createSession({
+    sessionId,
+    workspacePath: options.workspacePath,
+    approvalManager: bridge.approvalManager,
   });
 
   // 3. Render boot banner
@@ -166,7 +168,11 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
   let isExecuting = false;
 
   // 4. Helper to execute a turn and mirror stream to both terminal and remote socket
-  async function dispatchTurn(promptText: string, origin: "local" | "remote"): Promise<void> {
+  async function dispatchTurn(
+    promptText: string,
+    origin: "local" | "remote",
+    byokConfig?: import("@agent-remote/protocol").BYOKConfig,
+  ): Promise<void> {
     if (isExecuting) {
       console.log(chalk.yellow("\n⚠️ Agent turn already in progress. Please wait..."));
       return;
@@ -178,7 +184,7 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
         console.log(chalk.hex("#38bdf8").bold(`\n📱 [Remote @ Phone]: `) + chalk.white(promptText));
       }
 
-      for await (const chunk of session.executeTurn({ prompt: promptText })) {
+      for await (const chunk of session.executeTurn({ prompt: promptText, byokConfig })) {
         renderStreamChunk(chunk);
         bridge.sendStream(chunk);
       }
@@ -198,7 +204,7 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
   });
 
   bridge.onPrompt((clientPrompt) => {
-    void dispatchTurn(clientPrompt.prompt, "remote");
+    void dispatchTurn(clientPrompt.prompt, "remote", clientPrompt.byokConfig);
   });
 
   bridge.onSync((sync) => {
@@ -220,9 +226,17 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
     });
   });
 
-  // 6. Handle process exit signals
-  const cleanup = () => {
-    console.log(chalk.dim("\nShutting down Agent Remote CLI..."));
+  // 6. Handle process exit signals gracefully
+  let isShuttingDown = false;
+  const cleanup = async () => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    console.log(chalk.dim("\nShutting down Agent Remote CLI gracefully..."));
+    try {
+      await session.cancelSession();
+    } catch {
+      // Ignore
+    }
     if (activeRl) {
       activeRl.close();
     }
@@ -230,8 +244,12 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
     process.exit(0);
   };
 
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
+  process.on("SIGINT", () => {
+    void cleanup();
+  });
+  process.on("SIGTERM", () => {
+    void cleanup();
+  });
 
   // 7. If initial issue directive was provided
   if (options.issueNumber) {
@@ -239,7 +257,14 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
     await dispatchTurn(issuePrompt, "local");
   }
 
-  // 8. Start interactive REPL if not in daemon mode
+  // 8. If --pr flag was passed, automatically dispatch PR generation
+  if (options.autoPr) {
+    const prPrompt =
+      "Generate pull request description and title for current changes and summarize verification results.";
+    await dispatchTurn(prPrompt, "local");
+  }
+
+  // 9. Start interactive REPL if not in daemon mode
   if (!options.daemon) {
     activeRl = readline.createInterface({ input, output });
 
@@ -256,18 +281,38 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
         if (inputLine === "/help") {
           console.log(chalk.bold.hex("#38bdf8")("\n⚡ AGENT REMOTE REPL COMMAND PALETTE:"));
           console.log(`  ${chalk.cyan("/diff")}             - Show current uncommitted git diff`);
-          console.log(`  ${chalk.cyan("/clear")} / ${chalk.cyan("/reset")}   - Reset conversation context and event buffer`);
-          console.log(`  ${chalk.cyan("/issue <id>")}       - Import GitHub issue context directly into agent turn`);
-          console.log(`  ${chalk.cyan("/model [name]")}     - Switch active LLM model or view free models registry`);
-          console.log(`  ${chalk.cyan("/models")}           - List all supported 100% free AI models`);
-          console.log(`  ${chalk.cyan("/test [filter]")}    - Run workspace test suite and view output`);
+          console.log(
+            `  ${chalk.cyan("/clear")} / ${chalk.cyan("/reset")}   - Reset conversation context and event buffer`,
+          );
+          console.log(
+            `  ${chalk.cyan("/issue <id>")}       - Import GitHub issue context directly into agent turn`,
+          );
+          console.log(
+            `  ${chalk.cyan("/model [name]")}     - Switch active LLM model or view free models registry`,
+          );
+          console.log(
+            `  ${chalk.cyan("/models")}           - List all supported 100% free AI models`,
+          );
+          console.log(
+            `  ${chalk.cyan("/test [filter]")}    - Run workspace test suite and view output`,
+          );
           console.log(`  ${chalk.cyan("/lint")}             - Run workspace linter and typecheck`);
-          console.log(`  ${chalk.cyan("/stats")}            - View session metrics, buffer size, and sequence counter`);
-          console.log(`  ${chalk.cyan("/history")}          - Replay recent stream events from in-memory ring buffer`);
-          console.log(`  ${chalk.cyan("/pr")}               - Instruct agent to commit and create GitHub PR`);
+          console.log(
+            `  ${chalk.cyan("/stats")}            - View session metrics, buffer size, and sequence counter`,
+          );
+          console.log(
+            `  ${chalk.cyan("/history")}          - Replay recent stream events from in-memory ring buffer`,
+          );
+          console.log(
+            `  ${chalk.cyan("/pr")}               - Instruct agent to commit and create GitHub PR`,
+          );
           console.log(`  ${chalk.cyan("/pin")}              - Display active pairing PIN and URL`);
-          console.log(`  ${chalk.cyan("/status")}           - Show relay connection and buffer status`);
-          console.log(`  ${chalk.cyan("/exit")}             - Gracefully shut down the agent harness\n`);
+          console.log(
+            `  ${chalk.cyan("/status")}           - Show relay connection and buffer status`,
+          );
+          console.log(
+            `  ${chalk.cyan("/exit")}             - Gracefully shut down the agent harness\n`,
+          );
           continue;
         }
 
@@ -295,7 +340,10 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
           const issue = await fetchGitHubIssue(issueNum, options.workspacePath);
           console.log(chalk.bold.cyan(`\n📋 Loaded Issue: ${issue.title}`));
           console.log(chalk.dim(issue.body));
-          await dispatchTurn(`Fix GitHub Issue #${issueNum} ("${issue.title}"): ${issue.body}`, "local");
+          await dispatchTurn(
+            `Fix GitHub Issue #${issueNum} ("${issue.title}"): ${issue.body}`,
+            "local",
+          );
           continue;
         }
 
@@ -311,7 +359,9 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
             console.log(
               `\nActive Model: ${chalk.hex("#a855f7").bold(session.defaultModel)} [${session.providerConfig.provider} (Free)]`,
             );
-            console.log(chalk.dim("To switch model, run: /model <model_name> or /models for list\n"));
+            console.log(
+              chalk.dim("To switch model, run: /model <model_name> or /models for list\n"),
+            );
             continue;
           }
           session.setModel(newModel);
@@ -321,9 +371,15 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
 
         if (inputLine.startsWith("/test")) {
           const filter = inputLine.slice(5).trim();
-          console.log(chalk.dim(`\nRunning workspace tests ${filter ? `(filter: ${filter})` : ""}...`));
+          console.log(
+            chalk.dim(`\nRunning workspace tests ${filter ? `(filter: ${filter})` : ""}...`),
+          );
           const result = await runWorkspaceTests(options.workspacePath, filter || undefined);
-          console.log(result.success ? chalk.green(`\n✔ Tests Passed (${result.durationMs}ms):`) : chalk.red(`\n❌ Tests Failed (${result.durationMs}ms):`));
+          console.log(
+            result.success
+              ? chalk.green(`\n✔ Tests Passed (${result.durationMs}ms):`)
+              : chalk.red(`\n❌ Tests Failed (${result.durationMs}ms):`),
+          );
           console.log(chalk.white(result.output) + "\n");
           continue;
         }
@@ -331,7 +387,11 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
         if (inputLine === "/lint") {
           console.log(chalk.dim("\nRunning workspace lint and typecheck..."));
           const result = await runWorkspaceLint(options.workspacePath);
-          console.log(result.success ? chalk.green(`\n✔ ${result.output}\n`) : chalk.red(`\n❌ ${result.output}\n`));
+          console.log(
+            result.success
+              ? chalk.green(`\n✔ ${result.output}\n`)
+              : chalk.red(`\n❌ ${result.output}\n`),
+          );
           continue;
         }
 
@@ -360,7 +420,10 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
         }
 
         if (inputLine === "/pr") {
-          await dispatchTurn("Create a pull request with all session changes and test results.", "local");
+          await dispatchTurn(
+            "Create a pull request with all session changes and test results.",
+            "local",
+          );
           continue;
         }
 

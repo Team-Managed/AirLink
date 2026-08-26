@@ -32,9 +32,10 @@ export function formatBootBannerText(options: BootBannerOptions): string {
   const pinDisplay = formatPinDisplay(options.pin);
   const rawPinDigits = options.pin.replace(/\D/g, "");
   const pairUrl = `https://agent-remote.dev/pair?pin=${rawPinDigits}`;
-  const engineLabel = options.provider && options.provider !== "simulated"
-    ? chalk.green.bold(`${options.provider} (${options.model})`)
-    : chalk.hex("#a855f7")(options.model || "0x-alpha");
+  const engineLabel =
+    options.provider && options.provider !== "simulated"
+      ? chalk.green.bold(`${options.provider} (${options.model})`)
+      : chalk.hex("#a855f7")(options.model || "0x-alpha");
 
   const lines = [
     chalk.bold.hex("#38bdf8")("  ⚡ AGENT REMOTE — WORKSTATION HARNESS  "),
@@ -45,7 +46,9 @@ export function formatBootBannerText(options: BootBannerOptions): string {
     `  ${chalk.dim("Relay Server:")}   ${chalk.white(options.relayUrl)}`,
     `  ${chalk.dim("Workspace:")}      ${chalk.white(options.workspacePath)}`,
     `  ${chalk.dim("Engine Model:")}   ${engineLabel}`,
-    ...(options.hostName ? [`  ${chalk.dim("Host Name:")}      ${chalk.white(options.hostName)}`] : []),
+    ...(options.hostName
+      ? [`  ${chalk.dim("Host Name:")}      ${chalk.white(options.hostName)}`]
+      : []),
     "",
     chalk.dim("  Type prompts below or type /help to view all built-in commands.  "),
   ];

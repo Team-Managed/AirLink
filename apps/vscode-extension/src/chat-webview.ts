@@ -32,7 +32,12 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
 
   constructor(private readonly _extensionUri: vscode.Uri) {}
 
-  public setSessionInfo(pin: string, relayUrl: string, model: string, provider: string = "Free Tier"): void {
+  public setSessionInfo(
+    pin: string,
+    relayUrl: string,
+    model: string,
+    provider: string = "Free Tier",
+  ): void {
     this._activePin = pin;
     this._relayUrl = relayUrl;
     this._model = model;
@@ -66,31 +71,40 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this.getHtmlForWebview(webviewView.webview);
 
-    webviewView.webview.onDidReceiveMessage((data: { command: string; text?: string; approvalId?: string; approved?: boolean; action?: string; arg?: string }) => {
-      switch (data.command) {
-        case "ready":
-          this._updateSessionHeader();
-          for (const msg of this._messages) {
-            this._postMessageToWebview({ command: "appendMessage", message: msg });
-          }
-          break;
-        case "submitPrompt":
-          if (data.text && this._onPromptHandler) {
-            this._onPromptHandler(data.text);
-          }
-          break;
-        case "submitApproval":
-          if (data.approvalId && data.approved !== undefined && this._onApprovalResponseHandler) {
-            this._onApprovalResponseHandler(data.approvalId, data.approved);
-          }
-          break;
-        case "triggerAction":
-          if (data.action && this._onActionHandler) {
-            this._onActionHandler(data.action, data.arg);
-          }
-          break;
-      }
-    });
+    webviewView.webview.onDidReceiveMessage(
+      (data: {
+        command: string;
+        text?: string;
+        approvalId?: string;
+        approved?: boolean;
+        action?: string;
+        arg?: string;
+      }) => {
+        switch (data.command) {
+          case "ready":
+            this._updateSessionHeader();
+            for (const msg of this._messages) {
+              this._postMessageToWebview({ command: "appendMessage", message: msg });
+            }
+            break;
+          case "submitPrompt":
+            if (data.text && this._onPromptHandler) {
+              this._onPromptHandler(data.text);
+            }
+            break;
+          case "submitApproval":
+            if (data.approvalId && data.approved !== undefined && this._onApprovalResponseHandler) {
+              this._onApprovalResponseHandler(data.approvalId, data.approved);
+            }
+            break;
+          case "triggerAction":
+            if (data.action && this._onActionHandler) {
+              this._onActionHandler(data.action, data.arg);
+            }
+            break;
+        }
+      },
+    );
 
     this._updateSessionHeader();
   }

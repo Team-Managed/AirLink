@@ -2,20 +2,20 @@
 
 ## 1. Stack & Deployables
 
-| Layer                       | Technology                                                              | Role                                                                                                                                                                               |
-| :-------------------------- | :---------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Mobile Client**           | **React Native (Expo SDK 51+) + TypeScript**                            | Cross-platform control UI (Android, iOS), pairing screens, virtualized feeds, diff viewers, and bottom-sheet drawers.                                                              |
-| **Web Landing & Client**    | **Next.js (App Router) / React 19 + TypeScript (`apps/web`)**           | Dark developer landing page (`#090d16`), interactive terminal emulator, architecture showcase, and browser-based remote `/pair` client.                                            |
-| **Relay Server**            | **Node.js 22+ (LTS) / TypeScript + Socket.io (`apps/relay`)**           | Cloud message bridge; manages ephemeral PIN-paired rooms, IP rate limiting (max 3 failed PINs), and zero-retention event routing. Deployed via Docker on Fly.io / Railway.         |
-| **Bridge Engine Core**      | **Shared TypeScript Package (`packages/bridge-core`)**                  | Decoupled core engine: Socket.io tunnel, TrueForge SDK connector, event ring buffer (`seq_id`), approval Promise map, and Slack/Discord webhook notifiers.                         |
+| Layer                       | Technology                                                              | Role                                                                                                                                                                                                                                                           |
+| :-------------------------- | :---------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mobile Client**           | **React Native (Expo SDK 51+) + TypeScript**                            | Cross-platform control UI (Android, iOS), pairing screens, virtualized feeds, diff viewers, and bottom-sheet drawers.                                                                                                                                          |
+| **Web Landing & Client**    | **Next.js (App Router) / React 19 + TypeScript (`apps/web`)**           | Dark developer landing page (`#090d16`), interactive terminal emulator, architecture showcase, and browser-based remote `/pair` client.                                                                                                                        |
+| **Relay Server**            | **Node.js 22+ (LTS) / TypeScript + Socket.io (`apps/relay`)**           | Cloud message bridge; manages ephemeral PIN-paired rooms, IP rate limiting (max 3 failed PINs), and zero-retention event routing. Deployed via Docker on Fly.io / Railway.                                                                                     |
+| **Bridge Engine Core**      | **Shared TypeScript Package (`packages/bridge-core`)**                  | Decoupled core engine: Socket.io tunnel, TrueForge SDK connector, event ring buffer (`seq_id`), approval Promise map, and Slack/Discord webhook notifiers.                                                                                                     |
 | **Terminal Host & Client**  | **Node.js CLI (`apps/cli`)**                                            | Interactive CLI client & host; compact boxen banner, PIN display, pairing link, local REPL prompt, live terminal token/tool streaming, and dual-surface `[y/N]` approvals. Distributed via `irm` (Windows), `curl` (macOS/Linux), and `npx @agent-remote/cli`. |
-| **IDE Host & Chat Panel**   | **VS Code Extension (`apps/vscode-extension`)**                         | IDE client & host; Activity Bar Chat Webview for in-editor prompting/streaming, Status Bar PIN display (`$(radio-tower)`), native modal approvals, and side-by-side diffs.           |
-| **Agent Execution Harness** | **TrueForge (`@truefoundry/trueforge` / `@truefoundry/trueforge-sdk`)** | Core execution harness; manages LLM turns, context lifecycle, MCP tool dispatching, and sandboxed execution.                                                                       |
-| **Reasoning Engine (LLM)**  | **0x Alpha / DeepSeek R1 (via OpenRouter)**                             | Frontier coding model with 1M context window; provider-agnostic via OpenAI-compatible endpoint with 5-layer cached prompt structure.                                               |
-| **Tool Execution Protocol** | **Model Context Protocol (MCP)**                                        | Real local filesystem reads/writes (`@modelcontextprotocol/server-filesystem`) and terminal runners (`node-pty` / bash).                                                           |
-| **Local Device Vault**      | **`expo-secure-store`**                                                 | Hardware-backed encrypted keychain for BYOK API keys on the mobile device.                                                                                                         |
-| **Code Quality & CI**       | **Qodo Gen + Qodo Merge (`pr-agent-action`) + Vitest**                  | Automated unit test generation, protocol verification, and automated GitHub PR code quality gatekeeping (>90% coverage target).                                                    |
-| **Monorepo**                | **`pnpm` Workspaces**                                                   | `apps/mobile`, `apps/web`, `apps/relay`, `apps/cli`, `apps/vscode-extension`, `packages/protocol`, `packages/bridge-core`.                                                         |
+| **IDE Host & Chat Panel**   | **VS Code Extension (`apps/vscode-extension`)**                         | IDE client & host; Activity Bar Chat Webview for in-editor prompting/streaming, Status Bar PIN display (`$(radio-tower)`), native modal approvals, and side-by-side diffs.                                                                                     |
+| **Agent Execution Harness** | **TrueForge (`@truefoundry/trueforge` / `@truefoundry/trueforge-sdk`)** | Core execution harness; manages LLM turns, context lifecycle, MCP tool dispatching, and sandboxed execution.                                                                                                                                                   |
+| **Reasoning Engine (LLM)**  | **0x Alpha / DeepSeek R1 (via OpenRouter)**                             | Frontier coding model with 1M context window; provider-agnostic via OpenAI-compatible endpoint with 5-layer cached prompt structure.                                                                                                                           |
+| **Tool Execution Protocol** | **Model Context Protocol (MCP)**                                        | Real local filesystem reads/writes (`@modelcontextprotocol/server-filesystem`) and terminal runners (`node-pty` / bash).                                                                                                                                       |
+| **Local Device Vault**      | **`expo-secure-store`**                                                 | Hardware-backed encrypted keychain for BYOK API keys on the mobile device.                                                                                                                                                                                     |
+| **Code Quality & CI**       | **Qodo Gen + Qodo Merge (`pr-agent-action`) + Vitest**                  | Automated unit test generation, protocol verification, and automated GitHub PR code quality gatekeeping (>90% coverage target).                                                                                                                                |
+| **Monorepo**                | **`pnpm` Workspaces**                                                   | `apps/mobile`, `apps/web`, `apps/relay`, `apps/cli`, `apps/vscode-extension`, `packages/protocol`, `packages/bridge-core`.                                                                                                                                     |
 
 ---
 
@@ -34,13 +34,18 @@ The system enforces a strict separation between **Ephemeral Working Memory** (in
 
 ### Tier 2: Persistent Storage Memory (Developer PC Disk)
 
-1. **Local Session Store (`~/.agent-remote/sessions/` or TrueForge SQLite):**
+1. **Active Session Synchronization (`<workspace>/.agent-remote/session.json`):**
+   - Lightweight atomic JSON document recording the workspace's active 6-digit PIN, session ID, relay endpoint, active LLM model, and creation/update timestamps.
+   - **Participating Hosts:** Shared across CLI (`apps/cli`), VS Code Extension (`apps/vscode-extension`), Web pairing (`/pair`), and Mobile clients.
+   - **Lifecycle & Discovery:** When a developer boots the CLI, it generates a PIN and persists `session.json`. When VS Code opens the same project workspace, it discovers `session.json`, inherits the active PIN, and registers to the same Relay room without generating a conflicting PIN or evicting the CLI host.
+   - **Expiry & Cleanup:** Records have a 24-hour default TTL (`maxAgeMs: 86_400_000`). Cleared on `/clear`, session reset, or workspace switch.
+2. **Local Session Store (`~/.agent-remote/sessions/` or TrueForge SQLite):**
    - Full verbatim history of all user prompts, raw model reasoning, un-truncated tool logs, and diff checkpoints.
-2. **In-Memory Event Ring Buffer (`packages/bridge-core`):**
+3. **In-Memory Event Ring Buffer (`packages/bridge-core`):**
    - Circular buffer holding the last 500 event chunks tagged with monotonic `seq_id: 1..N` for instant mobile catch-up hydration upon reconnect.
-3. **Stateless Relay (Zero Database):**
-   - Relay persists zero tokens, zero diffs, and zero session data.
-4. **Mobile Stateless View:**
+4. **Stateless Relay (Zero Database):**
+   - Relay persists zero tokens, zero diffs, zero session data, and supports multi-host rooms mapped to the shared PIN.
+5. **Mobile Stateless View:**
    - Mobile client holds only in-memory view state, hydrated on demand from the PC daemon via `session:hydrate`.
 
 ---
@@ -71,7 +76,7 @@ To guarantee the local machine never experiences disk bloat or uncontrolled log 
 | **`apps/relay/src/`**                  | Socket.io server, IP rate limiter (3-attempt lockout), ephemeral room session store, and connection lifecycle handlers.                   |
 | **`apps/cli/src/`**                    | Terminal presentation & interactive REPL: compact boxen banner, pairing PIN/link display, stream rendering, and keyboard approval prompt. |
 | **`apps/vscode-extension/src/`**       | VS Code presentation: Activity Bar Chat Webview, Status Bar item, command registration, native diffs, and window modal approvals.         |
-| **`apps/web/src/`**                    | Next.js Landing Page, interactive terminal emulator, architecture diagrams, install script hosting, and web pairing client (`/pair`).    |
+| **`apps/web/src/`**                    | Next.js Landing Page, interactive terminal emulator, architecture diagrams, install script hosting, and web pairing client (`/pair`).     |
 | **`apps/mobile/src/screens/`**         | React Native screen views: PairingScreen, SessionScreen, SettingsScreen (BYOK).                                                           |
 | **`apps/mobile/src/components/`**      | TerminalFeed, DiffCard (color-coded unified diff), ApprovalDrawer, PromptInputBar.                                                        |
 | **`apps/mobile/src/services/`**        | Socket service, SecureStore vault helper, haptic triggers (`expo-haptics`), and audio alert handlers.                                     |

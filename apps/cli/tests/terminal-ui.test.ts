@@ -168,7 +168,8 @@ describe("Terminal UI Component Suite", () => {
         turnId: "turn_1",
         seqId: 11,
         toolName: "write_file",
-        commandOrDiff: "--- a/auth.ts\n+++ b/auth.ts\n@@ -1,3 +1,4 @@\n+import jwt from 'jsonwebtoken';",
+        commandOrDiff:
+          "--- a/auth.ts\n+++ b/auth.ts\n@@ -1,3 +1,4 @@\n+import jwt from 'jsonwebtoken';",
         riskLevel: "medium",
         timeoutMs: 180000,
         createdAt: Date.now(),

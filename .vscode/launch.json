@@ -11,9 +11,7 @@
         "--extensionDevelopmentPath=${workspaceFolder}/apps/vscode-extension",
         "${workspaceFolder}"
       ],
-      "outFiles": [
-        "${workspaceFolder}/apps/vscode-extension/dist/**/*.js"
-      ]
+      "outFiles": ["${workspaceFolder}/apps/vscode-extension/dist/**/*.js"]
     }
   ]
 }

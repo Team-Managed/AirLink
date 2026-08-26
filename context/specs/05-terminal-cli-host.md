@@ -66,4 +66,3 @@ Implement the standalone Node.js Terminal CLI host & interactive client in `apps
 - Submitting a prompt from mobile displays `[Remote @ Phone]` in terminal and streams tokens to both terminal and phone.
 - Terminal prompts `[y/N]` when an approval is requested and resolves cleanly on either surface.
 - `install.ps1` and `install.sh` install the CLI binary cleanly without elevation errors.
-

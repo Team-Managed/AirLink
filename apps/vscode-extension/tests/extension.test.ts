@@ -36,10 +36,10 @@ describe("VS Code Extension Suite", () => {
 
       expect(html).toContain("<!DOCTYPE html>");
       expect(html).toContain("Agent Remote Chat");
-      expect(html).toContain("id=\"header\"");
-      expect(html).toContain("id=\"messages\"");
-      expect(html).toContain("id=\"quick-actions\"");
-      expect(html).toContain("id=\"prompt-input\"");
+      expect(html).toContain('id="header"');
+      expect(html).toContain('id="messages"');
+      expect(html).toContain('id="quick-actions"');
+      expect(html).toContain('id="prompt-input"');
       expect(html).toContain("🐙 Create PR");
       expect(html).toContain("🧪 Run Tests");
       expect(html).toContain("🔍 Git Diff");
