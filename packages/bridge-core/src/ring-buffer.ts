@@ -2,20 +2,25 @@ import type { AgentStream } from "@agent-remote/protocol";
 
 /**
  * RingBuffer
- * In-memory circular buffer for real-time agent stream events.
+ * In-memory true circular ring buffer for real-time agent stream events.
  * Bounded strictly to maxCapacity (default 500 items) to guarantee zero disk bloat.
  * Governed by monotonic integer sequence IDs (seqId: 1..N) to resolve mobile reconnection drops.
+ * Employs O(1) circular head/tail indexing with zero array reallocation or shift overhead.
  */
 export class RingBuffer {
   private readonly _capacity: number;
-  private _events: AgentStream[] = [];
+  private readonly _buffer: (AgentStream | undefined)[];
+  private _head: number = 0; // Index of oldest element
+  private _tail: number = 0; // Index for next insertion
+  private _size: number = 0;
   private _currentSeq: number = 0;
 
   constructor(maxCapacity: number = 500) {
-    if (maxCapacity <= 0) {
+    if (!Number.isSafeInteger(maxCapacity) || maxCapacity <= 0) {
       throw new Error("RingBuffer capacity must be a positive integer");
     }
     this._capacity = maxCapacity;
+    this._buffer = new Array<AgentStream | undefined>(maxCapacity);
   }
 
   /**
@@ -29,7 +34,7 @@ export class RingBuffer {
    * Number of items currently retained in memory.
    */
   get size(): number {
-    return this._events.length;
+    return this._size;
   }
 
   /**
@@ -40,8 +45,8 @@ export class RingBuffer {
   }
 
   /**
-   * Appends an event to the buffer, automatically assigning the next monotonic sequence ID.
-   * If capacity is exceeded, the oldest item is evicted in FIFO order.
+   * Appends an event to the buffer in O(1) time, automatically assigning the next monotonic sequence ID.
+   * If capacity is reached, the oldest element is overwritten and the head pointer advances in O(1).
    */
   push(event: Omit<AgentStream, "seqId"> | AgentStream): AgentStream {
     this._currentSeq += 1;
@@ -57,10 +62,15 @@ export class RingBuffer {
       ...(event.metadata !== undefined ? { metadata: event.metadata } : {}),
     };
 
-    this._events.push(streamEvent);
-
-    if (this._events.length > this._capacity) {
-      this._events.shift();
+    if (this._size === this._capacity) {
+      // Overwrite oldest item at head and advance head
+      this._buffer[this._head] = streamEvent;
+      this._head = (this._head + 1) % this._capacity;
+      this._tail = this._head;
+    } else {
+      this._buffer[this._tail] = streamEvent;
+      this._tail = (this._tail + 1) % this._capacity;
+      this._size += 1;
     }
 
     return streamEvent;
@@ -71,25 +81,40 @@ export class RingBuffer {
    * Used for fast catch-up bursts when reconnecting after network drops.
    */
   getEventsSince(lastSeenSeq: number): AgentStream[] {
-    if (this._events.length === 0 || lastSeenSeq >= this._currentSeq) {
+    if (this._size === 0 || lastSeenSeq >= this._currentSeq) {
       return [];
     }
 
-    return this._events.filter((e) => e.seqId > lastSeenSeq);
+    return this.getAllEvents().filter((e) => e.seqId > lastSeenSeq);
   }
 
   /**
-   * Returns a shallow copy of all events currently stored in memory.
+   * Returns an array of all events currently stored in memory in chronological order.
    */
   getAllEvents(): AgentStream[] {
-    return [...this._events];
+    const result: AgentStream[] = new Array(this._size);
+    for (let i = 0; i < this._size; i++) {
+      const idx = (this._head + i) % this._capacity;
+      result[i] = this._buffer[idx]!;
+    }
+    return result;
   }
 
   /**
-   * Clears all buffered events and resets sequence counters.
+   * Clears all buffered events while preserving the session's monotonic sequence counter.
    */
   clear(): void {
-    this._events = [];
+    this._buffer.fill(undefined);
+    this._head = 0;
+    this._tail = 0;
+    this._size = 0;
+  }
+
+  /**
+   * Resets the entire buffer including the sequence counter (for new session lifecycle).
+   */
+  reset(): void {
+    this.clear();
     this._currentSeq = 0;
   }
 }

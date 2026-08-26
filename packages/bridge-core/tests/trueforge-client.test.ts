@@ -32,6 +32,7 @@ describe("TrueForgeClient (Agent Harness SDK Connector & Stream Lifecycle)", () 
     expect(session.defaultModel).toBe("0x-alpha");
     expect(session.sdk).toBeDefined();
     expect(client.sdk).toBeDefined();
+    expect(session.ringBuffer).toBeDefined();
     expect(session.byokConfig?.provider).toBe("openrouter");
     expect(session.byokConfig?.model).toBe("0x-alpha");
   });
@@ -40,13 +41,13 @@ describe("TrueForgeClient (Agent Harness SDK Connector & Stream Lifecycle)", () 
     const client = new TrueForgeClient();
     const session = client.createSession({ sessionId: "sess_stream_test" });
 
-    const chunks: Array<{ type: string; content: string }> = [];
+    const chunks: Array<{ type: string; content: string; seqId: number }> = [];
 
     for await (const event of session.executeTurn({
       prompt: "Explain the ring buffer algorithm",
       turnId: "turn_test_1",
     })) {
-      chunks.push({ type: event.type, content: event.content });
+      chunks.push({ type: event.type, content: event.content, seqId: event.seqId });
     }
 
     expect(chunks.length).toBeGreaterThan(0);
@@ -55,6 +56,43 @@ describe("TrueForgeClient (Agent Harness SDK Connector & Stream Lifecycle)", () 
     expect(types).toContain("thought");
     expect(types).toContain("token");
     expect(types).toContain("done");
+  });
+
+  it("maintains strictly monotonic sequence numbering across multiple turns in a session", async () => {
+    const client = new TrueForgeClient();
+    const session = client.createSession({ sessionId: "sess_monotonic_test" });
+
+    const turn1Events = [];
+    for await (const event of session.executeTurn({
+      prompt: "Turn 1 directive",
+      turnId: "turn_1",
+    })) {
+      turn1Events.push(event);
+    }
+
+    const turn2Events = [];
+    for await (const event of session.executeTurn({
+      prompt: "Turn 2 directive",
+      turnId: "turn_2",
+    })) {
+      turn2Events.push(event);
+    }
+
+    expect(turn1Events.length).toBeGreaterThan(0);
+    expect(turn2Events.length).toBeGreaterThan(0);
+
+    const turn1Seqs = turn1Events.map((e) => e.seqId);
+    const turn2Seqs = turn2Events.map((e) => e.seqId);
+
+    // Turn 1 starts at sequence 1
+    expect(turn1Seqs[0]).toBe(1);
+    // Turn 2 continues monotonically where Turn 1 left off
+    const lastTurn1Seq = turn1Seqs[turn1Seqs.length - 1]!;
+    expect(turn2Seqs[0]).toBe(lastTurn1Seq + 1);
+
+    // Ring buffer size should equal sum of events
+    expect(session.ringBuffer.size).toBe(turn1Events.length + turn2Events.length);
+    expect(session.ringBuffer.latestSeq).toBe(turn2Seqs[turn2Seqs.length - 1]);
   });
 
   it("propagates tool execution events during turn execution", async () => {

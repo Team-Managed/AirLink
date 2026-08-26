@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 15
     if: ${{ github.event.pull_request.draft == false }}
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
       issues: write
 
@@ -27,7 +27,6 @@ jobs:
 
       - name: Run Qodo Merge PR Agent
         uses: qodo-ai/pr-agent@main
-        continue-on-error: true
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_KEY || secrets.QODO_API_KEY }}
           GEMINI_KEY: ${{ secrets.GEMINI_KEY }}

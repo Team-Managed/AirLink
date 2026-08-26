@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { RingBuffer } from "../src/ring-buffer.js";
-import type { AgentStream } from "@agent-remote/protocol";
 
 describe("RingBuffer (In-Memory Event Queue & Reconnection Recovery)", () => {
   let ringBuffer: RingBuffer;
@@ -21,9 +20,17 @@ describe("RingBuffer (In-Memory Event Queue & Reconnection Recovery)", () => {
     expect(custom.capacity).toBe(10);
   });
 
-  it("throws on non-positive capacity", () => {
+  it("throws on invalid capacities (non-integers, NaN, Infinity, zero, negatives)", () => {
     expect(() => new RingBuffer(0)).toThrow("RingBuffer capacity must be a positive integer");
     expect(() => new RingBuffer(-5)).toThrow("RingBuffer capacity must be a positive integer");
+    expect(() => new RingBuffer(NaN)).toThrow("RingBuffer capacity must be a positive integer");
+    expect(() => new RingBuffer(Infinity)).toThrow(
+      "RingBuffer capacity must be a positive integer",
+    );
+    expect(() => new RingBuffer(-Infinity)).toThrow(
+      "RingBuffer capacity must be a positive integer",
+    );
+    expect(() => new RingBuffer(10.5)).toThrow("RingBuffer capacity must be a positive integer");
   });
 
   it("assigns strictly monotonic sequence numbers starting at 1", () => {
@@ -139,7 +146,7 @@ describe("RingBuffer (In-Memory Event Queue & Reconnection Recovery)", () => {
     expect(future).toEqual([]);
   });
 
-  it("clear() resets the buffer and sequence counters", () => {
+  it("clear() clears buffered events while preserving monotonic sequence counter", () => {
     ringBuffer.push({
       sessionId: "session_1",
       turnId: "turn_1",
@@ -148,18 +155,41 @@ describe("RingBuffer (In-Memory Event Queue & Reconnection Recovery)", () => {
       timestamp: Date.now(),
     });
     expect(ringBuffer.size).toBe(1);
+    expect(ringBuffer.latestSeq).toBe(1);
 
     ringBuffer.clear();
     expect(ringBuffer.size).toBe(0);
-    expect(ringBuffer.latestSeq).toBe(0);
+    expect(ringBuffer.latestSeq).toBe(1); // Preserves latest sequence to avoid reusing IDs
     expect(ringBuffer.getAllEvents()).toEqual([]);
 
-    // Next push after clear starts at 1
+    // Next push after clear continues monotonically at sequence 2
     const next = ringBuffer.push({
       sessionId: "session_1",
       turnId: "turn_2",
       type: "token",
-      content: "Fresh start",
+      content: "Next event",
+      timestamp: Date.now(),
+    });
+    expect(next.seqId).toBe(2);
+  });
+
+  it("reset() resets both events and sequence counter for new session lifecycle", () => {
+    ringBuffer.push({
+      sessionId: "session_1",
+      turnId: "turn_1",
+      type: "token",
+      content: "Hello",
+      timestamp: Date.now(),
+    });
+    ringBuffer.reset();
+    expect(ringBuffer.size).toBe(0);
+    expect(ringBuffer.latestSeq).toBe(0);
+
+    const next = ringBuffer.push({
+      sessionId: "session_2",
+      turnId: "turn_1",
+      type: "token",
+      content: "Fresh session",
       timestamp: Date.now(),
     });
     expect(next.seqId).toBe(1);

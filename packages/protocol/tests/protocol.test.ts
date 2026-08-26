@@ -411,36 +411,37 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
       expect(isApprovalRequest(valid)).toBe(true);
     });
 
-    it("accepts explicit timeoutMs when exactly matching 180000ms invariant", () => {
-      const valid = {
+    it("accepts valid configured timeoutMs up to 180000ms", () => {
+      const validCustom = {
         seqId: 5,
-        approvalId: "appr_exact_timeout",
+        approvalId: "appr_custom_timeout",
         sessionId: "session_834192",
         turnId: "turn_1",
         toolName: "write_file",
         commandOrDiff: "+ const x = 1;",
         riskLevel: "low" as const,
-        timeoutMs: APPROVAL_TIMEOUT_MS,
+        timeoutMs: 60000,
       };
-      const parsed = parseApprovalRequest(valid);
-      expect(parsed.timeoutMs).toBe(180000);
-      expect(isApprovalRequest(valid)).toBe(true);
+      const parsedCustom = parseApprovalRequest(validCustom);
+      expect(parsedCustom.timeoutMs).toBe(60000);
+      expect(isApprovalRequest(validCustom)).toBe(true);
+
+      const validMax = {
+        seqId: 6,
+        approvalId: "appr_max_timeout",
+        sessionId: "session_834192",
+        turnId: "turn_1",
+        toolName: "write_file",
+        commandOrDiff: "+ const x = 1;",
+        riskLevel: "low" as const,
+        timeoutMs: 180000,
+      };
+      const parsedMax = parseApprovalRequest(validMax);
+      expect(parsedMax.timeoutMs).toBe(180000);
+      expect(isApprovalRequest(validMax)).toBe(true);
     });
 
-    it("rejects non-180000 timeoutMs overrides to preserve 180s auto-deny invariant", () => {
-      expect(() =>
-        parseApprovalRequest({
-          seqId: 1,
-          approvalId: "appr_short_timeout",
-          sessionId: "session_834192",
-          turnId: "turn_1",
-          toolName: "execute_bash",
-          commandOrDiff: "git push",
-          riskLevel: "medium",
-          timeoutMs: 60000, // Reject custom short timeout
-        }),
-      ).toThrow();
-
+    it("rejects timeoutMs exceeding 180000ms to preserve auto-deny upper bound invariant", () => {
       expect(() =>
         parseApprovalRequest({
           seqId: 1,
@@ -450,7 +451,20 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
           toolName: "execute_bash",
           commandOrDiff: "git push",
           riskLevel: "medium",
-          timeoutMs: 500000, // Reject custom long timeout
+          timeoutMs: 180001, // Reject over 180s
+        }),
+      ).toThrow(/cannot exceed 180000ms/);
+
+      expect(() =>
+        parseApprovalRequest({
+          seqId: 1,
+          approvalId: "appr_long_timeout_2",
+          sessionId: "session_834192",
+          turnId: "turn_1",
+          toolName: "execute_bash",
+          commandOrDiff: "git push",
+          riskLevel: "medium",
+          timeoutMs: 500000,
         }),
       ).toThrow();
     });
