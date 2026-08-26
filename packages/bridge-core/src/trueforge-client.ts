@@ -1,8 +1,5 @@
 import { TrueForge as TrueForgeSDK } from "@truefoundry/trueforge-sdk";
-import type {
-  BYOKConfig,
-  AgentStream,
-} from "@agent-remote/protocol";
+import type { BYOKConfig, AgentStream } from "@agent-remote/protocol";
 
 export interface TrueForgeClientOptions {
   endpoint?: string | undefined;
@@ -40,12 +37,7 @@ export class TrueForgeSession {
   private readonly _defaultModel: string;
   private readonly _sdk: TrueForgeSDK;
 
-  constructor(
-    options: SessionOptions,
-    endpoint: string,
-    defaultModel: string,
-    sdk: TrueForgeSDK
-  ) {
+  constructor(options: SessionOptions, endpoint: string, defaultModel: string, sdk: TrueForgeSDK) {
     this.sessionId = options.sessionId;
     this.workspacePath = options.workspacePath || process.cwd();
     this.byokConfig = options.byokConfig;
@@ -159,11 +151,6 @@ export class TrueForgeClient {
    * Spawns a new session instance.
    */
   createSession(options: SessionOptions): TrueForgeSession {
-    return new TrueForgeSession(
-      options,
-      this.endpoint,
-      this.defaultModel,
-      this.sdk
-    );
+    return new TrueForgeSession(options, this.endpoint, this.defaultModel, this.sdk);
   }
 }

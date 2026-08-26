@@ -7,7 +7,7 @@ Provide a concise summary of the changes introduced in this pull request and the
 ## Related Context
 
 - Spec Reference: `context/specs/`
-- Issue / Tracking: 
+- Issue / Tracking:
 
 ---
 
@@ -24,13 +24,14 @@ Provide a concise summary of the changes introduced in this pull request and the
 
 ## Key Changes
 
-- 
+-
 
 ---
 
 ## Verification and Testing
 
 ### Automated Tests
+
 - Command: `pnpm test`
 - Coverage: `pnpm test:coverage`
 
@@ -39,6 +40,7 @@ Provide a concise summary of the changes introduced in this pull request and the
 ```
 
 ### Static Analysis and Hygiene
+
 - [ ] Type check passed (`pnpm typecheck`)
 - [ ] Code standards and suppression check passed (`pnpm check:suppressions`)
 - [ ] Monorepo build passed (`pnpm build`)

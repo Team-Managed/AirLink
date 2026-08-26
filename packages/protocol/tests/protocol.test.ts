@@ -134,21 +134,21 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
           pin: "12345",
           hostName: "Host",
           workspacePath: "/app",
-        })
+        }),
       ).toThrow();
       expect(() =>
         parseRegisterHost({
           pin: "1234567",
           hostName: "Host",
           workspacePath: "/app",
-        })
+        }),
       ).toThrow();
       expect(() =>
         parseRegisterHost({
           pin: "",
           hostName: "Host",
           workspacePath: "/app",
-        })
+        }),
       ).toThrow();
       expect(isRegisterHost({ pin: "123" })).toBe(false);
     });
@@ -159,14 +159,14 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
           pin: "123456",
           hostName: "",
           workspacePath: "/app",
-        })
+        }),
       ).toThrow();
       expect(() =>
         parseRegisterHost({
           pin: "123456",
           hostName: "Host",
           workspacePath: "",
-        })
+        }),
       ).toThrow();
     });
   });
@@ -277,13 +277,13 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
         parseClientPrompt({
           sessionId: "session_834192",
           prompt: "",
-        })
+        }),
       ).toThrow();
       expect(() =>
         parseClientPrompt({
           sessionId: "",
           prompt: "Hello",
-        })
+        }),
       ).toThrow();
       expect(isClientPrompt({ prompt: "" })).toBe(false);
     });
@@ -353,7 +353,7 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
           turnId: "turn_1",
           type: "token",
           content: "Hello",
-        })
+        }),
       ).toThrow();
 
       expect(() =>
@@ -363,7 +363,7 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
           turnId: "turn_1",
           type: "token",
           content: "Hello",
-        })
+        }),
       ).toThrow();
 
       expect(() =>
@@ -373,7 +373,7 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
           turnId: "turn_1",
           type: "token",
           content: "Hello",
-        })
+        }),
       ).toThrow();
 
       expect(isAgentStream({ seqId: 0 })).toBe(false);
@@ -440,7 +440,7 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
           toolName: "execute_bash",
           commandOrDiff: "git push",
           riskLevel: "critical",
-        })
+        }),
       ).toThrow();
       expect(isApprovalRequest({ riskLevel: "critical" })).toBe(false);
     });
@@ -456,7 +456,7 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
           commandOrDiff: "git push",
           riskLevel: "medium",
           timeoutMs: 0,
-        })
+        }),
       ).toThrow();
 
       expect(() =>
@@ -469,7 +469,7 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
           commandOrDiff: "git push",
           riskLevel: "medium",
           timeoutMs: -5000,
-        })
+        }),
       ).toThrow();
     });
   });
@@ -513,7 +513,7 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
           approvalId: "appr_1",
           sessionId: "session_834192",
           approved: "yes",
-        })
+        }),
       ).toThrow();
       expect(isApprovalResponse({ approved: "yes" })).toBe(false);
     });
@@ -547,7 +547,7 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
         parseClientSync({
           sessionId: "session_834192",
           lastSeenSeq: -1,
-        })
+        }),
       ).toThrow();
       expect(isClientSync({ lastSeenSeq: -1 })).toBe(false);
     });
@@ -557,7 +557,7 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
         parseClientSync({
           sessionId: "session_834192",
           lastSeenSeq: 12.34,
-        })
+        }),
       ).toThrow();
     });
   });

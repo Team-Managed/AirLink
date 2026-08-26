@@ -33,7 +33,7 @@ jobs:
             echo "✅ PR from 'dev' to 'main' is permitted."
             exit 0
           fi
-          PATTERN="^(feat|fix|chore|docs|refactor|ci|test|hotfix|release)/.+"
+          PATTERN="^(feat|fix|chore|docs|refactor|ci|test|hotfix|release|dependabot)/.+"
           if [[ "$BRANCH" =~ $PATTERN ]]; then
             echo "✅ Branch name '$BRANCH' follows naming conventions."
           else

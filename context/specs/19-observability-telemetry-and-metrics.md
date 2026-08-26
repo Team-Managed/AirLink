@@ -4,6 +4,7 @@ Also read `01-monorepo-and-protocol-contracts.md`, `02-bridge-core-and-ring-buff
 Implement the structured JSON telemetry pipeline, correlation ID propagation (`sessionId`, `turnId`, `seqId`), RED/USE metrics collection, health endpoints, and secret redaction across all services following the `observability-and-instrumentation` standard.
 
 ## Implementation
+
 1. Create Shared Telemetry Logger (`packages/bridge-core/src/telemetry/logger.ts`):
    - Implement a zero-dependency structured JSON logger with log levels: `debug`, `info`, `warn`, `error`.
    - Ensure every log event emits a single-line JSON object with standardized top-level keys:
@@ -31,17 +32,20 @@ Implement the structured JSON telemetry pipeline, correlation ID propagation (`s
    - Test that metrics correctly calculate buffer utilization and turn latency histograms.
 
 ## Scope Limits
+
 - Do not log raw API keys, session tokens, or unredacted passwords in any telemetry line.
 - Do not use string interpolation or prose for log output (`console.log("user did X")` is banned).
 - Do not use high-cardinality values (e.g. user prompt text, full diff content) as metric label keys.
 - Do not send telemetry to third-party tracking services that sell developer data.
 
 ## Notes
+
 - Structured logs with correlation IDs enable instantaneous debugging of network drops, pairing failures, and approval timeouts.
 - RED/USE metrics provide clear visibility into system health without logging sensitive code diffs.
 - Depends on: 00, 01, 02, 04. Required before: 16.
 
 ## Check When Done
+
 - All services emit structured JSON logs with stable event names and correlation IDs.
 - Secret redaction reliably sanitizes sensitive tokens before logging.
 - `GET /health` on the Relay server returns active metrics and room counts.

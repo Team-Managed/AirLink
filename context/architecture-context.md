@@ -2,20 +2,20 @@
 
 ## 1. Stack & Deployables
 
-| Layer | Technology | Role |
-| :--- | :--- | :--- |
-| **Mobile Client** | **React Native (Expo SDK 51+) + TypeScript** | Cross-platform control UI (Android, iOS), pairing screens, virtualized feeds, diff viewers, and bottom-sheet drawers. |
-| **Web Landing & Client** | **Next.js (App Router) / React 19 + TypeScript (`apps/web`)** | Dark developer landing page (`#090d16`), interactive terminal emulator, architecture showcase, and browser-based remote `/pair` client. |
-| **Relay Server** | **Node.js 22+ (LTS) / TypeScript + Socket.io (`apps/relay`)** | Cloud message bridge; manages ephemeral PIN-paired rooms, IP rate limiting (max 3 failed PINs), and zero-retention event routing. Deployed via Docker on Fly.io / Railway. |
-| **Bridge Engine Core** | **Shared TypeScript Package (`packages/bridge-core`)** | Decoupled core engine: Socket.io tunnel, TrueForge SDK connector, event ring buffer (`seq_id`), approval Promise map, and Slack/Discord webhook notifiers. |
-| **Terminal Host** | **Node.js CLI (`apps/cli`)** | Headless CLI wrapper around `bridge-core`; prints chalk boxen banner, ASCII QR, and handles interactive readline `[y/N]` approvals. Distributed via npm (`npx @agent-remote/cli`). |
-| **IDE Host** | **VS Code Extension (`apps/vscode-extension`)** | IDE wrapper around `bridge-core`; Status Bar PIN display (`$(radio-tower)`), native warning notifications, and editor diffs. |
-| **Agent Execution Harness** | **TrueForge (`@truefoundry/trueforge` / `@truefoundry/trueforge-sdk`)** | Core execution harness; manages LLM turns, context lifecycle, MCP tool dispatching, and sandboxed execution. |
-| **Reasoning Engine (LLM)** | **0x Alpha / DeepSeek R1 (via OpenRouter)** | Frontier coding model with 1M context window; provider-agnostic via OpenAI-compatible endpoint with 5-layer cached prompt structure. |
-| **Tool Execution Protocol** | **Model Context Protocol (MCP)** | Real local filesystem reads/writes (`@modelcontextprotocol/server-filesystem`) and terminal runners (`node-pty` / bash). |
-| **Local Device Vault** | **`expo-secure-store`** | Hardware-backed encrypted keychain for BYOK API keys on the mobile device. |
-| **Code Quality & CI** | **Qodo Gen + Qodo Merge (`pr-agent-action`) + Vitest** | Automated unit test generation, protocol verification, and automated GitHub PR code quality gatekeeping (>90% coverage target). |
-| **Monorepo** | **`pnpm` Workspaces** | `apps/mobile`, `apps/web`, `apps/relay`, `apps/cli`, `apps/vscode-extension`, `packages/protocol`, `packages/bridge-core`. |
+| Layer                       | Technology                                                              | Role                                                                                                                                                                               |
+| :-------------------------- | :---------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mobile Client**           | **React Native (Expo SDK 51+) + TypeScript**                            | Cross-platform control UI (Android, iOS), pairing screens, virtualized feeds, diff viewers, and bottom-sheet drawers.                                                              |
+| **Web Landing & Client**    | **Next.js (App Router) / React 19 + TypeScript (`apps/web`)**           | Dark developer landing page (`#090d16`), interactive terminal emulator, architecture showcase, and browser-based remote `/pair` client.                                            |
+| **Relay Server**            | **Node.js 22+ (LTS) / TypeScript + Socket.io (`apps/relay`)**           | Cloud message bridge; manages ephemeral PIN-paired rooms, IP rate limiting (max 3 failed PINs), and zero-retention event routing. Deployed via Docker on Fly.io / Railway.         |
+| **Bridge Engine Core**      | **Shared TypeScript Package (`packages/bridge-core`)**                  | Decoupled core engine: Socket.io tunnel, TrueForge SDK connector, event ring buffer (`seq_id`), approval Promise map, and Slack/Discord webhook notifiers.                         |
+| **Terminal Host**           | **Node.js CLI (`apps/cli`)**                                            | Headless CLI wrapper around `bridge-core`; prints chalk boxen banner, ASCII QR, and handles interactive readline `[y/N]` approvals. Distributed via npm (`npx @agent-remote/cli`). |
+| **IDE Host**                | **VS Code Extension (`apps/vscode-extension`)**                         | IDE wrapper around `bridge-core`; Status Bar PIN display (`$(radio-tower)`), native warning notifications, and editor diffs.                                                       |
+| **Agent Execution Harness** | **TrueForge (`@truefoundry/trueforge` / `@truefoundry/trueforge-sdk`)** | Core execution harness; manages LLM turns, context lifecycle, MCP tool dispatching, and sandboxed execution.                                                                       |
+| **Reasoning Engine (LLM)**  | **0x Alpha / DeepSeek R1 (via OpenRouter)**                             | Frontier coding model with 1M context window; provider-agnostic via OpenAI-compatible endpoint with 5-layer cached prompt structure.                                               |
+| **Tool Execution Protocol** | **Model Context Protocol (MCP)**                                        | Real local filesystem reads/writes (`@modelcontextprotocol/server-filesystem`) and terminal runners (`node-pty` / bash).                                                           |
+| **Local Device Vault**      | **`expo-secure-store`**                                                 | Hardware-backed encrypted keychain for BYOK API keys on the mobile device.                                                                                                         |
+| **Code Quality & CI**       | **Qodo Gen + Qodo Merge (`pr-agent-action`) + Vitest**                  | Automated unit test generation, protocol verification, and automated GitHub PR code quality gatekeeping (>90% coverage target).                                                    |
+| **Monorepo**                | **`pnpm` Workspaces**                                                   | `apps/mobile`, `apps/web`, `apps/relay`, `apps/cli`, `apps/vscode-extension`, `packages/protocol`, `packages/bridge-core`.                                                         |
 
 ---
 
@@ -24,6 +24,7 @@
 The system enforces a strict separation between **Ephemeral Working Memory** (in-context LLM window) and **Persistent Storage Memory** (local disk):
 
 ### Tier 1: Ephemeral Working Memory (In-Context Window)
+
 1. **Static Prefix Prompt Caching (Layers 1-3):**
    - Layer 1 (System Role), Layer 2 (Few-Shot Examples), and Layer 3 (MCP Tool Zod Schemas) remain static and byte-identical across all turns to leverage LLM provider prompt caching.
 2. **Tool Output Windowing:**
@@ -32,6 +33,7 @@ The system enforces a strict separation between **Ephemeral Working Memory** (in
    - Maintains the last 10 turns in full fidelity; older turns are compacted into a structured session summary.
 
 ### Tier 2: Persistent Storage Memory (Developer PC Disk)
+
 1. **Local Session Store (`~/.agent-remote/sessions/` or TrueForge SQLite):**
    - Full verbatim history of all user prompts, raw model reasoning, un-truncated tool logs, and diff checkpoints.
 2. **In-Memory Event Ring Buffer (`packages/bridge-core`):**
@@ -62,17 +64,17 @@ To guarantee the local machine never experiences disk bloat or uncontrolled log 
 
 ## 4. System Boundaries & Ownership
 
-| Boundary | Owns |
-| :--- | :--- |
-| **`packages/protocol/src/contracts/`** | All shared Zod schemas and inferred TypeScript types (`AgentStreamPayload`, `ApprovalRequestPayload`, `BYOKConfig`, etc.). |
-| **`packages/bridge-core/src/`** | Core tunnel management, TrueForge SDK binding, event ring buffer, context pruner, approval Promise resolvers, and Slack/Discord webhooks. |
-| **`apps/relay/src/`** | Socket.io server, IP rate limiter (3-attempt lockout), ephemeral room session store, and connection lifecycle handlers. |
-| **`apps/cli/src/`** | Terminal presentation layer: chalk boxen formatting, ASCII QR generator, and readline terminal approval prompt. |
-| **`apps/vscode-extension/src/`** | VS Code presentation layer: Status Bar item, command registration, and native window warning approvals. |
-| **`apps/web/src/`** | Next.js Landing Page, interactive terminal emulator, architecture diagrams, and web pairing client (`/pair`). |
-| **`apps/mobile/src/screens/`** | React Native screen views: PairingScreen, SessionScreen, SettingsScreen (BYOK). |
-| **`apps/mobile/src/components/`** | TerminalFeed, DiffCard (color-coded unified diff), ApprovalDrawer, PromptInputBar. |
-| **`apps/mobile/src/services/`** | Socket service, SecureStore vault helper, haptic triggers (`expo-haptics`), and audio alert handlers. |
+| Boundary                               | Owns                                                                                                                                      |
+| :------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
+| **`packages/protocol/src/contracts/`** | All shared Zod schemas and inferred TypeScript types (`AgentStreamPayload`, `ApprovalRequestPayload`, `BYOKConfig`, etc.).                |
+| **`packages/bridge-core/src/`**        | Core tunnel management, TrueForge SDK binding, event ring buffer, context pruner, approval Promise resolvers, and Slack/Discord webhooks. |
+| **`apps/relay/src/`**                  | Socket.io server, IP rate limiter (3-attempt lockout), ephemeral room session store, and connection lifecycle handlers.                   |
+| **`apps/cli/src/`**                    | Terminal presentation layer: chalk boxen formatting, ASCII QR generator, and readline terminal approval prompt.                           |
+| **`apps/vscode-extension/src/`**       | VS Code presentation layer: Status Bar item, command registration, and native window warning approvals.                                   |
+| **`apps/web/src/`**                    | Next.js Landing Page, interactive terminal emulator, architecture diagrams, and web pairing client (`/pair`).                             |
+| **`apps/mobile/src/screens/`**         | React Native screen views: PairingScreen, SessionScreen, SettingsScreen (BYOK).                                                           |
+| **`apps/mobile/src/components/`**      | TerminalFeed, DiffCard (color-coded unified diff), ApprovalDrawer, PromptInputBar.                                                        |
+| **`apps/mobile/src/services/`**        | Socket service, SecureStore vault helper, haptic triggers (`expo-haptics`), and audio alert handlers.                                     |
 
 ---
 

@@ -4,6 +4,7 @@ Also read `01-monorepo-and-protocol-contracts.md` and `02-bridge-core-and-ring-b
 Implement the approval Promise resolver map, 180s auto-deny timeout state machine, and dual-surface coordination inside `packages/bridge-core`.
 
 ## Implementation
+
 1. Create `packages/bridge-core/src/approval-handler.ts`:
    - Implement `ApprovalManager` class maintaining an in-memory Map of active approval IDs to Promise resolvers, timer handles, creation timestamps, and timeout durations.
    - Implement `requestApproval()` method:
@@ -28,17 +29,20 @@ Implement the approval Promise resolver map, 180s auto-deny timeout state machin
    - Test that calling `cancelAll()` resolves all pending promises to `false`.
 
 ## Scope Limits
+
 - Do not hardcode mock responses in production paths.
 - Do not throw unhandled promise rejection errors on timeout.
 - Do not permit an approval window longer than 180 seconds without explicit user configuration.
 - Do not let a single hung tool action block subsequent user prompts indefinitely.
 
 ## Notes
+
 - Dual-surface coordination ensures that an approval can be resolved from either the mobile app or the local PC terminal without race conditions.
 - Auto-denial on timeout prevents orphaned child processes on the host workstation.
 - Depends on: 00, 01, 02. Required before: 05, 06.
 
 ## Check When Done
+
 - Approvals resolve synchronously when an approval response arrives.
 - Approvals auto-deny cleanly when timers expire without unhandled rejections.
 - Unit tests pass with `pnpm --filter @agent-remote/bridge-core test`.

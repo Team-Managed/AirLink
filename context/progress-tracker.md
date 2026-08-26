@@ -3,6 +3,7 @@
 ## Current Phase: Phase 3 (Monorepo Scaffolding & Incremental Implementation)
 
 ### Completed Work
+
 - [x] Cloned empty repository at `agent-harness`
 - [x] Defined product scope, hackathon tracks, and core invariants in `context/project-overview.md`
 - [x] Documented Dual-Memory Model & Local Anti-Bloat Policy in `context/architecture-context.md`
@@ -18,6 +19,7 @@
 - [x] **Unit 18:** Qodo PR Playbook & Track Alignment Playbook (`context/specs/18-qodo-pr-playbook-and-track-alignment.md`, `.github/pull_request_template.md`)
 
 ### Implementation Units Index
+
 - [x] **Unit 01:** Monorepo Workspace & Protocol Contracts (`packages/protocol`)
 - [x] **Unit 02:** Bridge Core Engine & Ring Buffer (`packages/bridge-core`)
 - [ ] **Unit 03:** Approval State Machine & Timeouts (`packages/bridge-core`)
