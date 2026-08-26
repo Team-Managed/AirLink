@@ -84,7 +84,7 @@ export function detectFreeProvider(): ProviderConfig {
       provider: "gemini",
       model: process.env["AGENT_MODEL"] || "gemini-2.0-flash",
       apiKey: process.env["GEMINI_API_KEY"],
-      baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
       isFree: true,
     };
   }
@@ -127,7 +127,7 @@ export function detectFreeProvider(): ProviderConfig {
 
 /**
  * LLMRunner
- * Streams real tokens and reasoning thoughts from 100% free providers (Groq, Gemini, OpenRouter Free, GitHub Models, Ollama).
+ * Streams real tokens and reasoning thoughts from providers.
  */
 export class LLMRunner {
   private _config: ProviderConfig;
@@ -143,8 +143,34 @@ export class LLMRunner {
     return this._config;
   }
 
-  public setModel(model: string): void {
-    this._config.model = model;
+  /**
+   * Dynamically switches active model or provider configuration.
+   */
+  setModel(modelName: string): void {
+    const isKnownProvider = Object.values(FREE_MODELS).some((list) =>
+      list.includes(modelName as never),
+    );
+
+    if (isKnownProvider) {
+      if (FREE_MODELS.groq.includes(modelName as never)) {
+        this._config.provider = "groq";
+        this._config.baseUrl = "https://api.groq.com/openai/v1";
+      } else if (FREE_MODELS.gemini.includes(modelName as never)) {
+        this._config.provider = "gemini";
+        this._config.baseUrl = "https://generativelanguage.googleapis.com/v1beta/openai";
+      } else if (FREE_MODELS.openrouter_free.includes(modelName as never)) {
+        this._config.provider = "openrouter_free";
+        this._config.baseUrl = "https://openrouter.ai/api/v1";
+      } else if (FREE_MODELS.github_models.includes(modelName as never)) {
+        this._config.provider = "github_models";
+        this._config.baseUrl = "https://models.inference.ai.azure.com";
+      } else if (FREE_MODELS.ollama.includes(modelName as never)) {
+        this._config.provider = "ollama";
+        this._config.baseUrl = "http://localhost:11434/v1";
+      }
+    }
+
+    this._config.model = modelName;
   }
 
   public setProvider(provider: FreeProvider, apiKey?: string, baseUrl?: string): void {
@@ -166,12 +192,7 @@ export class LLMRunner {
       return;
     }
 
-    if (provider === "gemini") {
-      yield* this._streamGemini(params.messages, model, apiKey);
-      return;
-    }
-
-    // OpenAI-compatible endpoint for Groq, OpenRouter, GitHub Models, and Ollama
+    // Standard OpenAI-compatible SSE streaming (Gemini, Groq, OpenRouter, GitHub Models, Ollama)
     yield* this._streamOpenAICompatible(provider, params.messages, model, apiKey, this._config.baseUrl);
   }
 
@@ -290,85 +311,6 @@ export class LLMRunner {
           } catch {
             // Partial JSON chunk, continue
           }
-        }
-      }
-    }
-  }
-
-  /**
-   * Google Gemini SSE streaming implementation.
-   */
-  private async *_streamGemini(
-    messages: ChatMessageParam[],
-    model: string,
-    apiKey?: string,
-  ): AsyncIterable<StreamEventChunk> {
-    const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey || ""}`;
-
-    const contents = messages
-      .filter((m) => m.role !== "system")
-      .map((m) => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
-      }));
-
-    const systemInstruction = messages.find((m) => m.role === "system");
-
-    const payload: {
-      contents: typeof contents;
-      systemInstruction?: { parts: Array<{ text: string }> };
-    } = { contents };
-
-    if (systemInstruction) {
-      payload.systemInstruction = { parts: [{ text: systemInstruction.content }] };
-    }
-
-    const response = await fetch(baseUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Google Gemini error (${response.status}): ${errText}`);
-    }
-
-    if (!response.body) {
-      throw new Error("Google Gemini returned empty response stream");
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-    let buffer = "";
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || !trimmed.startsWith("data: ")) continue;
-
-        try {
-          const json = JSON.parse(trimmed.slice(6)) as {
-            candidates?: Array<{
-              content?: {
-                parts?: Array<{ text?: string }>;
-              };
-            }>;
-          };
-
-          const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) {
-            yield { type: "token", text };
-          }
-        } catch {
-          // continue
         }
       }
     }
