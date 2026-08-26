@@ -1,0 +1,34 @@
+# Qodo Merge PR Agent Configuration
+# Documentation: https://qodo-merge-docs.qodo.ai/
+
+[pr_reviewer]
+require_score_review = true
+require_tests_review = true
+require_security_review = true
+require_estimate_effort_to_review = true
+num_code_suggestions = 4
+inline_code_comments = true
+extra_instructions = """
+You are the senior code quality reviewer for the Remote Agent Harness monorepo.
+Strictly enforce the following architectural invariants:
+1. Zero Mocking Invariant: Ensure tests exercise real code paths rather than returning hardcoded dummy literals.
+2. 180s Approval Timeout: Verify that all approval Promise state machines are protected with a 180s timeout that auto-denies unresponded actions.
+3. Single Contract Source: Verify that event schemas and inferred types reside exclusively in `@agent-remote/protocol`.
+4. Secret Redaction: Verify that no API keys, private tokens, or credentials are leaked in unmasked logs or WebSocket payloads.
+5. In-Memory Ring Buffer: Verify that stream events are bounded to 500 items in RAM without unbounded disk log accumulation.
+6. 5-Layer Prompt Caching: Verify that Layers 1-3 of LLM prompt builders remain byte-identical across turns.
+7. No Unapproved Suppressions: Flag any `@ts-ignore`, `eslint-disable`, or `as any` casting lacking `// APPROVED-SUPPRESSION: <reason>`.
+"""
+
+[pr_description]
+publish_description_as_comment = true
+enable_semantic_files_types = true
+add_custom_labels = true
+
+[pr_code_suggestions]
+num_code_suggestions = 4
+focus_only_on_problems = true
+
+[pr_test]
+enable_auto_detect_framework = true
+testing_framework = "vitest"

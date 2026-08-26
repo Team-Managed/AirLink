@@ -1,0 +1,27 @@
+{
+  "name": "agent-remote-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-Source Coding Agent Universal Remote Control",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "lint": "pnpm -r run lint",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "check:suppressions": "node scripts/check-suppressions.mjs",
+    "dev:relay": "pnpm --filter @agent-remote/relay dev",
+    "dev:cli": "pnpm --filter @agent-remote/cli dev",
+    "dev:mobile": "pnpm --filter @agent-remote/mobile start",
+    "dev:web": "pnpm --filter @agent-remote/web dev"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5",
+    "@vitest/coverage-v8": "^2.0.5"
+  },
+  "packageManager": "pnpm@9.7.0"
+}

@@ -1,0 +1,40 @@
+# CODEOWNERS for Remote Agent Harness
+# Defines individuals or teams responsible for code review and governance in this repository.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default global ownership for everything in the repository
+* @tyraakj @kunalshah017
+
+# 1. CI/CD Workflows, GitHub Actions & Quality Automation
+/.github/ @tyraakj @kunalshah017
+/.github/workflows/ @tyraakj @kunalshah017
+
+# 2. Shared Packages & Protocols
+/packages/protocol/ @tyraakj @kunalshah017
+/packages/bridge-core/ @tyraakj @kunalshah017
+
+# 3. Host Presentation Surfaces (PC Workstation)
+/apps/cli/ @tyraakj @kunalshah017
+/apps/vscode-extension/ @tyraakj @kunalshah017
+
+# 4. Cloud Relay Service (Stateless Bridge)
+/apps/relay/ @tyraakj @kunalshah017
+
+# 5. Mobile & Web Presentation Clients
+/apps/mobile/ @tyraakj @kunalshah017
+/apps/web/ @tyraakj @kunalshah017
+
+# 6. Infrastructure, Docker & Deployment Configs
+/infra/ @tyraakj @kunalshah017
+/docker-compose.yml @tyraakj @kunalshah017
+
+# 7. Architecture, UI Context, Specs & Progress Tracking
+/context/ @tyraakj @kunalshah017
+/context/specs/ @tyraakj @kunalshah017
+
+# 8. Governance, Quality Hooks & Build Scripts
+/scripts/ @tyraakj @kunalshah017
+/.pr_agent.toml @tyraakj @kunalshah017
+/pnpm-workspace.yaml @tyraakj @kunalshah017
+/package.json @tyraakj @kunalshah017
+/tsconfig.base.json @tyraakj @kunalshah017

@@ -1,0 +1,36 @@
+name: Qodo Merge PR Agent
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+  issue_comment:
+    types: [created, edited]
+
+concurrency:
+  group: qodo-merge-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  qodo_merge:
+    name: Qodo Merge AI Review
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.draft == false }}
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Qodo Merge PR Agent
+        uses: qodo-ai/pr-agent-action@v0.22
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY || secrets.QODO_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CONFIG.AUTO_REVIEW: "true"
+          CONFIG.AUTO_DESCRIBE: "true"
+          CONFIG.AUTO_IMPROVE: "true"
+          PR_REVIEWER.REQUIRE_ALL_THRESHOLD_FOR_COMPLIANCE: "true"
+          PR_REVIEWER.EXTRA_INSTRUCTIONS: "Enforce strict Zod schema validation, 180s approval timeout state machines, zero-mocking invariants, secret redaction, and 5-layer cached prompt structure."
