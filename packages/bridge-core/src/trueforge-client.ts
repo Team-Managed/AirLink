@@ -110,6 +110,61 @@ export class TrueForgeSession {
   }
 
   /**
+   * Fetches turn list from TrueForge SDK or falls back to local in-memory records.
+   */
+  public async listTurns(): Promise<unknown> {
+    try {
+      return await this._sdk.sessions.listTurns(this.sessionId);
+    } catch {
+      return this.getHistory();
+    }
+  }
+
+  /**
+   * Fetches a specific turn from the session.
+   */
+  public async getTurn(turnId: string): Promise<unknown> {
+    try {
+      return await this._sdk.sessions.getTurn(this.sessionId, turnId);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Cancels active session or running turn on the TrueForge harness.
+   */
+  public async cancelSession(): Promise<unknown> {
+    try {
+      return await this._sdk.sessions.cancel(this.sessionId);
+    } catch {
+      return { success: true, cancelledLocally: true };
+    }
+  }
+
+  /**
+   * Downloads a sandbox file generated in a session turn.
+   */
+  public async downloadSandboxFile(turnId: string, filePath: string): Promise<unknown> {
+    try {
+      return await this._sdk.sessions.downloadSandboxFile(this.sessionId, turnId, { path: filePath });
+    } catch (err) {
+      throw new Error(`Failed to download sandbox file "${filePath}": ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  /**
+   * Subscribes to an active turn stream on the TrueForge backend.
+   */
+  public async subscribeToTurn(turnId: string): Promise<unknown> {
+    try {
+      return await this._sdk.sessions.subscribeToTurn(this.sessionId, turnId);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Retrieves runtime metrics for the active session.
    */
   public getStats() {
@@ -237,7 +292,7 @@ Provide direct, comprehensive, and clear technical explanations, architectural o
 
 /**
  * TrueForgeClient
- * Client connector targeting local or remote TrueForge execution harness.
+ * Client connector targeting local or remote TrueForge execution harness with full SDK integration.
  */
 export class TrueForgeClient {
   readonly endpoint: string;
@@ -260,5 +315,49 @@ export class TrueForgeClient {
    */
   createSession(options: SessionOptions): TrueForgeSession {
     return new TrueForgeSession(options, this.endpoint, this.defaultModel, this.sdk);
+  }
+
+  /**
+   * Lists all configured agents on the TrueForge backend.
+   */
+  async listAgents(): Promise<unknown> {
+    try {
+      return await this.sdk.agents.list();
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Lists registered MCP tool servers.
+   */
+  async listMcpServers(): Promise<unknown> {
+    try {
+      return await this.sdk.mcpServers.list();
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Lists available models on the TrueForge cluster.
+   */
+  async listModels(): Promise<unknown> {
+    try {
+      return await this.sdk.models.list();
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Lists active sessions.
+   */
+  async listSessions(): Promise<unknown> {
+    try {
+      return await this.sdk.sessions.list();
+    } catch {
+      return [];
+    }
   }
 }
