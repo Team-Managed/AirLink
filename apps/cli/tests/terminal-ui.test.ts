@@ -4,6 +4,10 @@ import {
   formatBootBannerText,
   formatStreamChunkText,
   formatApprovalText,
+  formatDiffText,
+  formatStatsText,
+  formatHistoryText,
+  formatAvailableModelsList,
 } from "../src/terminal-ui.js";
 import type { AgentStream, ApprovalRequest } from "@agent-remote/protocol";
 
@@ -174,6 +178,61 @@ describe("Terminal UI Component Suite", () => {
       expect(text).toContain("write_file");
       expect(text).toContain("MEDIUM");
       expect(text).toContain("+import jwt from 'jsonwebtoken';");
+    });
+  });
+
+  describe("formatDiffText", () => {
+    it("highlights added, removed, and hunk header lines in git diff", () => {
+      const diff = "--- a/index.ts\n+++ b/index.ts\n@@ -1,3 +1,4 @@\n-const a = 1;\n+const a = 2;";
+      const formatted = formatDiffText(diff);
+      expect(formatted).toContain("+const a = 2;");
+      expect(formatted).toContain("-const a = 1;");
+      expect(formatted).toContain("@@ -1,3 +1,4 @@");
+    });
+  });
+
+  describe("formatStatsText", () => {
+    it("formats session metrics card", () => {
+      const card = formatStatsText({
+        sessionId: "834192",
+        turnCount: 4,
+        bufferedEvents: 15,
+        latestSeq: 15,
+        provider: "groq",
+        activeModel: "llama-3.3-70b-versatile",
+        workspacePath: "/test/path",
+      });
+      expect(card).toContain("SESSION METRICS");
+      expect(card).toContain("834-192");
+      expect(card).toContain("groq");
+      expect(card).toContain("llama-3.3-70b-versatile");
+    });
+  });
+
+  describe("formatHistoryText", () => {
+    it("formats stream history list", () => {
+      const text = formatHistoryText([
+        {
+          sessionId: "834192",
+          turnId: "turn_1",
+          seqId: 1,
+          type: "token",
+          content: "First token stream response",
+          timestamp: Date.now(),
+        },
+      ]);
+      expect(text).toContain("STREAM HISTORY");
+      expect(text).toContain("[#1]");
+      expect(text).toContain("First token stream response");
+    });
+  });
+
+  describe("formatAvailableModelsList", () => {
+    it("returns formatted list of available engine models", () => {
+      const list = formatAvailableModelsList();
+      expect(list).toContain("AVAILABLE ENGINE MODELS");
+      expect(list).toContain("Google Gemini");
+      expect(list).toContain("0x-alpha");
     });
   });
 });

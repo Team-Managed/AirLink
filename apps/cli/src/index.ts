@@ -3,13 +3,25 @@ import { stdin as input, stdout as output } from "node:process";
 import * as os from "node:os";
 import chalk from "chalk";
 import dotenv from "dotenv";
-import { SocketBridge, TrueForgeClient, TrueForgeSession } from "@agent-remote/bridge-core";
+import {
+  SocketBridge,
+  TrueForgeClient,
+  TrueForgeSession,
+  getGitDiff,
+  runWorkspaceTests,
+  runWorkspaceLint,
+  fetchGitHubIssue,
+} from "@agent-remote/bridge-core";
 import {
   renderBootBanner,
   renderStreamChunk,
   promptTerminalApproval,
   promptLocalInput,
   formatPinDisplay,
+  formatDiffText,
+  formatStatsText,
+  formatHistoryText,
+  formatAvailableModelsList,
 } from "./terminal-ui.js";
 
 dotenv.config();
@@ -108,7 +120,8 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
     pin: options.pin,
     relayUrl: options.relayUrl,
     workspacePath: options.workspacePath,
-    model: options.model,
+    model: session.defaultModel,
+    provider: session.providerConfig.provider,
     sessionId,
     hostName: options.hostName,
   });
@@ -202,25 +215,121 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
         if (inputLine === "/exit" || inputLine === "/quit") {
           cleanup();
           break;
-        } else if (inputLine === "/help") {
-          console.log(chalk.bold("\nAgent Remote REPL Commands:"));
-          console.log(`  ${chalk.cyan("/pin")}     - Display active pairing PIN and URL`);
-          console.log(`  ${chalk.cyan("/status")}  - Show connection and ring buffer status`);
-          console.log(`  ${chalk.cyan("/pr")}      - Instruct agent to commit and create GitHub PR`);
-          console.log(`  ${chalk.cyan("/exit")}    - Shut down the agent harness\n`);
-        } else if (inputLine === "/pin") {
+        }
+
+        if (inputLine === "/help") {
+          console.log(chalk.bold.hex("#38bdf8")("\n⚡ AGENT REMOTE REPL COMMAND PALETTE:"));
+          console.log(`  ${chalk.cyan("/diff")}             - Show current uncommitted git diff`);
+          console.log(`  ${chalk.cyan("/clear")} / ${chalk.cyan("/reset")}   - Reset conversation context and event buffer`);
+          console.log(`  ${chalk.cyan("/issue <id>")}       - Import GitHub issue context directly into agent turn`);
+          console.log(`  ${chalk.cyan("/model [name]")}     - Switch active LLM model or view free models registry`);
+          console.log(`  ${chalk.cyan("/models")}           - List all supported 100% free AI models`);
+          console.log(`  ${chalk.cyan("/test [filter]")}    - Run workspace test suite and view output`);
+          console.log(`  ${chalk.cyan("/lint")}             - Run workspace linter and typecheck`);
+          console.log(`  ${chalk.cyan("/stats")}            - View session metrics, buffer size, and sequence counter`);
+          console.log(`  ${chalk.cyan("/history")}          - Replay recent stream events from in-memory ring buffer`);
+          console.log(`  ${chalk.cyan("/pr")}               - Instruct agent to commit and create GitHub PR`);
+          console.log(`  ${chalk.cyan("/pin")}              - Display active pairing PIN and URL`);
+          console.log(`  ${chalk.cyan("/status")}           - Show relay connection and buffer status`);
+          console.log(`  ${chalk.cyan("/exit")}             - Gracefully shut down the agent harness\n`);
+          continue;
+        }
+
+        if (inputLine === "/diff") {
+          console.log(chalk.dim("\nFetching workspace git diff..."));
+          const diff = await getGitDiff(options.workspacePath);
+          console.log(`\n${formatDiffText(diff)}\n`);
+          continue;
+        }
+
+        if (inputLine === "/clear" || inputLine === "/reset") {
+          session.clearHistory();
+          console.log(chalk.green("\n✔ Conversation history and in-memory ring buffer reset.\n"));
+          continue;
+        }
+
+        if (inputLine.startsWith("/issue")) {
+          const parts = inputLine.split(" ");
+          const issueNum = parts[1] ? parseInt(parts[1], 10) : NaN;
+          if (isNaN(issueNum)) {
+            console.log(chalk.yellow("\nUsage: /issue <issue_number> (e.g. /issue 42)\n"));
+            continue;
+          }
+          console.log(chalk.dim(`\nFetching GitHub issue #${issueNum}...`));
+          const issue = await fetchGitHubIssue(issueNum, options.workspacePath);
+          console.log(chalk.bold.cyan(`\n📋 Loaded Issue: ${issue.title}`));
+          console.log(chalk.dim(issue.body));
+          await dispatchTurn(`Fix GitHub Issue #${issueNum} ("${issue.title}"): ${issue.body}`, "local");
+          continue;
+        }
+
+        if (inputLine === "/models") {
+          console.log(`\n${formatAvailableModelsList()}\n`);
+          continue;
+        }
+
+        if (inputLine.startsWith("/model")) {
+          const parts = inputLine.split(" ");
+          const newModel = parts[1]?.trim();
+          if (!newModel) {
+            console.log(
+              `\nActive Model: ${chalk.hex("#a855f7").bold(session.defaultModel)} [${session.providerConfig.provider} (Free)]`,
+            );
+            console.log(chalk.dim("To switch model, run: /model <model_name> or /models for list\n"));
+            continue;
+          }
+          session.setModel(newModel);
+          console.log(chalk.green(`\n✔ Switched active model to: ${chalk.bold(newModel)}\n`));
+          continue;
+        }
+
+        if (inputLine.startsWith("/test")) {
+          const filter = inputLine.slice(5).trim();
+          console.log(chalk.dim(`\nRunning workspace tests ${filter ? `(filter: ${filter})` : ""}...`));
+          const result = await runWorkspaceTests(options.workspacePath, filter || undefined);
+          console.log(result.success ? chalk.green(`\n✔ Tests Passed (${result.durationMs}ms):`) : chalk.red(`\n❌ Tests Failed (${result.durationMs}ms):`));
+          console.log(chalk.white(result.output) + "\n");
+          continue;
+        }
+
+        if (inputLine === "/lint") {
+          console.log(chalk.dim("\nRunning workspace lint and typecheck..."));
+          const result = await runWorkspaceLint(options.workspacePath);
+          console.log(result.success ? chalk.green(`\n✔ ${result.output}\n`) : chalk.red(`\n❌ ${result.output}\n`));
+          continue;
+        }
+
+        if (inputLine === "/stats") {
+          console.log(`\n${formatStatsText(session.getStats())}\n`);
+          continue;
+        }
+
+        if (inputLine === "/history") {
+          console.log(`\n${formatHistoryText(session.ringBuffer.getAllEvents())}\n`);
+          continue;
+        }
+
+        if (inputLine === "/pin") {
           console.log(
             `\nActive PIN: ${chalk.green.bold(formatPinDisplay(options.pin))} | URL: ${chalk.cyan.underline(`https://agent-remote.dev/pair?pin=${sessionId}`)}\n`,
           );
-        } else if (inputLine === "/status") {
+          continue;
+        }
+
+        if (inputLine === "/status") {
           console.log(
             `\nRelay Connected: ${bridge.isConnected() ? chalk.green("YES") : chalk.red("NO")} | Buffered Events: ${session.ringBuffer.size} | Latest Seq: ${session.ringBuffer.latestSeq}\n`,
           );
-        } else if (inputLine === "/pr") {
-          await dispatchTurn("Create a pull request with all session changes and test results.", "local");
-        } else {
-          await dispatchTurn(inputLine, "local");
+          continue;
         }
+
+        if (inputLine === "/pr") {
+          await dispatchTurn("Create a pull request with all session changes and test results.", "local");
+          continue;
+        }
+
+        // Regular user prompt
+        await dispatchTurn(inputLine, "local");
       } catch {
         break;
       }

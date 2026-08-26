@@ -9,6 +9,7 @@ export interface BootBannerOptions {
   relayUrl: string;
   workspacePath: string;
   model: string;
+  provider?: string | undefined;
   sessionId?: string | undefined;
   hostName?: string | undefined;
 }
@@ -31,6 +32,9 @@ export function formatBootBannerText(options: BootBannerOptions): string {
   const pinDisplay = formatPinDisplay(options.pin);
   const rawPinDigits = options.pin.replace(/\D/g, "");
   const pairUrl = `https://agent-remote.dev/pair?pin=${rawPinDigits}`;
+  const engineLabel = options.provider && options.provider !== "simulated"
+    ? chalk.green.bold(`${options.provider} (${options.model})`)
+    : chalk.hex("#a855f7")(options.model || "0x-alpha");
 
   const lines = [
     chalk.bold.hex("#38bdf8")("  ⚡ AGENT REMOTE — WORKSTATION HARNESS  "),
@@ -40,10 +44,10 @@ export function formatBootBannerText(options: BootBannerOptions): string {
     "",
     `  ${chalk.dim("Relay Server:")}   ${chalk.white(options.relayUrl)}`,
     `  ${chalk.dim("Workspace:")}      ${chalk.white(options.workspacePath)}`,
-    `  ${chalk.dim("Model Engine:")}   ${chalk.hex("#a855f7")(options.model)}`,
+    `  ${chalk.dim("Engine Model:")}   ${engineLabel}`,
     ...(options.hostName ? [`  ${chalk.dim("Host Name:")}      ${chalk.white(options.hostName)}`] : []),
     "",
-    chalk.dim("  Type prompts below, or control remotely via paired phone/browser.  "),
+    chalk.dim("  Type prompts below or type /help to view all built-in commands.  "),
   ];
 
   return boxen(lines.join("\n"), {
@@ -159,4 +163,113 @@ export async function promptLocalInput(rl: readline.Interface): Promise<string> 
   const promptSymbol = chalk.hex("#38bdf8").bold("agent-remote > ");
   const answer = await rl.question(promptSymbol);
   return answer.trim();
+}
+
+/**
+ * Formats a unified git diff with syntax color highlights.
+ */
+export function formatDiffText(diffText: string): string {
+  const lines = diffText.split("\n");
+  const colored = lines.map((line) => {
+    if (line.startsWith("+++") || line.startsWith("---")) {
+      return chalk.bold.white(line);
+    }
+    if (line.startsWith("@@")) {
+      return chalk.cyan(line);
+    }
+    if (line.startsWith("+")) {
+      return chalk.green(line);
+    }
+    if (line.startsWith("-")) {
+      return chalk.red(line);
+    }
+    return chalk.dim(line);
+  });
+  return colored.join("\n");
+}
+
+/**
+ * Formats session runtime metrics into a visual boxen card.
+ */
+export function formatStatsText(stats: {
+  sessionId: string;
+  turnCount: number;
+  bufferedEvents: number;
+  latestSeq: number;
+  provider: string;
+  activeModel: string;
+  workspacePath: string;
+}): string {
+  const lines = [
+    chalk.bold.hex("#38bdf8")("📊 AGENT HARNESS SESSION METRICS"),
+    "",
+    `  ${chalk.dim("Session PIN:")}      ${chalk.green.bold(formatPinDisplay(stats.sessionId))}`,
+    `  ${chalk.dim("Turns Executed:")}   ${chalk.white.bold(stats.turnCount)}`,
+    `  ${chalk.dim("Buffered Events:")}  ${chalk.cyan(stats.bufferedEvents)} / 500 in-memory`,
+    `  ${chalk.dim("Latest Sequence:")}  #${chalk.yellow(stats.latestSeq)}`,
+    `  ${chalk.dim("Active Provider:")}  ${chalk.hex("#a855f7")(stats.provider)} (100% Free)`,
+    `  ${chalk.dim("Engine Model:")}     ${chalk.white(stats.activeModel)}`,
+    `  ${chalk.dim("Workspace:")}        ${chalk.dim(stats.workspacePath)}`,
+  ];
+
+  return boxen(lines.join("\n"), {
+    padding: 1,
+    margin: 1,
+    borderStyle: "round",
+    borderColor: "cyan",
+  });
+}
+
+/**
+ * Formats recent stream history from the Ring Buffer.
+ */
+export function formatHistoryText(events: AgentStream[]): string {
+  if (events.length === 0) {
+    return chalk.dim("No events currently recorded in session history.");
+  }
+
+  const lines = [
+    chalk.bold.hex("#38bdf8")(`📜 RECENT SESSION STREAM HISTORY (${events.length} events)`),
+    "",
+  ];
+
+  for (const event of events.slice(-20)) {
+    const time = new Date(event.timestamp).toLocaleTimeString();
+    const typeColor =
+      event.type === "thought"
+        ? chalk.dim.italic
+        : event.type === "token"
+          ? chalk.white
+          : event.type === "tool_call"
+            ? chalk.yellow
+            : event.type === "tool_result"
+              ? chalk.green
+              : chalk.cyan;
+
+    const preview = event.content.replace(/\n/g, " ").slice(0, 70);
+    lines.push(`  [#${event.seqId}] ${chalk.dim(time)} [${event.type}]: ${typeColor(preview)}`);
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Formats the list of available engine models.
+ */
+export function formatAvailableModelsList(): string {
+  const lines = [
+    chalk.bold.hex("#38bdf8")("🤖 AVAILABLE ENGINE MODELS:"),
+    "",
+    chalk.bold.cyan("Google Gemini (via GEMINI_API_KEY in .env):"),
+    `  • ${chalk.white("gemini-2.0-flash")} (Recommended)`,
+    `  • ${chalk.white("gemini-1.5-flash")}`,
+    `  • ${chalk.white("gemini-2.0-flash-lite")}`,
+    "",
+    chalk.bold.cyan("Local TrueForge Engine (Zero configuration):"),
+    `  • ${chalk.white("0x-alpha")} (Default local test harness)`,
+    "",
+    chalk.dim("Switch models on the fly using: /model <model_name>"),
+  ];
+
+  return lines.join("\n");
 }
