@@ -157,7 +157,7 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
       expect(isRegisterHost({ pin: "123" })).toBe(false);
     });
 
-    it("rejects missing hostName or workspacePath", () => {
+    it("rejects missing hostName and allows empty workspacePath for relay-only mode", () => {
       expect(() =>
         parseRegisterHost({
           pin: "123456",
@@ -165,13 +165,13 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
           workspacePath: "/app",
         }),
       ).toThrow();
-      expect(() =>
-        parseRegisterHost({
-          pin: "123456",
-          hostName: "Host",
-          workspacePath: "",
-        }),
-      ).toThrow();
+
+      const relayOnly = parseRegisterHost({
+        pin: "123456",
+        hostName: "Host",
+        workspacePath: "",
+      });
+      expect(relayOnly.workspacePath).toBe("");
     });
   });
 
