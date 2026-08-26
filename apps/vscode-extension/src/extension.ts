@@ -10,6 +10,9 @@ import {
   getGitDiff,
   runWorkspaceTests,
   runWorkspaceLint,
+  saveActiveSession,
+  loadActiveSession,
+  clearActiveSession,
 } from "@agent-remote/bridge-core";
 import { AgentChatViewProvider } from "./chat-webview.js";
 
@@ -117,7 +120,9 @@ export function activate(context: vscode.ExtensionContext): void {
   const model =
     config.get<string>("model") || process.env["AGENT_MODEL"] || "gemini-2.0-flash";
 
-  currentPin = generateSessionPin();
+  // 1. Check for active session in the workspace (e.g. started via CLI) or generate fresh PIN
+  const activeRecord = loadActiveSession(workspacePath ?? undefined);
+  currentPin = activeRecord?.pin || generateSessionPin();
 
   const chatProvider = new AgentChatViewProvider(context.extensionUri);
 
@@ -175,6 +180,17 @@ export function activate(context: vscode.ExtensionContext): void {
       hostName: os.hostname(),
       workspacePath: resolvedPath,
       autoConnect: true,
+    });
+
+    // Persist active session for cross-tool synchronization (CLI, VS Code, Mobile)
+    saveActiveSession({
+      pin: rawPin,
+      sessionId: rawPin,
+      relayUrl,
+      model: activeSession.defaultModel,
+      workspacePath: resolvedPath,
+      createdAt: activeRecord?.createdAt || Date.now(),
+      updatedAt: Date.now(),
     });
 
     chatProvider.setSessionInfo(
@@ -367,6 +383,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (activeSession) {
         activeSession.clearHistory();
         chatProvider.clearMessages();
+        clearActiveSession(workspacePath ?? undefined);
         chatProvider.addSystemMessage(
           "✔ Conversation history and in-memory ring buffer reset.",
         );
@@ -448,6 +465,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (activeSession) {
         activeSession.clearHistory();
         chatProvider.clearMessages();
+        clearActiveSession(workspacePath ?? undefined);
         chatProvider.addSystemMessage(
           "✔ Conversation history and in-memory ring buffer reset.",
         );

@@ -169,6 +169,29 @@ export class TrueForgeSession {
   }
 
   /**
+   * Lists persisted session events across the active turn branch from TrueForge SDK
+   * or falls back to ring buffer events.
+   */
+  public async listEvents(): Promise<unknown> {
+    try {
+      return await this._sdk.sessions.listEvents(this.sessionId);
+    } catch {
+      return this._ringBuffer.getAllEvents();
+    }
+  }
+
+  /**
+   * Creates a turn stream via TrueForge backend if available.
+   */
+  public async createTurnStream(params?: Record<string, unknown>): Promise<unknown> {
+    try {
+      return await this._sdk.sessions.createTurnStream(this.sessionId, params || {});
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Retrieves runtime metrics for the active session.
    */
   public getStats() {

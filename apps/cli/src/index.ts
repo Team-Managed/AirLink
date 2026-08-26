@@ -13,6 +13,8 @@ import {
   runWorkspaceTests,
   runWorkspaceLint,
   fetchGitHubIssue,
+  saveActiveSession,
+  loadActiveSession,
 } from "@agent-remote/bridge-core";
 import {
   renderBootBanner,
@@ -93,9 +95,14 @@ export function parseCliArgs(argv: string[]): CliOptions {
     }
   }
 
-  // Generate random 6-digit numeric PIN if none supplied
+  // Retrieve existing active session or generate random 6-digit numeric PIN
   if (!pin || pin.replace(/\D/g, "").length !== 6) {
-    pin = String(Math.floor(100000 + Math.random() * 900000));
+    const existing = loadActiveSession(workspacePath);
+    if (existing && existing.pin) {
+      pin = existing.pin;
+    } else {
+      pin = String(Math.floor(100000 + Math.random() * 900000));
+    }
   }
 
   return {
@@ -116,6 +123,17 @@ export function parseCliArgs(argv: string[]): CliOptions {
 export async function runCli(argv: string[] = process.argv.slice(2)): Promise<void> {
   const options = parseCliArgs(argv);
   const sessionId = options.pin.replace(/\D/g, "");
+
+  // Persist active session for VS Code Extension, Mobile, and Web pairing synchronization
+  saveActiveSession({
+    pin: options.pin,
+    sessionId,
+    relayUrl: options.relayUrl,
+    model: options.model,
+    workspacePath: options.workspacePath,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  });
 
   // 1. Initialize TrueForge Client & Session
   const trueForgeClient = new TrueForgeClient({ defaultModel: options.model });

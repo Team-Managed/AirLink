@@ -6,3 +6,4 @@ export * from "./socket-bridge.js";
 export * from "./llm-runner.js";
 export * from "./workspace-tools.js";
 export * from "./skills/index.js";
+export * from "./session-persistence.js";
