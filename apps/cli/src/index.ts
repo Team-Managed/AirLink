@@ -365,7 +365,24 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
             continue;
           }
           session.setModel(newModel);
-          console.log(chalk.green(`\n✔ Switched active model to: ${chalk.bold(newModel)}\n`));
+          const currentConfig = session.providerConfig;
+          if (
+            currentConfig.provider !== "simulated" &&
+            currentConfig.provider !== "ollama" &&
+            !currentConfig.apiKey
+          ) {
+            console.log(
+              chalk.yellow(
+                `\n⚠️ Switched active model to ${chalk.bold(newModel)} [${currentConfig.provider}], but no API key was found in environment. Set ${currentConfig.provider.toUpperCase()}_API_KEY or pass BYOK credentials.\n`,
+              ),
+            );
+          } else {
+            console.log(
+              chalk.green(
+                `\n✔ Switched active model to: ${chalk.bold(newModel)} [${currentConfig.provider}]\n`,
+              ),
+            );
+          }
           continue;
         }
 

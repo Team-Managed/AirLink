@@ -91,6 +91,54 @@ export function getProviderDefaultBaseUrl(provider: FreeProvider): string {
 }
 
 /**
+ * Detects the matching provider family for a specified model identifier.
+ */
+export function detectProviderForModel(modelName: string): FreeProvider {
+  if (FREE_MODELS.groq.includes(modelName as never)) return "groq";
+  if (FREE_MODELS.gemini.includes(modelName as never)) return "gemini";
+  if (FREE_MODELS.openrouter_free.includes(modelName as never)) return "openrouter_free";
+  if (FREE_MODELS.github_models.includes(modelName as never)) return "github_models";
+  if (FREE_MODELS.ollama.includes(modelName as never)) return "ollama";
+
+  if (modelName.startsWith("gemini-")) return "gemini";
+  if (
+    modelName.startsWith("llama-") ||
+    modelName.startsWith("mixtral-") ||
+    modelName.startsWith("gemma-") ||
+    modelName.startsWith("qwen-")
+  ) {
+    return "groq";
+  }
+  if (modelName.startsWith("gpt-")) return "github_models";
+  if (modelName.includes(":free") || modelName.startsWith("openrouter/")) return "openrouter_free";
+  if (modelName.startsWith("ollama/") || modelName.startsWith("deepseek-")) return "ollama";
+
+  return "simulated";
+}
+
+/**
+ * Resolves the active API key strictly associated with a specific provider.
+ * Never retains or leaks previous provider credentials across model switches.
+ */
+export function getProviderApiKey(provider: FreeProvider): string | undefined {
+  switch (provider) {
+    case "groq":
+      return process.env["GROQ_API_KEY"];
+    case "gemini":
+      return process.env["GEMINI_API_KEY"];
+    case "openrouter_free":
+      return process.env["OPENROUTER_API_KEY"] || process.env["OPENROUTER_FREE_KEY"];
+    case "github_models":
+      return process.env["GITHUB_TOKEN"];
+    case "ollama":
+    case "simulated":
+      return undefined;
+    default:
+      return undefined;
+  }
+}
+
+/**
  * Detects the active free LLM provider based on available environment variables.
  */
 export function detectFreeProvider(): ProviderConfig {
@@ -174,39 +222,26 @@ export class LLMRunner {
 
   /**
    * Dynamically switches active model or provider configuration.
-   * Atomically updates provider, endpoint, AND authenticating API key.
+   * Atomically updates provider, endpoint, AND authenticating API key without cross-provider leakage.
    */
   setModel(modelName: string): void {
-    if (FREE_MODELS.groq.includes(modelName as never)) {
-      this._config.provider = "groq";
-      this._config.baseUrl = "https://api.groq.com/openai/v1";
-      this._config.apiKey = process.env["GROQ_API_KEY"] || this._config.apiKey;
-    } else if (FREE_MODELS.gemini.includes(modelName as never)) {
-      this._config.provider = "gemini";
-      this._config.baseUrl = "https://generativelanguage.googleapis.com/v1beta/openai";
-      this._config.apiKey = process.env["GEMINI_API_KEY"] || this._config.apiKey;
-    } else if (FREE_MODELS.openrouter_free.includes(modelName as never)) {
-      this._config.provider = "openrouter_free";
-      this._config.baseUrl = "https://openrouter.ai/api/v1";
-      this._config.apiKey = process.env["OPENROUTER_API_KEY"] || this._config.apiKey;
-    } else if (FREE_MODELS.github_models.includes(modelName as never)) {
-      this._config.provider = "github_models";
-      this._config.baseUrl = "https://models.inference.ai.azure.com";
-      this._config.apiKey = process.env["GITHUB_TOKEN"] || this._config.apiKey;
-    } else if (FREE_MODELS.ollama.includes(modelName as never)) {
-      this._config.provider = "ollama";
-      this._config.baseUrl = process.env["OLLAMA_BASE_URL"] || "http://localhost:11434/v1";
-      this._config.apiKey = undefined;
-    }
+    const targetProvider = detectProviderForModel(modelName);
+    const targetApiKey = getProviderApiKey(targetProvider);
+    const targetBaseUrl = getProviderDefaultBaseUrl(targetProvider);
 
-    this._config.model = modelName;
+    this._config = {
+      provider: targetProvider,
+      model: modelName,
+      baseUrl: targetBaseUrl,
+      apiKey: targetApiKey,
+      isFree: true,
+    };
   }
 
   public setProvider(provider: FreeProvider, apiKey?: string, baseUrl?: string): void {
     this._config.provider = provider;
-    if (apiKey !== undefined) this._config.apiKey = apiKey;
-    if (baseUrl !== undefined) this._config.baseUrl = baseUrl;
-    else this._config.baseUrl = getProviderDefaultBaseUrl(provider);
+    this._config.baseUrl = baseUrl !== undefined ? baseUrl : getProviderDefaultBaseUrl(provider);
+    this._config.apiKey = apiKey !== undefined ? apiKey : getProviderApiKey(provider);
   }
 
   /**

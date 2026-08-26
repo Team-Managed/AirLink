@@ -225,7 +225,7 @@ export function activate(context: vscode.ExtensionContext): void {
     // Host approval modal
     activeBridge.onHostApprovalPrompt(async (request) => {
       const toolLabel = request.toolName;
-      const details = request.command || request.path || JSON.stringify(request.metadata || {});
+      const details = request.commandOrDiff || request.description || "";
 
       const choice = await vscode.window.showWarningMessage(
         `Agent Remote — Tool Approval Required\n\nTool: ${toolLabel}\nDetails: ${details}`,
@@ -285,7 +285,7 @@ export function activate(context: vscode.ExtensionContext): void {
         chatProvider.addRemoteUserMessage(promptText);
       }
 
-      for await (const chunk of activeSession.executeTurn({ prompt: promptText })) {
+      for await (const chunk of activeSession.executeTurn({ prompt: promptText, byokConfig })) {
         chatProvider.handleStreamChunk(chunk);
         activeBridge.sendStream(chunk);
       }
