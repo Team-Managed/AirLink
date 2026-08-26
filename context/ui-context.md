@@ -41,11 +41,12 @@
 
 ### D. Terminal CLI Host (`apps/cli`)
 
-- **Boot Banner:** Boxen double-border with bold green PIN highlight.
-- **ASCII QR Code:** Generated via `qrcode-terminal` encoding `agent-remote://pair?pin=<PIN>`.
-- **Readline Approval:** Highlighted prompt `Approve [Tool: execute_bash] "npm test"? [y/N]: `.
+- **Boot Banner:** Compact boxen double-border with bold green PIN highlight (`PIN: 834-192`) and clickable pairing URL (`https://agent-remote.dev/pair?pin=<PIN>`).
+- **Interactive REPL Prompt:** Clean prompt prefix `agent-remote > ` with live syntax-colored token/thought stream.
+- **Readline Approval:** Highlighted prompt `Approve on PC [y/N]? `.
 
 ### E. VS Code Extension Host (`apps/vscode-extension`)
 
-- **Status Bar Item:** `$(radio-tower) Remote PIN: 834-192` with tooltip and click-to-copy.
+- **Status Bar Item:** `$(radio-tower) Remote: 834-192` with tooltip and click-to-copy.
+- **Chat Webview View:** High-density dark chat feed adhering to VS Code theme CSS variables.
 - **Native Warning Modal:** `vscode.window.showWarningMessage` with actions `[Approve]` and `[Deny]`.

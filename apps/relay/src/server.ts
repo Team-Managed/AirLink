@@ -124,6 +124,9 @@ export function createRelayServer(options: RelayServerOptions = {}): RelayServer
       const { pin, hostName, workspacePath } = parsed.data;
       roomManager.createRoom(pin, socket.id, hostName, workspacePath);
       socket.join(pin);
+      console.log(
+        `[Relay] 💻 Host connected & registered room PIN: ${pin.slice(0, 3)}-${pin.slice(3)} (Host: ${hostName})`,
+      );
     });
 
     // 2. Client Pairing
@@ -170,6 +173,9 @@ export function createRelayServer(options: RelayServerOptions = {}): RelayServer
       rateLimiter.recordSuccess(ip);
       roomManager.pairClient(pin, socket.id, clientName);
       socket.join(pin);
+      console.log(
+        `[Relay] 📱 Mobile/Web client paired to room PIN: ${pin.slice(0, 3)}-${pin.slice(3)} (${clientName})`,
+      );
 
       const connectedPayload: SessionConnected = {
         sessionId: pin,
@@ -189,7 +195,11 @@ export function createRelayServer(options: RelayServerOptions = {}): RelayServer
       if (!parsed.success) return;
 
       const room = roomManager.getRoomByClientSocketId(socket.id);
-      if (room && room.hostSocketId) {
+      if (room && room.hostSocketIds && room.hostSocketIds.length > 0) {
+        for (const hostId of room.hostSocketIds) {
+          io.to(hostId).emit(SOCKET_EVENTS.CLIENT_PROMPT, parsed.data);
+        }
+      } else if (room && room.hostSocketId) {
         io.to(room.hostSocketId).emit(SOCKET_EVENTS.CLIENT_PROMPT, parsed.data);
       }
     });
@@ -222,7 +232,11 @@ export function createRelayServer(options: RelayServerOptions = {}): RelayServer
       if (!parsed.success) return;
 
       const room = roomManager.getRoomByClientSocketId(socket.id);
-      if (room && room.hostSocketId) {
+      if (room && room.hostSocketIds && room.hostSocketIds.length > 0) {
+        for (const hostId of room.hostSocketIds) {
+          io.to(hostId).emit(SOCKET_EVENTS.APPROVAL_RESPONSE, parsed.data);
+        }
+      } else if (room && room.hostSocketId) {
         io.to(room.hostSocketId).emit(SOCKET_EVENTS.APPROVAL_RESPONSE, parsed.data);
       }
     });
@@ -253,20 +267,25 @@ export function createRelayServer(options: RelayServerOptions = {}): RelayServer
     socket.on("disconnect", () => {
       const hostRoom = roomManager.getRoomByHostSocketId(socket.id);
       if (hostRoom) {
-        // Host disconnected: purge the room and notify client if present
-        roomManager.removeRoom(hostRoom.pin);
-        if (hostRoom.clientSocketId) {
-          const disconnectNotice: SessionConnected = {
-            sessionId: hostRoom.pin,
-            deviceName: hostRoom.hostName,
-            workspacePath: hostRoom.workspacePath,
-            status: "disconnected",
-            connectedAt: Date.now(),
-          };
-          io.to(hostRoom.clientSocketId).emit(
-            SOCKET_EVENTS.SESSION_CONNECTED,
-            SessionConnectedSchema.parse(disconnectNotice),
-          );
+        const remainingRoom = roomManager.removeBySocketId(socket.id);
+        if (
+          !remainingRoom ||
+          !remainingRoom.hostSocketIds ||
+          remainingRoom.hostSocketIds.length === 0
+        ) {
+          if (hostRoom.clientSocketId) {
+            const disconnectNotice: SessionConnected = {
+              sessionId: hostRoom.pin,
+              deviceName: hostRoom.hostName,
+              workspacePath: hostRoom.workspacePath,
+              status: "disconnected",
+              connectedAt: Date.now(),
+            };
+            io.to(hostRoom.clientSocketId).emit(
+              SOCKET_EVENTS.SESSION_CONNECTED,
+              SessionConnectedSchema.parse(disconnectNotice),
+            );
+          }
         }
         return;
       }
@@ -295,8 +314,7 @@ export function createRelayServer(options: RelayServerOptions = {}): RelayServer
     return new Promise<{ port: number }>((resolve, reject) => {
       httpServer.listen(listenPort, () => {
         const addr = httpServer.address();
-        const actualPort =
-          typeof addr === "object" && addr !== null ? addr.port : listenPort;
+        const actualPort = typeof addr === "object" && addr !== null ? addr.port : listenPort;
         resolve({ port: actualPort });
       });
       httpServer.once("error", reject);

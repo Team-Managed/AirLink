@@ -11,7 +11,8 @@ Implement the color-coded unified Git diff card, modal bottom-sheet approval dra
      - Added lines (prefixed with `+`): Green text (`#22c55e`) with subtle green tinted background (`#14532d22`).
      - Removed lines (prefixed with `-`): Red text (`#ef4444`) with subtle red tinted background (`#7f1d1d22`).
      - Context lines (prefixed with ` `): Slate text (`#94a3b8`).
-   - Render file path badge at the top (e.g. `src/auth/middleware.ts`).
+   - Render file path badge at the top (e.g. `src/auth/middleware.ts`) with line change counters (`+14`, `-3`).
+   - Render optional footer action: `[🐙 Open GitHub PR]` button when diffs are finalized.
 2. Create `apps/mobile/src/components/ApprovalDrawer.tsx`:
    - Implement an animated bottom-sheet modal that triggers whenever `activeApproval` state is non-null.
    - Render high-visibility amber alert header: `⚠️ Action Approval Required`.

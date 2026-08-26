@@ -3,7 +3,14 @@ import { z } from "zod";
 /**
  * Supported LLM Providers for Bring-Your-Own-Key (BYOK) model routing.
  */
-export const LLMProviderSchema = z.enum(["openrouter", "anthropic", "openai", "custom"]);
+export const LLMProviderSchema = z.enum([
+  "openrouter",
+  "anthropic",
+  "openai",
+  "groq",
+  "gemini",
+  "custom",
+]);
 export type LLMProvider = z.infer<typeof LLMProviderSchema>;
 
 /**
@@ -23,7 +30,7 @@ export type BYOKConfig = z.infer<typeof BYOKConfigSchema>;
 export const RegisterHostSchema = z.object({
   pin: z.string().length(6, "PIN must be exactly 6 characters"),
   hostName: z.string().min(1, "Host name is required"),
-  workspacePath: z.string().min(1, "Workspace path is required"),
+  workspacePath: z.string().default(""),
 });
 export type RegisterHost = z.infer<typeof RegisterHostSchema>;
 

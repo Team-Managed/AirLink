@@ -120,4 +120,30 @@ describe("TrueForgeClient (Agent Harness SDK Connector & Stream Lifecycle)", () 
     expect(toolEvents[1]?.type).toBe("tool_result");
     expect(toolEvents[1]?.name).toBe("execute_bash");
   });
+
+  it("handles SDK session utilities and fallbacks gracefully", async () => {
+    const client = new TrueForgeClient();
+    const session = client.createSession({ sessionId: "sess_sdk_utils" });
+
+    // History / turns retrieval fallback
+    const turns = await session.listTurns();
+    expect(Array.isArray(turns)).toBe(true);
+
+    // Cancel session
+    const cancelRes = await session.cancelSession();
+    expect(cancelRes).toBeDefined();
+
+    // Client subclient listings
+    const agents = await client.listAgents();
+    expect(Array.isArray(agents)).toBe(true);
+
+    const mcpServers = await client.listMcpServers();
+    expect(Array.isArray(mcpServers)).toBe(true);
+
+    const models = await client.listModels();
+    expect(Array.isArray(models)).toBe(true);
+
+    const sessions = await client.listSessions();
+    expect(Array.isArray(sessions)).toBe(true);
+  });
 });

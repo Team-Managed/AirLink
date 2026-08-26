@@ -64,7 +64,7 @@ export class SocketBridge {
 
   constructor(options: SocketBridgeOptions) {
     this._relayUrl = options.relayUrl;
-    this._pin = options.pin;
+    this._pin = options.pin.replace(/\D/g, "");
     this._hostName = options.hostName;
     this._workspacePath = options.workspacePath;
     this._approvalManager = options.approvalManager ?? new ApprovalManager();

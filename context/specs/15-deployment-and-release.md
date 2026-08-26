@@ -17,9 +17,13 @@ Define the end-to-end production deployment architecture, Docker containerizatio
 3. Configure Mobile Client Builds (`apps/mobile/eas.json`):
    - Configure Expo Application Services (EAS) build profiles for `development`, `preview` (APK / TestFlight), and `production`.
    - Configure Expo Web export script (`pnpm --filter @agent-remote/mobile export:web`) for zero-install browser pairing.
-4. Configure Workstation CLI Distribution (`apps/cli`):
-   - Configure `package.json` release scripts with `tsup` bundler to produce a single self-contained executable binary for `npx agent-remote`.
-   - Provide installation instructions in root `README.md` (`npx @agent-remote/cli` or `pnpm dlx @agent-remote/cli`).
+4. Configure Workstation CLI Distribution (`apps/cli` & `scripts/`):
+   - Configure `package.json` release scripts with `tsup` bundler to produce a single self-contained executable binary for `npx agent-remote` / `npx @agent-remote/cli`.
+   - Provide multiplatform one-line installer scripts:
+     - `scripts/install.ps1` for Windows PowerShell (`irm https://agent-remote.dev/install.ps1 | iex`).
+     - `scripts/install.sh` for macOS / Linux POSIX shells (`curl -fsSL https://agent-remote.dev/install.sh | bash`).
+   - Copy installer scripts to `apps/web/public/` during web deployment builds.
+   - Provide installation instructions in root `README.md` (`irm`, `curl`, `npx @agent-remote/cli`, and `pnpm dlx @agent-remote/cli`).
 5. Configure Environment Variables Matrix in `context/architecture-context.md` and `.env.example`:
    - Document all required and optional environment variables across Relay, CLI, Web, and Mobile.
 

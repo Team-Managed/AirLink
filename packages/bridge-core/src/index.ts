@@ -3,3 +3,8 @@ export * from "./prompt-builder.js";
 export * from "./trueforge-client.js";
 export * from "./approval-handler.js";
 export * from "./socket-bridge.js";
+export * from "./llm-runner.js";
+export * from "./workspace-tools.js";
+export * from "./skills/index.js";
+export * from "./session-persistence.js";
+export * from "./host-controller.js";

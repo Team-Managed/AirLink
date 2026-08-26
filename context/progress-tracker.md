@@ -19,6 +19,16 @@
 - [x] **Unit 16:** CI Workflows, Governance & Secret Scanning (`.github/workflows/ci.yml`, `secret_scan.yml`, `scripts/check-suppressions.mjs`)
 - [x] **Unit 17:** Deep Qodo Integration, Test Harness & PR Automation (`.pr_agent.toml`, `.github/workflows/qodo_merge.yml`, `tests/qodo/`)
 - [x] **Unit 18:** Qodo PR Playbook & Track Alignment Playbook (`context/specs/18-qodo-pr-playbook-and-track-alignment.md`, `.github/pull_request_template.md`)
+- [x] **Unit 05:** Terminal CLI Host & Interactive Client (`apps/cli`, `scripts/install.ps1`, `scripts/install.sh`)
+- [x] **Unit 06:** VS Code Extension Host & Chat Panel (`apps/vscode-extension`)
+- [x] **Multi-Provider Live AI Engine & SDK Capabilities:** Standardized live SSE streaming in `bridge-core` with Google Gemini, Groq, OpenRouter, GitHub Models, and Ollama; integrated full `@truefoundry/trueforge-sdk` subclients for agents, mcpServers, models, sessions, turn history, and sandbox file downloads.
+- [x] **5-Layer Modular Prompt Architecture & Skill Registry:** Implemented byte-identical static caching prefixes (Layers 1–3), dynamic workspace context/directives (Layers 4–5), autonomous filesystem tool execution loop, and `SKILL.md` plugin registry.
+- [x] **VS Code Extension CJS Bundling Fix:** Switched from raw `tsc` ESM output to `esbuild` CJS bundle (`dist/extension.js`). Extension host now loads correctly — buttons, PIN input, prompt submission, and quick actions are all functional.
+- [x] **Active Session Persistence & Multi-Host PIN Sync:** Added `session-persistence` module in `packages/bridge-core` to synchronize active session PINs between CLI, VS Code Extension, and Mobile/Web clients; wired TrueForge SDK `listEvents()` and `createTurnStream()` for multi-device in-sync sessions.
+- [x] **PR #12 Qodo Code Review Hardening & Host Architecture:**
+  - Resolved 16 review findings: workspace path boundary traversal confinement, test filter shell injection hardening, multi-host room synchronization without client eviction, relay-only host registration, provider-native structured JSON schema tool calling, BYOK pipeline wiring, atomic model switching, destructive tool approval pauses, abort signal turn cancellation, graceful CLI shutdown, `--pr` auto-execution, and esbuild context API watch bundling.
+  - Extracted shared `AgentHostController` abstraction in `packages/bridge-core`.
+  - 100% test pass rate (19 test files, 166 unit/integration tests).
 
 ### Implementation Units Index
 
@@ -26,8 +36,8 @@
 - [x] **Unit 02:** Bridge Core Engine & Ring Buffer (`packages/bridge-core`)
 - [x] **Unit 03:** Approval State Machine & Timeouts (`packages/bridge-core`)
 - [x] **Unit 04:** Cloud Relay Server (`apps/relay`)
-- [ ] **Unit 05:** Terminal CLI Host (`apps/cli`)
-- [ ] **Unit 06:** VS Code Extension Host (`apps/vscode-extension`)
+- [x] **Unit 05:** Terminal CLI Host & Interactive Client (`apps/cli`)
+- [x] **Unit 06:** VS Code Extension Host & Chat Panel (`apps/vscode-extension`)
 - [ ] **Unit 07:** Mobile App Shell & Pairing (`apps/mobile`)
 - [ ] **Unit 08:** Mobile Streaming & Terminal Feed (`apps/mobile`)
 - [ ] **Unit 09:** Mobile Diff Card & Approval Drawer (`apps/mobile`)

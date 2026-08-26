@@ -17,10 +17,12 @@ Implement external developer integrations, including Slack/Discord webhook alert
 2. Create `packages/bridge-core/src/integrations/desktop-notifier.ts`:
    - Implement native OS desktop notifications using `node-notifier` on Windows, macOS, and Linux.
    - Trigger desktop bubble with title _"Agent Remote: Action Approval Required"_ and sound alert when the workstation terminal is unfocused.
-3. Create `packages/bridge-core/src/integrations/config.ts`:
-   - Load webhook endpoints from workspace `.agent-remote.json` or environment variables (`SLACK_WEBHOOK_URL`, `DISCORD_WEBHOOK_URL`).
+3. Create `packages/bridge-core/src/integrations/github-notifier.ts`:
+   - Post session progress or completion summaries as comments on referenced GitHub Issues / Pull Requests when running with GitHub context.
+4. Create `packages/bridge-core/src/integrations/config.ts`:
+   - Load webhook endpoints from workspace `.agent-remote.json` or environment variables (`SLACK_WEBHOOK_URL`, `DISCORD_WEBHOOK_URL`, `GITHUB_TOKEN`).
    - Validate URLs with Zod and sanitize webhook payloads to redact detected API keys or secrets before transmission.
-4. Implement Mobile Notification Scaffolding (`apps/mobile/src/services/notifications.ts`):
+5. Implement Mobile Notification Scaffolding (`apps/mobile/src/services/notifications.ts`):
    - Configure local in-app notifications using `expo-notifications` when the app is backgrounded on the physical device.
 
 ## Scope Limits
