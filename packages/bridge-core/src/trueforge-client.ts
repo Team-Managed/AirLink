@@ -2,6 +2,8 @@ import { TrueForge as TrueForgeSDK } from "@truefoundry/trueforge-sdk";
 import type { BYOKConfig, AgentStream } from "@agent-remote/protocol";
 import { RingBuffer } from "./ring-buffer.js";
 import { LLMRunner, type ChatMessageParam, type ProviderConfig } from "./llm-runner.js";
+import { PromptBuilder } from "./prompt-builder.js";
+import { getGitDiff } from "./workspace-tools.js";
 
 export interface TrueForgeClientOptions {
   endpoint?: string | undefined;
@@ -40,6 +42,7 @@ export class TrueForgeSession {
   private readonly _sdk: TrueForgeSDK;
   private readonly _ringBuffer: RingBuffer;
   private readonly _llmRunner: LLMRunner;
+  private readonly _promptBuilder: PromptBuilder;
   private _history: ChatMessageParam[] = [];
   private _turnCount: number = 0;
 
@@ -51,6 +54,7 @@ export class TrueForgeSession {
     this._defaultModel = defaultModel;
     this._sdk = sdk;
     this._ringBuffer = new RingBuffer(500);
+    this._promptBuilder = new PromptBuilder();
     this._llmRunner = new LLMRunner(defaultModel !== "0x-alpha" ? { model: defaultModel } : undefined);
     if (this._llmRunner.config.model && defaultModel === "0x-alpha") {
       this._defaultModel = this._llmRunner.config.model;
@@ -195,16 +199,23 @@ export class TrueForgeSession {
       timestamp: Date.now(),
     });
 
-    // 2. Prepare message history for LLM
+    // 2. Build 5-Layer Prompt (Layers 1-3 Static Prefix, Layers 4-5 Dynamic Suffix)
+    const recentDiff = await getGitDiff(this.workspacePath);
+    const promptData = this._promptBuilder.buildPrompt({
+      userPrompt: params.prompt,
+      workspacePath: this.workspacePath,
+      recentDiff,
+      history: this._history.map((m) => `${m.role.toUpperCase()}: ${m.content.slice(0, 200)}`),
+    });
+
     const systemPrompt: ChatMessageParam = {
       role: "system",
-      content: `You are Agent Remote, an expert software engineer and AI coding assistant operating in the repository at "${this.workspacePath}".
-Provide direct, comprehensive, and clear technical explanations, architectural overviews, and high-quality code solutions. Answer the user's questions fully and immediately with concrete details and code references.`,
+      content: promptData.staticPrefix,
     };
 
     const userMessage: ChatMessageParam = {
       role: "user",
-      content: params.prompt,
+      content: promptData.dynamicSuffix,
     };
 
     const messagesToSend: ChatMessageParam[] = [

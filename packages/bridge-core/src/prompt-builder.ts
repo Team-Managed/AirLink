@@ -67,7 +67,10 @@ The following Model Context Protocol (MCP) tools are available on the workstatio
 - execute_bash(command: string): Executes a bash shell command in the workspace directory.
 - read_file(path: string): Reads the verbatim content of a local file.
 - write_file(path: string, content: string): Overwrites or creates a file with the provided content.
-- list_directory(path: string): Lists directory contents and file sizes.`;
+- list_directory(path: string): Lists directory contents and file sizes.
+- get_git_diff(): Retrieves current uncommitted git changes.
+- run_tests(filter?: string): Runs the test suite via pnpm test.
+- run_typecheck(): Runs TypeScript compiler check.`;
 
   /**
    * Returns the concatenated byte-identical static prefix (Layers 1 + 2 + 3).
