@@ -25,6 +25,10 @@
 - [x] **5-Layer Modular Prompt Architecture & Skill Registry:** Implemented byte-identical static caching prefixes (Layers 1–3), dynamic workspace context/directives (Layers 4–5), autonomous filesystem tool execution loop, and `SKILL.md` plugin registry.
 - [x] **VS Code Extension CJS Bundling Fix:** Switched from raw `tsc` ESM output to `esbuild` CJS bundle (`dist/extension.js`). Extension host now loads correctly — buttons, PIN input, prompt submission, and quick actions are all functional.
 - [x] **Active Session Persistence & Multi-Host PIN Sync:** Added `session-persistence` module in `packages/bridge-core` to synchronize active session PINs between CLI, VS Code Extension, and Mobile/Web clients; wired TrueForge SDK `listEvents()` and `createTurnStream()` for multi-device in-sync sessions.
+- [x] **PR #12 Qodo Code Review Hardening & Host Architecture:**
+  - Resolved 16 review findings: workspace path boundary traversal confinement, test filter shell injection hardening, multi-host room synchronization without client eviction, relay-only host registration, provider-native structured JSON schema tool calling, BYOK pipeline wiring, atomic model switching, destructive tool approval pauses, abort signal turn cancellation, graceful CLI shutdown, `--pr` auto-execution, and esbuild context API watch bundling.
+  - Extracted shared `AgentHostController` abstraction in `packages/bridge-core`.
+  - 100% test pass rate (19 test files, 166 unit/integration tests).
 
 ### Implementation Units Index
 
