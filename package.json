@@ -6,7 +6,7 @@
   "description": "Open-Source Coding Agent Universal Remote Control",
   "scripts": {
     "build": "pnpm -r run build",
-    "typecheck": "pnpm -r run typecheck",
+    "typecheck": "pnpm build && pnpm -r run typecheck",
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
