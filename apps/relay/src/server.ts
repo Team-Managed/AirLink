@@ -124,6 +124,7 @@ export function createRelayServer(options: RelayServerOptions = {}): RelayServer
       const { pin, hostName, workspacePath } = parsed.data;
       roomManager.createRoom(pin, socket.id, hostName, workspacePath);
       socket.join(pin);
+      console.log(`[Relay] 💻 Host connected & registered room PIN: ${pin.slice(0, 3)}-${pin.slice(3)} (Host: ${hostName})`);
     });
 
     // 2. Client Pairing
@@ -170,6 +171,7 @@ export function createRelayServer(options: RelayServerOptions = {}): RelayServer
       rateLimiter.recordSuccess(ip);
       roomManager.pairClient(pin, socket.id, clientName);
       socket.join(pin);
+      console.log(`[Relay] 📱 Mobile/Web client paired to room PIN: ${pin.slice(0, 3)}-${pin.slice(3)} (${clientName})`);
 
       const connectedPayload: SessionConnected = {
         sessionId: pin,

@@ -19,9 +19,9 @@
 - [x] **Unit 16:** CI Workflows, Governance & Secret Scanning (`.github/workflows/ci.yml`, `secret_scan.yml`, `scripts/check-suppressions.mjs`)
 - [x] **Unit 17:** Deep Qodo Integration, Test Harness & PR Automation (`.pr_agent.toml`, `.github/workflows/qodo_merge.yml`, `tests/qodo/`)
 - [x] **Unit 18:** Qodo PR Playbook & Track Alignment Playbook (`context/specs/18-qodo-pr-playbook-and-track-alignment.md`, `.github/pull_request_template.md`)
-- [x] **Architectural Alignment:** Upgraded Specs 05, 06, 08, 09, 12, 14, 15 for Dual-Interactive Session Mirroring, Multiplatform One-Line Installers (`irm` for Windows, `curl` for macOS/Linux), and GitHub Issue-to-PR workflows across all clients.
 - [x] **Unit 05:** Terminal CLI Host & Interactive Client (`apps/cli`, `scripts/install.ps1`, `scripts/install.sh`)
 - [x] **Unit 06:** VS Code Extension Host & Chat Panel (`apps/vscode-extension`)
+- [x] **Multi-Provider Live AI Engine & SDK Capabilities:** Standardized live SSE streaming in `bridge-core` with Google Gemini, Groq, OpenRouter, GitHub Models, and Ollama; integrated full `@truefoundry/trueforge-sdk` subclients for agents, mcpServers, models, sessions, turn history, and sandbox file downloads.
 
 ### Implementation Units Index
 
