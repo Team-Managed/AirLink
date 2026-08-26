@@ -54,6 +54,72 @@ export const SOCKET_EVENTS = {
 export type SocketEventName = (typeof SOCKET_EVENTS)[keyof typeof SOCKET_EVENTS];
 
 /**
+ * Event-to-Schema Mapping for typed socket event validation.
+ */
+export const SOCKET_EVENT_SCHEMAS = {
+  [SOCKET_EVENTS.REGISTER_HOST]: RegisterHostSchema,
+  [SOCKET_EVENTS.JOIN_SESSION]: JoinSessionSchema,
+  [SOCKET_EVENTS.SESSION_CONNECTED]: SessionConnectedSchema,
+  [SOCKET_EVENTS.CLIENT_PROMPT]: ClientPromptSchema,
+  [SOCKET_EVENTS.AGENT_STREAM]: AgentStreamSchema,
+  [SOCKET_EVENTS.APPROVAL_REQUIRED]: ApprovalRequestSchema,
+  [SOCKET_EVENTS.APPROVAL_RESPONSE]: ApprovalResponseSchema,
+  [SOCKET_EVENTS.CLIENT_SYNC]: ClientSyncSchema,
+  [SOCKET_EVENTS.STREAM_BATCH]: StreamBatchSchema,
+  [SOCKET_EVENTS.ERROR]: StandardErrorSchema,
+} as const;
+
+export type SocketEventPayloadMap = {
+  [SOCKET_EVENTS.REGISTER_HOST]: RegisterHost;
+  [SOCKET_EVENTS.JOIN_SESSION]: JoinSession;
+  [SOCKET_EVENTS.SESSION_CONNECTED]: SessionConnected;
+  [SOCKET_EVENTS.CLIENT_PROMPT]: ClientPrompt;
+  [SOCKET_EVENTS.AGENT_STREAM]: AgentStream;
+  [SOCKET_EVENTS.APPROVAL_REQUIRED]: ApprovalRequest;
+  [SOCKET_EVENTS.APPROVAL_RESPONSE]: ApprovalResponse;
+  [SOCKET_EVENTS.CLIENT_SYNC]: ClientSync;
+  [SOCKET_EVENTS.STREAM_BATCH]: StreamBatch;
+  [SOCKET_EVENTS.ERROR]: StandardError;
+};
+
+/**
+ * Validates and parses raw socket data against the corresponding event schema.
+ */
+export function parseSocketEvent<E extends SocketEventName>(
+  event: E,
+  data: unknown,
+): SocketEventPayloadMap[E] {
+  const schema = SOCKET_EVENT_SCHEMAS[event];
+  if (!schema) {
+    throw new Error(`Unknown socket event: ${String(event)}`);
+  }
+  return schema.parse(data) as SocketEventPayloadMap[E];
+}
+
+/**
+ * Safely parses and validates a socket event without throwing.
+ */
+export function createSafeEvent<E extends SocketEventName>(
+  event: E,
+  data: unknown,
+): z.SafeParseReturnType<unknown, SocketEventPayloadMap[E]> {
+  const schema = SOCKET_EVENT_SCHEMAS[event];
+  if (!schema) {
+    return {
+      success: false,
+      error: new z.ZodError([
+        {
+          code: z.ZodIssueCode.custom,
+          message: `Unknown socket event: ${String(event)}`,
+          path: [],
+        },
+      ]),
+    };
+  }
+  return schema.safeParse(data) as z.SafeParseReturnType<unknown, SocketEventPayloadMap[E]>;
+}
+
+/**
  * Generic synchronous validation helper that throws a ZodError if invalid.
  */
 export function validatePayload<T>(schema: z.ZodType<T>, data: unknown): T {
