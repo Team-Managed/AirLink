@@ -3,7 +3,9 @@ import type { BYOKConfig, AgentStream } from "@agent-remote/protocol";
 import { RingBuffer } from "./ring-buffer.js";
 import { LLMRunner, type ChatMessageParam, type ProviderConfig } from "./llm-runner.js";
 import { PromptBuilder } from "./prompt-builder.js";
-import { getGitDiff, dispatchWorkspaceTool } from "./workspace-tools.js";
+import { SkillRegistry } from "./skills/skill-registry.js";
+import { ApprovalManager } from "./approval-handler.js";
+import { getGitDiff, dispatchWorkspaceTool, WORKSPACE_TOOLS_SCHEMA } from "./workspace-tools.js";
 
 export interface TrueForgeClientOptions {
   endpoint?: string | undefined;
@@ -15,6 +17,7 @@ export interface SessionOptions {
   sessionId: string;
   workspacePath?: string | undefined;
   byokConfig?: BYOKConfig | undefined;
+  approvalManager?: ApprovalManager | undefined;
 }
 
 export interface MockToolAction {
@@ -26,6 +29,7 @@ export interface MockToolAction {
 export interface ExecuteTurnParams {
   prompt: string;
   turnId?: string | undefined;
+  byokConfig?: BYOKConfig | undefined;
   mockToolAction?: MockToolAction | undefined;
 }
 
@@ -42,7 +46,10 @@ export class TrueForgeSession {
   private readonly _sdk: TrueForgeSDK;
   private readonly _ringBuffer: RingBuffer;
   private readonly _llmRunner: LLMRunner;
+  private readonly _skillRegistry: SkillRegistry;
   private readonly _promptBuilder: PromptBuilder;
+  private readonly _approvalManager: ApprovalManager | null = null;
+  private _activeAbortController: AbortController | null = null;
   private _history: ChatMessageParam[] = [];
   private _turnCount: number = 0;
 
@@ -50,12 +57,16 @@ export class TrueForgeSession {
     this.sessionId = options.sessionId;
     this.workspacePath = options.workspacePath || process.cwd();
     this.byokConfig = options.byokConfig;
+    this._approvalManager = options.approvalManager ?? null;
     this._endpoint = endpoint;
     this._defaultModel = defaultModel;
     this._sdk = sdk;
     this._ringBuffer = new RingBuffer(500);
-    this._promptBuilder = new PromptBuilder();
-    this._llmRunner = new LLMRunner(defaultModel !== "0x-alpha" ? { model: defaultModel } : undefined);
+    this._skillRegistry = new SkillRegistry({ workspacePath: this.workspacePath });
+    this._promptBuilder = new PromptBuilder(this._skillRegistry);
+    this._llmRunner = new LLMRunner(
+      defaultModel !== "0x-alpha" ? { model: defaultModel } : undefined,
+    );
     if (this._llmRunner.config.model && defaultModel === "0x-alpha") {
       this._defaultModel = this._llmRunner.config.model;
     }
@@ -138,12 +149,14 @@ export class TrueForgeSession {
   /**
    * Cancels active session or running turn on the TrueForge harness.
    */
-  public async cancelSession(): Promise<unknown> {
+  public async cancelSession(): Promise<{ success: boolean; cancelledLocally: boolean }> {
+    this._activeAbortController?.abort();
     try {
-      return await this._sdk.sessions.cancel(this.sessionId);
+      await this._sdk.sessions.cancel(this.sessionId);
     } catch {
-      return { success: true, cancelledLocally: true };
+      // SDK fallback
     }
+    return { success: true, cancelledLocally: true };
   }
 
   /**
@@ -151,9 +164,13 @@ export class TrueForgeSession {
    */
   public async downloadSandboxFile(turnId: string, filePath: string): Promise<unknown> {
     try {
-      return await this._sdk.sessions.downloadSandboxFile(this.sessionId, turnId, { path: filePath });
+      return await this._sdk.sessions.downloadSandboxFile(this.sessionId, turnId, {
+        path: filePath,
+      });
     } catch (err) {
-      throw new Error(`Failed to download sandbox file "${filePath}": ${err instanceof Error ? err.message : String(err)}`);
+      throw new Error(
+        `Failed to download sandbox file "${filePath}": ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
@@ -241,23 +258,97 @@ export class TrueForgeSession {
       content: promptData.dynamicSuffix,
     };
 
-    const messagesToSend: ChatMessageParam[] = [
-      systemPrompt,
-      ...this._history,
-      userMessage,
-    ];
+    const messagesToSend: ChatMessageParam[] = [systemPrompt, ...this._history, userMessage];
+
+    // 2. Handle mock tool action directly if provided for unit tests
+    if (params.mockToolAction) {
+      yield this._ringBuffer.push({
+        sessionId: this.sessionId,
+        turnId,
+        type: "thought",
+        content: `Executing tool action: ${params.mockToolAction.toolName}`,
+        timestamp: Date.now(),
+      });
+
+      yield this._ringBuffer.push({
+        sessionId: this.sessionId,
+        turnId,
+        type: "tool_call",
+        content: `Executing ${params.mockToolAction.toolName}`,
+        metadata: {
+          name: params.mockToolAction.toolName,
+          args: params.mockToolAction.args,
+        },
+        timestamp: Date.now(),
+      });
+
+      yield this._ringBuffer.push({
+        sessionId: this.sessionId,
+        turnId,
+        type: "tool_result",
+        content: params.mockToolAction.result,
+        metadata: {
+          name: params.mockToolAction.toolName,
+          args: params.mockToolAction.args,
+          exitCode: 0,
+        },
+        timestamp: Date.now(),
+      });
+
+      yield this._ringBuffer.push({
+        sessionId: this.sessionId,
+        turnId,
+        type: "token",
+        content: `Tool executed successfully with result:\n${params.mockToolAction.result}`,
+        timestamp: Date.now(),
+      });
+
+      yield this._ringBuffer.push({
+        sessionId: this.sessionId,
+        turnId,
+        type: "done",
+        content: "Turn completed",
+        timestamp: Date.now(),
+      });
+
+      return;
+    }
+
+    this._activeAbortController = new AbortController();
+    const signal = this._activeAbortController.signal;
 
     let fullAssistantResponse = "";
     let turnsRemaining = 3;
 
     try {
       while (turnsRemaining > 0) {
+        if (signal.aborted) {
+          yield this._ringBuffer.push({
+            sessionId: this.sessionId,
+            turnId,
+            type: "thought",
+            content: "Turn cancelled by client request.",
+            timestamp: Date.now(),
+          });
+          break;
+        }
+
         turnsRemaining -= 1;
         let turnResponse = "";
 
-        // 3. Stream from live LLM runner
-        for await (const chunk of this._llmRunner.streamChat({ messages: messagesToSend })) {
-          if (chunk.type === "thought") {
+        let structuredToolCall: { id: string; name: string; args: Record<string, unknown> } | null =
+          null;
+
+        // 3. Stream from live LLM runner with provider-native tools schema
+        for await (const chunk of this._llmRunner.streamChat({
+          messages: messagesToSend,
+          tools: WORKSPACE_TOOLS_SCHEMA,
+          byokConfig: params.byokConfig || this.byokConfig,
+          signal,
+        })) {
+          if (chunk.type === "tool_call" && chunk.toolCall) {
+            structuredToolCall = chunk.toolCall;
+          } else if (chunk.type === "thought") {
             yield this._ringBuffer.push({
               sessionId: this.sessionId,
               turnId,
@@ -279,52 +370,40 @@ export class TrueForgeSession {
 
         fullAssistantResponse += turnResponse;
 
-        // 4. Inspect if explicit mockToolAction is provided or model emitted tool invocation
-        if (params.mockToolAction) {
-          yield this._ringBuffer.push({
-            sessionId: this.sessionId,
-            turnId,
-            type: "tool_call",
-            content: `Executing ${params.mockToolAction.toolName}`,
-            metadata: {
-              name: params.mockToolAction.toolName,
-              args: params.mockToolAction.args,
-            },
-            timestamp: Date.now(),
-          });
+        // 5. Check provider-native structured tool call OR fallback regex pattern
+        let toolToExecute: { name: string; args: Record<string, unknown> } | null = null;
 
-          yield this._ringBuffer.push({
-            sessionId: this.sessionId,
-            turnId,
-            type: "tool_result",
-            content: params.mockToolAction.result,
-            metadata: {
-              name: params.mockToolAction.toolName,
-              args: params.mockToolAction.args,
-              exitCode: 0,
-            },
-            timestamp: Date.now(),
-          });
-          break;
+        if (structuredToolCall && structuredToolCall.name) {
+          toolToExecute = {
+            name: structuredToolCall.name,
+            args: structuredToolCall.args,
+          };
+        } else {
+          // Resilient fallback for models that format tool calls in markdown text
+          const toolMatch =
+            turnResponse.match(/(?:Tool:\s*|```(?:tool|json)?\s*)(\w+)\s*\(([\s\S]*?)\)/i) ||
+            turnResponse.match(/`(\w+)`\s*with\s*(?:parameters?|args?)\s*({[\s\S]*?})/i);
+
+          if (toolMatch && toolMatch[1]) {
+            const toolName = toolMatch[1].trim();
+            let rawArgs = toolMatch[2]?.trim() || "{}";
+            let parsedArgs: Record<string, unknown> = {};
+
+            try {
+              parsedArgs = JSON.parse(rawArgs);
+            } catch {
+              const pathMatch = rawArgs.match(/path['":\s]+([^'"}\s]+)/i);
+              if (pathMatch && pathMatch[1]) {
+                parsedArgs = { path: pathMatch[1] };
+              }
+            }
+
+            toolToExecute = { name: toolName, args: parsedArgs };
+          }
         }
 
-        // Pattern: Tool: tool_name({"arg": "val"}) or ```tool\ntool_name({...})\n```
-        const toolMatch = turnResponse.match(/(?:Tool:\s*|```(?:tool|json)?\s*)(\w+)\s*\(([\s\S]*?)\)/i) ||
-          turnResponse.match(/`(\w+)`\s*with\s*(?:parameters?|args?)\s*({[\s\S]*?})/i);
-
-        if (toolMatch && toolMatch[1]) {
-          const toolName = toolMatch[1].trim();
-          let rawArgs = toolMatch[2]?.trim() || "{}";
-          let parsedArgs: Record<string, unknown> = {};
-
-          try {
-            parsedArgs = JSON.parse(rawArgs);
-          } catch {
-            const pathMatch = rawArgs.match(/path['":\s]+([^'"}\s]+)/i);
-            if (pathMatch && pathMatch[1]) {
-              parsedArgs = { path: pathMatch[1] };
-            }
-          }
+        if (toolToExecute) {
+          const { name: toolName, args: parsedArgs } = toolToExecute;
 
           // Emit tool_call stream event
           yield this._ringBuffer.push({
@@ -339,13 +418,69 @@ export class TrueForgeSession {
             timestamp: Date.now(),
           });
 
+          // Check human-in-the-loop approval policy for destructive operations (execute_bash, write_file)
+          const isDestructive = toolName === "execute_bash" || toolName === "write_file";
+          if (this._approvalManager && isDestructive) {
+            const commandDesc =
+              toolName === "execute_bash"
+                ? String(parsedArgs["command"] || "")
+                : `write_file: ${String(parsedArgs["path"] || "")}`;
+
+            try {
+              const approved = await this._approvalManager.requestApproval({
+                seqId: this._ringBuffer.latestSeq + 1,
+                sessionId: this.sessionId,
+                turnId,
+                toolName,
+                commandOrDiff: commandDesc,
+                riskLevel: "high",
+                description: `Destructive action: ${toolName}`,
+              });
+
+              if (!approved) {
+                const denialReason = `Tool "${toolName}" execution denied: Developer rejected approval.`;
+                yield this._ringBuffer.push({
+                  sessionId: this.sessionId,
+                  turnId,
+                  type: "tool_result",
+                  content: denialReason,
+                  metadata: { name: toolName, args: parsedArgs, exitCode: 1 },
+                  timestamp: Date.now(),
+                });
+                messagesToSend.push({
+                  role: "assistant",
+                  content: `Tool call ${toolName} was rejected.`,
+                });
+                messagesToSend.push({ role: "user", content: denialReason });
+                continue;
+              }
+            } catch (err) {
+              const timeoutReason = `Tool "${toolName}" approval timed out (180s): ${err instanceof Error ? err.message : String(err)}`;
+              yield this._ringBuffer.push({
+                sessionId: this.sessionId,
+                turnId,
+                type: "tool_result",
+                content: timeoutReason,
+                metadata: { name: toolName, args: parsedArgs, exitCode: 1 },
+                timestamp: Date.now(),
+              });
+              break;
+            }
+          }
+
           // Execute real workspace tool on PC
-          const toolOutput = await dispatchWorkspaceTool(toolName, parsedArgs, this.workspacePath);
+          const toolOutput = await dispatchWorkspaceTool(
+            toolName,
+            parsedArgs,
+            this.workspacePath,
+            signal,
+          );
 
           // Truncate large tool results to prevent context window overflow
-          const previewOutput = toolOutput.length > 3000
-            ? `${toolOutput.slice(0, 1500)}\n\n[... ${toolOutput.length - 2500} bytes truncated ...]\n\n${toolOutput.slice(-1000)}`
-            : toolOutput;
+          const previewOutput =
+            toolOutput.length > 3000
+              ? `${toolOutput.slice(0, 1500)}\n\n[... ${toolOutput.length - 2500} bytes truncated ...]\n\n${toolOutput.slice(-1000)}`
+              : toolOutput;
 
           // Emit tool_result stream event
           yield this._ringBuffer.push({
@@ -362,7 +497,10 @@ export class TrueForgeSession {
           });
 
           // Feed tool result back to LLM for final synthesis
-          messagesToSend.push({ role: "assistant", content: turnResponse });
+          messagesToSend.push({
+            role: "assistant",
+            content: turnResponse || `Invoked ${toolName}`,
+          });
           messagesToSend.push({
             role: "user",
             content: `Tool "${toolName}" executed with output:\n\`\`\`\n${previewOutput}\n\`\`\`\nNow explain the result and answer the user's directive thoroughly.`,
@@ -384,6 +522,8 @@ export class TrueForgeSession {
         content: err instanceof Error ? err.message : "Unknown execution failure",
         timestamp: Date.now(),
       });
+    } finally {
+      this._activeAbortController = null;
     }
 
     // 6. Turn completion marker
