@@ -24,6 +24,7 @@
 - [x] **Multi-Provider Live AI Engine & SDK Capabilities:** Standardized live SSE streaming in `bridge-core` with Google Gemini, Groq, OpenRouter, GitHub Models, and Ollama; integrated full `@truefoundry/trueforge-sdk` subclients for agents, mcpServers, models, sessions, turn history, and sandbox file downloads.
 - [x] **5-Layer Modular Prompt Architecture & Skill Registry:** Implemented byte-identical static caching prefixes (Layers 1–3), dynamic workspace context/directives (Layers 4–5), autonomous filesystem tool execution loop, and `SKILL.md` plugin registry.
 - [x] **VS Code Extension CJS Bundling Fix:** Switched from raw `tsc` ESM output to `esbuild` CJS bundle (`dist/extension.js`). Extension host now loads correctly — buttons, PIN input, prompt submission, and quick actions are all functional.
+- [x] **Active Session Persistence & Multi-Host PIN Sync:** Added `session-persistence` module in `packages/bridge-core` to synchronize active session PINs between CLI, VS Code Extension, and Mobile/Web clients; wired TrueForge SDK `listEvents()` and `createTurnStream()` for multi-device in-sync sessions.
 
 ### Implementation Units Index
 
