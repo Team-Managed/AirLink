@@ -286,7 +286,10 @@ describe("Relay Server Integration", () => {
       client2ConnectedEvents.push(d);
     });
 
-    clientSocket2.emit(SOCKET_EVENTS.JOIN_SESSION, { pin, clientName: "Mobile Client Reconnected" });
+    clientSocket2.emit(SOCKET_EVENTS.JOIN_SESSION, {
+      pin,
+      clientName: "Mobile Client Reconnected",
+    });
     await new Promise((r) => setTimeout(r, 100));
 
     expect(client2ConnectedEvents.length).toBe(1);

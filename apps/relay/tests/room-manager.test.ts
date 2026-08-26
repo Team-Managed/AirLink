@@ -15,12 +15,7 @@ describe("RoomManager", () => {
   });
 
   it("creates and retrieves an active room session by PIN", () => {
-    const room = manager.createRoom(
-      "123456",
-      "host_socket_1",
-      "MacBook Pro",
-      "/Users/dev/project",
-    );
+    const room = manager.createRoom("123456", "host_socket_1", "MacBook Pro", "/Users/dev/project");
 
     expect(room.pin).toBe("123456");
     expect(room.hostSocketId).toBe("host_socket_1");
@@ -70,16 +65,18 @@ describe("RoomManager", () => {
     expect(manager.getRoom("PIN002")).toBeDefined();
   });
 
-  it("purges stale host mappings if a second host overwrites an active PIN", () => {
+  it("synchronizes multiple hosts registered with the same PIN without evicting existing clients", () => {
     manager.createRoom("PIN_SAME", "host_old", "Old Host", "/old");
     manager.pairClient("PIN_SAME", "client_old", "Old Client");
 
-    // Second host registers with the same PIN
-    manager.createRoom("PIN_SAME", "host_new", "New Host", "/new");
+    // Second host (e.g. VS Code) registers with the same PIN
+    const syncRoom = manager.createRoom("PIN_SAME", "host_new", "New Host", "/new");
 
-    expect(manager.getRoomByHostSocketId("host_old")).toBeUndefined();
-    expect(manager.getRoomByClientSocketId("client_old")).toBeUndefined();
+    expect(manager.getRoomByHostSocketId("host_old")?.pin).toBe("PIN_SAME");
     expect(manager.getRoomByHostSocketId("host_new")?.pin).toBe("PIN_SAME");
+    expect(manager.getRoomByClientSocketId("client_old")?.pin).toBe("PIN_SAME");
+    expect(syncRoom.hostSocketIds).toContain("host_old");
+    expect(syncRoom.hostSocketIds).toContain("host_new");
   });
 
   it("revokes displaced client authorization when a new client pairs", () => {

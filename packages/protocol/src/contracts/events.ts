@@ -3,7 +3,14 @@ import { z } from "zod";
 /**
  * Supported LLM Providers for Bring-Your-Own-Key (BYOK) model routing.
  */
-export const LLMProviderSchema = z.enum(["openrouter", "anthropic", "openai", "groq", "gemini", "custom"]);
+export const LLMProviderSchema = z.enum([
+  "openrouter",
+  "anthropic",
+  "openai",
+  "groq",
+  "gemini",
+  "custom",
+]);
 export type LLMProvider = z.infer<typeof LLMProviderSchema>;
 
 /**

@@ -18,10 +18,7 @@ export async function bootstrap(): Promise<void> {
 }
 
 // Start only if executed directly as the main script entrypoint
-if (
-  process.argv[1] &&
-  fileURLToPath(import.meta.url) === path.resolve(process.argv[1])
-) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   bootstrap().catch((err) => {
     console.error("[Relay] Fatal error starting server:", err);
     process.exit(1);

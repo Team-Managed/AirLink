@@ -1,6 +1,7 @@
 export interface RoomSession {
   pin: string;
   hostSocketId: string;
+  hostSocketIds: string[];
   hostName: string;
   workspacePath: string;
   clientSocketId?: string | undefined;
@@ -17,6 +18,7 @@ export interface RoomManagerOptions {
  * RoomManager
  * In-memory manager for ephemeral pairing rooms mapped by 6-digit PIN.
  * Automatically enforces strict 5-minute TTL without persistent cloud database storage.
+ * Supports multi-host session synchronization (CLI <-> VS Code Extension).
  */
 export class RoomManager {
   readonly defaultTtlMs: number;
@@ -29,8 +31,9 @@ export class RoomManager {
   }
 
   /**
-   * Registers a new host room session keyed by PIN.
-   * Cleans up any prior room using the same PIN or created by the same host socket.
+   * Registers a host socket to a room session keyed by PIN.
+   * If the room already exists (e.g. CLI started first, then VS Code connects with same PIN),
+   * synchronizes the new host socket into the active room without evicting connected clients.
    */
   createRoom(
     pin: string,
@@ -39,23 +42,37 @@ export class RoomManager {
     workspacePath: string,
     ttlMs?: number,
   ): RoomSession {
-    // 1. If this host socket previously created another room, remove it
+    // 1. If this host socket previously created another PIN room, unmap it
     const existingPinForHost = this._hostSocketToPin.get(hostSocketId);
-    if (existingPinForHost) {
-      this.removeRoom(existingPinForHost);
-    }
-
-    // 2. If the PIN is already in use by a previous host, completely purge that room
-    if (this._rooms.has(pin)) {
-      this.removeRoom(pin);
+    if (existingPinForHost && existingPinForHost !== pin) {
+      this.removeBySocketId(hostSocketId);
     }
 
     const now = Date.now();
     const duration = ttlMs ?? this.defaultTtlMs;
 
+    // 2. If the room already exists for this PIN, synchronize the secondary host
+    const existingRoom = this._rooms.get(pin);
+    if (existingRoom && now < existingRoom.expiresAt) {
+      if (!existingRoom.hostSocketIds.includes(hostSocketId)) {
+        existingRoom.hostSocketIds.push(hostSocketId);
+      }
+      existingRoom.hostSocketId = hostSocketId;
+      if (workspacePath && workspacePath.trim().length > 0) {
+        existingRoom.workspacePath = workspacePath;
+      }
+      if (hostName) {
+        existingRoom.hostName = hostName;
+      }
+      this._hostSocketToPin.set(hostSocketId, pin);
+      return existingRoom;
+    }
+
+    // 3. Create fresh room session
     const session: RoomSession = {
       pin,
       hostSocketId,
+      hostSocketIds: [hostSocketId],
       hostName,
       workspacePath,
       createdAt: now,
@@ -93,7 +110,10 @@ export class RoomManager {
     const pin = this._hostSocketToPin.get(hostSocketId);
     if (!pin) return undefined;
     const room = this.getRoom(pin);
-    if (room && room.hostSocketId === hostSocketId) {
+    if (
+      room &&
+      (room.hostSocketIds?.includes(hostSocketId) || room.hostSocketId === hostSocketId)
+    ) {
       return room;
     }
     return undefined;
@@ -116,14 +136,11 @@ export class RoomManager {
    * Looks up a room by either host or client socket ID.
    */
   getRoomBySocketId(socketId: string): RoomSession | undefined {
-    return (
-      this.getRoomByHostSocketId(socketId) ?? this.getRoomByClientSocketId(socketId)
-    );
+    return this.getRoomByHostSocketId(socketId) ?? this.getRoomByClientSocketId(socketId);
   }
 
   /**
    * Pairs a client socket to an active room.
-   * Revokes authorization for any displaced client socket to prevent stale routing.
    */
   pairClient(
     pin: string,
@@ -184,7 +201,9 @@ export class RoomManager {
       return false;
     }
 
-    this._hostSocketToPin.delete(room.hostSocketId);
+    for (const hostId of room.hostSocketIds || [room.hostSocketId]) {
+      this._hostSocketToPin.delete(hostId);
+    }
     if (room.clientSocketId) {
       this._clientSocketToPin.delete(room.clientSocketId);
     }
@@ -194,15 +213,25 @@ export class RoomManager {
   }
 
   /**
-   * Removes a room associated with a disconnecting host socket.
+   * Handles disconnection of a specific host socket.
+   * If other host sockets are still active in the room, keeps the room alive!
    */
   removeBySocketId(socketId: string): RoomSession | undefined {
     const pin = this._hostSocketToPin.get(socketId);
     if (!pin) return undefined;
 
+    this._hostSocketToPin.delete(socketId);
     const room = this._rooms.get(pin);
-    if (!room || room.hostSocketId !== socketId) return undefined;
+    if (!room) return undefined;
 
+    room.hostSocketIds = (room.hostSocketIds || []).filter((id) => id !== socketId);
+
+    if (room.hostSocketIds.length > 0) {
+      room.hostSocketId = room.hostSocketIds[room.hostSocketIds.length - 1]!;
+      return room;
+    }
+
+    // No hosts remaining in this room -> remove room
     this.removeRoom(pin);
     return room;
   }
