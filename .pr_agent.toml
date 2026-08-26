@@ -1,34 +1,104 @@
+# ==============================================================================
 # Qodo Merge PR Agent Configuration
+# Remote Agent Harness Monorepo
 # Documentation: https://qodo-merge-docs.qodo.ai/
+# ==============================================================================
+
+[config]
+# Core execution settings
+git_provider = "github"
+publish_output = true
+publish_output_progress = true
+verbosity_level = 1
+temperature = 0.1
 
 [pr_reviewer]
+# Automated review triggers and depth
 require_score_review = true
 require_tests_review = true
 require_security_review = true
 require_estimate_effort_to_review = true
-num_code_suggestions = 4
+require_can_be_split_review = true
 inline_code_comments = true
+num_code_suggestions = 4
+enable_review_labels_effort = true
+enable_review_labels_security = true
+
 extra_instructions = """
-You are the senior code quality reviewer for the Remote Agent Harness monorepo.
-Strictly enforce the following architectural invariants:
-1. Zero Mocking Invariant: Ensure tests exercise real code paths rather than returning hardcoded dummy literals.
-2. 180s Approval Timeout: Verify that all approval Promise state machines are protected with a 180s timeout that auto-denies unresponded actions.
-3. Single Contract Source: Verify that event schemas and inferred types reside exclusively in `@agent-remote/protocol`.
-4. Secret Redaction: Verify that no API keys, private tokens, or credentials are leaked in unmasked logs or WebSocket payloads.
-5. In-Memory Ring Buffer: Verify that stream events are bounded to 500 items in RAM without unbounded disk log accumulation.
-6. 5-Layer Prompt Caching: Verify that Layers 1-3 of LLM prompt builders remain byte-identical across turns.
-7. No Unapproved Suppressions: Flag any `@ts-ignore`, `eslint-disable`, or `as any` casting lacking `// APPROVED-SUPPRESSION: <reason>`.
+You are the principal architect and code quality gatekeeper for the Remote Agent Harness monorepo.
+Your objective is to ensure world-class code quality, strict security, and flawless adherence to repository architectural invariants.
+
+### Monorepo Boundaries & Architecture:
+- `packages/protocol`: Single source of truth for all Zod event schemas and inferred types. Pure TypeScript, zero side-effects.
+- `packages/bridge-core`: Reusable tunnel manager, TrueForge SDK connector, 500-event in-memory ring buffer, 180s approval Promise map, and webhook alerts.
+- `apps/relay`: Stateless Socket.io cloud bridge, IP rate limiter (max 3 failed PIN attempts -> 5-min lockout), zero data retention.
+- `apps/cli`: Standalone Node.js terminal client with chalk banner, ASCII QR, and readline approvals.
+- `apps/vscode-extension`: VS Code extension wrapping bridge-core with status bar PIN and native modal approvals.
+- `apps/mobile`: React Native (Expo) client with 6-digit PIN pairing, virtualized streaming terminal feed, syntax-highlighted diff card, and approval drawer.
+- `apps/web`: Next.js web landing and browser pairing client (/pair).
+
+### Mandatory Architectural Invariants to Enforce:
+1. **Zero Mocking Invariant:**
+   - All tests must execute real code paths, real state machines, and real data structures.
+   - Flag any dummy returns, hardcoded test shortcuts, or unapproved mock objects.
+2. **180s Approval Timeout:**
+   - Every Human-in-the-Loop approval Promise must enforce a 180-second timeout that auto-denies unresponded tool executions with 'Timed out'.
+3. **Single Contract Source:**
+   - All Socket.io event schemas and inferred TypeScript types must be imported from `@agent-remote/protocol`. Never allow duplicate manual type declarations.
+4. **Zero-Retention Relay:**
+   - The relay server must never store prompts, diffs, API keys, or logs to disk or database.
+5. **In-Memory Ring Buffer (Anti-Bloat Policy):**
+   - The stream event ring buffer must run strictly in RAM capped at 500 events with monotonic sequence IDs (`seqId: 1..N`) and O(1) eviction. Never allow unbounded disk log files.
+6. **5-Layer Prompt Caching Structure:**
+   - In `packages/bridge-core`, prompt construction must keep Layers 1–3 (System role, MCP tool schemas, workspace tree) 100% byte-identical across turns to guarantee LLM prompt caching.
+7. **Secret Redaction & BYOK Vault:**
+   - API keys, tokens, and private credentials must never appear in unmasked logs, error traces, or WebSocket payloads.
+8. **No Unapproved Suppressions:**
+   - Mechanically flag any `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `// eslint-disable`, or `as any` casting unless tagged with `// APPROVED-SUPPRESSION: <specific rationale>`.
 """
 
 [pr_description]
+# Automated PR description & change breakdown
 publish_description_as_comment = true
-enable_semantic_files_types = true
+publish_labels = true
 add_custom_labels = true
+enable_semantic_files_types = true
+use_bullet_points = true
+collapsible_file_list = true
+extra_instructions = """
+Provide a structured breakdown including:
+- High-level architectural intent of the change.
+- Specific monorepo workspace packages affected.
+- Invariants verified by this pull request.
+"""
 
 [pr_code_suggestions]
+# AI-driven commitable code improvements (/improve)
 num_code_suggestions = 4
 focus_only_on_problems = true
+suggestions_score_threshold = 7
+extra_instructions = """
+Prioritize suggestions that:
+1. Improve TypeScript strict type safety without adding type casts or `any`.
+2. Handle unhandled edge cases in async Socket.io event processing or error handling.
+3. Optimize algorithmic complexity (e.g. O(1) ring buffer operations, efficient diff hunk rendering).
+4. Enforce clean error handling without swallowing exceptions.
+"""
 
 [pr_test]
-enable_auto_detect_framework = true
+# Interactive automated test generation (/test)
 testing_framework = "vitest"
+enable_auto_detect_framework = true
+extra_instructions = """
+Generate comprehensive Vitest unit and integration tests using Arrange-Act-Assert (AAA) pattern:
+1. Target boundary conditions, malformed payloads, network edge cases, and unexpected inputs.
+2. For protocol contracts: test empty strings, negative sequence numbers, extreme integers, missing optional fields.
+3. For state machines: test timeout race conditions, duplicate approval responses (idempotency), and rapid disconnects.
+4. Never generate tautological tests (`expect(true).toBe(true)`) or stubbed assertions.
+"""
+
+[pr_questions]
+# Interactive architectural Q&A (/ask)
+extra_instructions = """
+Answer architectural questions with direct references to the monorepo context files (`context/architecture-context.md`, `context/code-standards.md`, `context/specs/`).
+"""
