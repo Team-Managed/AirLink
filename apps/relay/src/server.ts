@@ -22,6 +22,8 @@ export interface RelayServerOptions {
   port?: number | undefined;
   roomOptions?: RoomManagerOptions | undefined;
   rateLimitOptions?: RateLimiterOptions | undefined;
+  trustProxy?: boolean | undefined;
+  cleanupIntervalMs?: number | undefined;
 }
 
 export interface RelayServerInstance {
@@ -34,10 +36,13 @@ export interface RelayServerInstance {
   stop: () => Promise<void>;
 }
 
-function getClientIp(socket: Socket): string {
-  const forwarded = socket.handshake.headers["x-forwarded-for"];
-  if (typeof forwarded === "string") {
-    return forwarded.split(",")[0]?.trim() || socket.handshake.address;
+function getClientIp(socket: Socket, trustProxy: boolean = false): string {
+  if (trustProxy) {
+    const forwarded = socket.handshake.headers["x-forwarded-for"];
+    if (typeof forwarded === "string") {
+      const first = forwarded.split(",")[0]?.trim();
+      if (first) return first;
+    }
   }
   return socket.handshake.address || "127.0.0.1";
 }
@@ -47,8 +52,18 @@ function getClientIp(socket: Socket): string {
  */
 export function createRelayServer(options: RelayServerOptions = {}): RelayServerInstance {
   const port = options.port ?? Number(process.env.PORT || 3001);
+  const trustProxy = options.trustProxy ?? false;
+  const cleanupIntervalMs = options.cleanupIntervalMs ?? 60_000; // 1 minute
+
   const roomManager = new RoomManager(options.roomOptions);
   const rateLimiter = new IPRateLimiter(options.rateLimitOptions);
+
+  // Periodic pruning of expired rooms and rate limit records
+  const cleanupTimer = setInterval(() => {
+    roomManager.cleanExpired();
+    rateLimiter.pruneExpired();
+  }, cleanupIntervalMs);
+  cleanupTimer.unref();
 
   const httpServer = http.createServer((req, res) => {
     // Enable CORS for HTTP routes
@@ -91,7 +106,7 @@ export function createRelayServer(options: RelayServerOptions = {}): RelayServer
   });
 
   io.on("connection", (socket: Socket) => {
-    const ip = getClientIp(socket);
+    const ip = getClientIp(socket, trustProxy);
 
     // 1. Host Registration
     socket.on(SOCKET_EVENTS.REGISTER_HOST, (data: unknown) => {
@@ -236,26 +251,41 @@ export function createRelayServer(options: RelayServerOptions = {}): RelayServer
 
     // 9. Socket Disconnect
     socket.on("disconnect", () => {
-      const removedRoom = roomManager.removeBySocketId(socket.id);
-      if (removedRoom) {
-        const wasHost = removedRoom.hostSocketId === socket.id;
-        const remainingPeerSocketId = wasHost
-          ? removedRoom.clientSocketId
-          : removedRoom.hostSocketId;
-
-        if (remainingPeerSocketId) {
+      const hostRoom = roomManager.getRoomByHostSocketId(socket.id);
+      if (hostRoom) {
+        // Host disconnected: purge the room and notify client if present
+        roomManager.removeRoom(hostRoom.pin);
+        if (hostRoom.clientSocketId) {
           const disconnectNotice: SessionConnected = {
-            sessionId: removedRoom.pin,
-            deviceName: removedRoom.hostName,
-            workspacePath: removedRoom.workspacePath,
+            sessionId: hostRoom.pin,
+            deviceName: hostRoom.hostName,
+            workspacePath: hostRoom.workspacePath,
             status: "disconnected",
             connectedAt: Date.now(),
           };
-          io.to(remainingPeerSocketId).emit(
+          io.to(hostRoom.clientSocketId).emit(
             SOCKET_EVENTS.SESSION_CONNECTED,
             SessionConnectedSchema.parse(disconnectNotice),
           );
         }
+        return;
+      }
+
+      const clientRoom = roomManager.getRoomByClientSocketId(socket.id);
+      if (clientRoom) {
+        // Client disconnected: unpair client but KEEP the host room alive for reconnection
+        roomManager.unpairClient(socket.id);
+        const disconnectNotice: SessionConnected = {
+          sessionId: clientRoom.pin,
+          deviceName: clientRoom.hostName,
+          workspacePath: clientRoom.workspacePath,
+          status: "disconnected",
+          connectedAt: Date.now(),
+        };
+        io.to(clientRoom.hostSocketId).emit(
+          SOCKET_EVENTS.SESSION_CONNECTED,
+          SessionConnectedSchema.parse(disconnectNotice),
+        );
       }
     });
   });
@@ -274,6 +304,7 @@ export function createRelayServer(options: RelayServerOptions = {}): RelayServer
   };
 
   const stop = (): Promise<void> => {
+    clearInterval(cleanupTimer);
     return new Promise<void>((resolve) => {
       io.close(() => {
         if (httpServer.listening) {

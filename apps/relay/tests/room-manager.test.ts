@@ -70,6 +70,43 @@ describe("RoomManager", () => {
     expect(manager.getRoom("PIN002")).toBeDefined();
   });
 
+  it("purges stale host mappings if a second host overwrites an active PIN", () => {
+    manager.createRoom("PIN_SAME", "host_old", "Old Host", "/old");
+    manager.pairClient("PIN_SAME", "client_old", "Old Client");
+
+    // Second host registers with the same PIN
+    manager.createRoom("PIN_SAME", "host_new", "New Host", "/new");
+
+    expect(manager.getRoomByHostSocketId("host_old")).toBeUndefined();
+    expect(manager.getRoomByClientSocketId("client_old")).toBeUndefined();
+    expect(manager.getRoomByHostSocketId("host_new")?.pin).toBe("PIN_SAME");
+  });
+
+  it("revokes displaced client authorization when a new client pairs", () => {
+    manager.createRoom("PAIR_PIN", "host_1", "Host 1", "/p");
+    manager.pairClient("PAIR_PIN", "client_first", "Client 1");
+    expect(manager.getRoomByClientSocketId("client_first")?.pin).toBe("PAIR_PIN");
+
+    // Second client pairs to the same room
+    manager.pairClient("PAIR_PIN", "client_second", "Client 2");
+    expect(manager.getRoomByClientSocketId("client_first")).toBeUndefined();
+    expect(manager.getRoomByClientSocketId("client_second")?.pin).toBe("PAIR_PIN");
+  });
+
+  it("unpairClient() clears client association but preserves room for host and reconnect", () => {
+    manager.createRoom("RECON_PIN", "host_stay", "Host Stay", "/path");
+    manager.pairClient("RECON_PIN", "client_leave", "Client Leave");
+
+    const unpairedRoom = manager.unpairClient("client_leave");
+    expect(unpairedRoom).toBeDefined();
+    expect(unpairedRoom?.clientSocketId).toBeUndefined();
+    expect(manager.getRoomByClientSocketId("client_leave")).toBeUndefined();
+
+    // Room still exists and is retrievable by PIN for reconnect
+    expect(manager.getRoom("RECON_PIN")).toBeDefined();
+    expect(manager.getRoomByHostSocketId("host_stay")?.pin).toBe("RECON_PIN");
+  });
+
   it("expires rooms automatically after 5-minute TTL elapses", () => {
     manager.createRoom("EXP001", "host_exp", "Host Exp", "/path");
     expect(manager.getRoom("EXP001")).toBeDefined();
@@ -81,11 +118,11 @@ describe("RoomManager", () => {
     expect(manager.getActiveRoomCount()).toBe(0);
   });
 
-  it("removes rooms by PIN or disconnecting socket ID", () => {
+  it("removes rooms by host socket ID on removeBySocketId()", () => {
     manager.createRoom("DEL001", "host_del", "Host Del", "/path");
     manager.pairClient("DEL001", "client_del");
 
-    const removedBySocket = manager.removeBySocketId("client_del");
+    const removedBySocket = manager.removeBySocketId("host_del");
     expect(removedBySocket?.pin).toBe("DEL001");
     expect(manager.getRoom("DEL001")).toBeUndefined();
     expect(manager.getRoomByHostSocketId("host_del")).toBeUndefined();

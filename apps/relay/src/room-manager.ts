@@ -30,7 +30,7 @@ export class RoomManager {
 
   /**
    * Registers a new host room session keyed by PIN.
-   * If the host socket had a previous room, cleans it up first.
+   * Cleans up any prior room using the same PIN or created by the same host socket.
    */
   createRoom(
     pin: string,
@@ -39,10 +39,15 @@ export class RoomManager {
     workspacePath: string,
     ttlMs?: number,
   ): RoomSession {
-    // Clean any prior room by this host
-    const existingPin = this._hostSocketToPin.get(hostSocketId);
-    if (existingPin) {
-      this.removeRoom(existingPin);
+    // 1. If this host socket previously created another room, remove it
+    const existingPinForHost = this._hostSocketToPin.get(hostSocketId);
+    if (existingPinForHost) {
+      this.removeRoom(existingPinForHost);
+    }
+
+    // 2. If the PIN is already in use by a previous host, completely purge that room
+    if (this._rooms.has(pin)) {
+      this.removeRoom(pin);
     }
 
     const now = Date.now();
@@ -87,7 +92,11 @@ export class RoomManager {
   getRoomByHostSocketId(hostSocketId: string): RoomSession | undefined {
     const pin = this._hostSocketToPin.get(hostSocketId);
     if (!pin) return undefined;
-    return this.getRoom(pin);
+    const room = this.getRoom(pin);
+    if (room && room.hostSocketId === hostSocketId) {
+      return room;
+    }
+    return undefined;
   }
 
   /**
@@ -96,7 +105,11 @@ export class RoomManager {
   getRoomByClientSocketId(clientSocketId: string): RoomSession | undefined {
     const pin = this._clientSocketToPin.get(clientSocketId);
     if (!pin) return undefined;
-    return this.getRoom(pin);
+    const room = this.getRoom(pin);
+    if (room && room.clientSocketId === clientSocketId) {
+      return room;
+    }
+    return undefined;
   }
 
   /**
@@ -110,7 +123,7 @@ export class RoomManager {
 
   /**
    * Pairs a client socket to an active room.
-   * Returns the updated RoomSession, or undefined if the room is invalid/expired.
+   * Revokes authorization for any displaced client socket to prevent stale routing.
    */
   pairClient(
     pin: string,
@@ -122,7 +135,12 @@ export class RoomManager {
       return undefined;
     }
 
-    // Clean old client socket reverse mapping if previously mapped
+    // Revoke previous client if a different client replaces it
+    if (room.clientSocketId && room.clientSocketId !== clientSocketId) {
+      this._clientSocketToPin.delete(room.clientSocketId);
+    }
+
+    // Clean old reverse mapping if incoming client was mapped to another PIN
     const oldPin = this._clientSocketToPin.get(clientSocketId);
     if (oldPin && oldPin !== pin) {
       const oldRoom = this._rooms.get(oldPin);
@@ -137,6 +155,24 @@ export class RoomManager {
     this._clientSocketToPin.set(clientSocketId, pin);
 
     return room;
+  }
+
+  /**
+   * Unpairs a client socket when disconnected, keeping the host room and PIN alive for reconnection.
+   */
+  unpairClient(clientSocketId: string): RoomSession | undefined {
+    const pin = this._clientSocketToPin.get(clientSocketId);
+    if (!pin) return undefined;
+
+    this._clientSocketToPin.delete(clientSocketId);
+    const room = this._rooms.get(pin);
+    if (room && room.clientSocketId === clientSocketId) {
+      delete room.clientSocketId;
+      delete room.clientName;
+      return room;
+    }
+
+    return undefined;
   }
 
   /**
@@ -158,15 +194,14 @@ export class RoomManager {
   }
 
   /**
-   * Removes a room associated with a disconnecting socket (host or client).
+   * Removes a room associated with a disconnecting host socket.
    */
   removeBySocketId(socketId: string): RoomSession | undefined {
-    const pin =
-      this._hostSocketToPin.get(socketId) ?? this._clientSocketToPin.get(socketId);
+    const pin = this._hostSocketToPin.get(socketId);
     if (!pin) return undefined;
 
     const room = this._rooms.get(pin);
-    if (!room) return undefined;
+    if (!room || room.hostSocketId !== socketId) return undefined;
 
     this.removeRoom(pin);
     return room;

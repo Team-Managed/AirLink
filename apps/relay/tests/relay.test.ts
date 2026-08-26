@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { io as ioClient, Socket as ClientSocket } from "socket.io-client";
 import { createRelayServer, RelayServerInstance } from "../src/server.js";
 import {
@@ -15,6 +15,11 @@ import {
   StandardError,
 } from "@agent-remote/protocol";
 
+function waitForConnect(socket: ClientSocket): Promise<void> {
+  if (socket.connected) return Promise.resolve();
+  return new Promise<void>((resolve) => socket.once("connect", () => resolve()));
+}
+
 describe("Relay Server Integration", () => {
   let server: RelayServerInstance;
   let serverUrl: string;
@@ -28,6 +33,10 @@ describe("Relay Server Integration", () => {
 
   afterAll(async () => {
     await server.stop();
+  });
+
+  beforeEach(() => {
+    server.rateLimiter.clear();
   });
 
   it("exposes GET /health endpoint returning 200 OK and active room stats", async () => {
@@ -44,15 +53,7 @@ describe("Relay Server Integration", () => {
     const hostSocket: ClientSocket = ioClient(serverUrl, { transports: ["websocket"] });
     const clientSocket: ClientSocket = ioClient(serverUrl, { transports: ["websocket"] });
 
-    await new Promise<void>((resolve) => {
-      let count = 0;
-      const check = () => {
-        count++;
-        if (count === 2) resolve();
-      };
-      hostSocket.on("connect", check);
-      clientSocket.on("connect", check);
-    });
+    await Promise.all([waitForConnect(hostSocket), waitForConnect(clientSocket)]);
 
     // 1. Host registers
     const hostReg: RegisterHost = {
@@ -206,8 +207,7 @@ describe("Relay Server Integration", () => {
 
   it("enforces rate-limiting and locks out after 3 invalid PIN submissions", async () => {
     const client: ClientSocket = ioClient(serverUrl, { transports: ["websocket"] });
-
-    await new Promise<void>((resolve) => client.on("connect", resolve));
+    await waitForConnect(client);
 
     const errors: StandardError[] = [];
     client.on(SOCKET_EVENTS.ERROR, (err: StandardError) => {
@@ -239,5 +239,61 @@ describe("Relay Server Integration", () => {
     expect(errors[3]?.code).toBe("RATE_LIMITED");
 
     client.disconnect();
+  });
+
+  it("preserves host room and PIN when a client disconnects, allowing reconnection", async () => {
+    const pin = "555666";
+    const hostSocket: ClientSocket = ioClient(serverUrl, { transports: ["websocket"] });
+    const clientSocket1: ClientSocket = ioClient(serverUrl, { transports: ["websocket"] });
+
+    await Promise.all([waitForConnect(hostSocket), waitForConnect(clientSocket1)]);
+
+    // 1. Host registers
+    hostSocket.emit(SOCKET_EVENTS.REGISTER_HOST, {
+      pin,
+      hostName: "Persistent Host",
+      workspacePath: "/code",
+    });
+    await new Promise((r) => setTimeout(r, 50));
+
+    // 2. Client 1 pairs and waits for connected confirmation
+    const client1ConnectedPromise = new Promise<void>((resolve) => {
+      clientSocket1.on(SOCKET_EVENTS.SESSION_CONNECTED, (d: SessionConnected) => {
+        if (d.status === "connected") resolve();
+      });
+    });
+    clientSocket1.emit(SOCKET_EVENTS.JOIN_SESSION, { pin, clientName: "Mobile Client 1" });
+    await client1ConnectedPromise;
+
+    // 3. Host room is active with paired client
+    expect(server.roomManager.getRoom(pin)?.clientSocketId).toBeDefined();
+
+    // 4. Client 1 disconnects (e.g. backgrounded or mobile connection dropped)
+    clientSocket1.disconnect();
+    await new Promise((r) => setTimeout(r, 100));
+
+    // Host room is STILL active in RoomManager under PIN for reconnection!
+    const roomAfterDisconnect = server.roomManager.getRoom(pin);
+    expect(roomAfterDisconnect).toBeDefined();
+    expect(roomAfterDisconnect?.clientSocketId).toBeUndefined();
+
+    // 5. Reconnecting Client 2 joins the same room with same PIN
+    const clientSocket2: ClientSocket = ioClient(serverUrl, { transports: ["websocket"] });
+    await waitForConnect(clientSocket2);
+
+    const client2ConnectedEvents: SessionConnected[] = [];
+    clientSocket2.on(SOCKET_EVENTS.SESSION_CONNECTED, (d: SessionConnected) => {
+      client2ConnectedEvents.push(d);
+    });
+
+    clientSocket2.emit(SOCKET_EVENTS.JOIN_SESSION, { pin, clientName: "Mobile Client Reconnected" });
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(client2ConnectedEvents.length).toBe(1);
+    expect(client2ConnectedEvents[0]?.status).toBe("connected");
+    expect(client2ConnectedEvents[0]?.sessionId).toBe(pin);
+
+    hostSocket.disconnect();
+    clientSocket2.disconnect();
   });
 });
