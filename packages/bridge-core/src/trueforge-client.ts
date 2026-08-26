@@ -1,6 +1,7 @@
 import { TrueForge as TrueForgeSDK } from "@truefoundry/trueforge-sdk";
 import type { BYOKConfig, AgentStream } from "@agent-remote/protocol";
 import { RingBuffer } from "./ring-buffer.js";
+import { LLMRunner, type ChatMessageParam, type ProviderConfig } from "./llm-runner.js";
 
 export interface TrueForgeClientOptions {
   endpoint?: string | undefined;
@@ -28,17 +29,19 @@ export interface ExecuteTurnParams {
 
 /**
  * TrueForgeSession
- * Manages conversation lifecycle, turn streaming, and in-memory event buffering for an active paired session.
- * Emits strictly monotonic sequence IDs across all turns via its internal RingBuffer.
+ * Manages conversation lifecycle, live multi-provider streaming, turn tracking, and in-memory ring buffering.
  */
 export class TrueForgeSession {
   readonly sessionId: string;
   readonly workspacePath: string;
   readonly byokConfig?: BYOKConfig | undefined;
   private readonly _endpoint: string;
-  private readonly _defaultModel: string;
+  private _defaultModel: string;
   private readonly _sdk: TrueForgeSDK;
   private readonly _ringBuffer: RingBuffer;
+  private readonly _llmRunner: LLMRunner;
+  private _history: ChatMessageParam[] = [];
+  private _turnCount: number = 0;
 
   constructor(options: SessionOptions, endpoint: string, defaultModel: string, sdk: TrueForgeSDK) {
     this.sessionId = options.sessionId;
@@ -48,6 +51,7 @@ export class TrueForgeSession {
     this._defaultModel = defaultModel;
     this._sdk = sdk;
     this._ringBuffer = new RingBuffer(500);
+    this._llmRunner = new LLMRunner({ model: defaultModel });
   }
 
   get endpoint(): string {
@@ -66,11 +70,62 @@ export class TrueForgeSession {
     return this._ringBuffer;
   }
 
+  get llmRunner(): LLMRunner {
+    return this._llmRunner;
+  }
+
+  get providerConfig(): ProviderConfig {
+    return this._llmRunner.config;
+  }
+
+  get turnCount(): number {
+    return this._turnCount;
+  }
+
+  /**
+   * Switches the active LLM engine model.
+   */
+  public setModel(model: string): void {
+    this._defaultModel = model;
+    this._llmRunner.setModel(model);
+  }
+
+  /**
+   * Clears the active conversation context and resets the ring buffer.
+   */
+  public clearHistory(): void {
+    this._history = [];
+    this._ringBuffer.clear();
+    this._turnCount = 0;
+  }
+
+  /**
+   * Returns current conversation history.
+   */
+  public getHistory(): ChatMessageParam[] {
+    return [...this._history];
+  }
+
+  /**
+   * Retrieves runtime metrics for the active session.
+   */
+  public getStats() {
+    return {
+      sessionId: this.sessionId,
+      turnCount: this._turnCount,
+      bufferedEvents: this._ringBuffer.size,
+      latestSeq: this._ringBuffer.latestSeq,
+      provider: this._llmRunner.config.provider,
+      activeModel: this._llmRunner.config.model,
+      workspacePath: this.workspacePath,
+    };
+  }
+
   /**
    * Executes a turn, pushing and yielding typed AgentStream chunks with monotonic sequence IDs.
-   * Leverages official @truefoundry/trueforge-sdk for turn orchestration with graceful error handling.
    */
   async *executeTurn(params: ExecuteTurnParams): AsyncIterable<AgentStream> {
+    this._turnCount += 1;
     const turnId = params.turnId || `turn_${Date.now()}`;
 
     // 1. Initial reasoning thought
@@ -82,113 +137,76 @@ export class TrueForgeSession {
       timestamp: Date.now(),
     });
 
-    // 2. Delegate to TrueForge SDK when available or execute local tool action
+    // 2. Prepare message history for LLM
+    const systemPrompt: ChatMessageParam = {
+      role: "system",
+      content: `You are Agent Remote, an expert coding AI harness assistant operating in the repository at "${this.workspacePath}". Respond concisely with accurate technical reasoning and high-quality code.`,
+    };
+
+    const userMessage: ChatMessageParam = {
+      role: "user",
+      content: params.prompt,
+    };
+
+    const messagesToSend: ChatMessageParam[] = [
+      systemPrompt,
+      ...this._history,
+      userMessage,
+    ];
+
+    let fullAssistantResponse = "";
+
     try {
-      if (this._sdk && typeof this._sdk.sessions?.createTurnStream === "function") {
-        try {
-          const streamResponse = await this._sdk.sessions.createTurnStream(this.sessionId, {
-            input: [{ type: "user.message", content: params.prompt }],
+      // 3. Stream from live free LLM runner
+      for await (const chunk of this._llmRunner.streamChat({ messages: messagesToSend })) {
+        if (chunk.type === "thought") {
+          yield this._ringBuffer.push({
+            sessionId: this.sessionId,
+            turnId,
+            type: "thought",
+            content: chunk.text,
+            timestamp: Date.now(),
           });
-
-          for await (const chunk of streamResponse) {
-            const eventType = chunk.type;
-            let streamType: AgentStream["type"] = "token";
-            let content = "";
-
-            if (eventType === "model.message" || eventType === "model.message.delta") {
-              streamType = "token";
-              content = typeof chunk === "string" ? chunk : JSON.stringify(chunk);
-            } else if (eventType === "tool.approval_required") {
-              streamType = "thought";
-              content = "Tool approval requested";
-            } else if (eventType === "tool.response") {
-              streamType = "tool_result";
-              content = "Tool execution completed";
-            } else if (eventType === "turn.done") {
-              streamType = "done";
-              content = "Turn completed";
-            } else {
-              content = JSON.stringify(chunk);
-            }
-
-            yield this._ringBuffer.push({
-              sessionId: this.sessionId,
-              turnId,
-              type: streamType,
-              content,
-              timestamp: Date.now(),
-            });
-          }
-        } catch (_sdkError) {
-          // If remote daemon is unreachable in offline/local testing mode, translate fallback execution cleanly
-          if (params.mockToolAction) {
-            yield this._ringBuffer.push({
-              sessionId: this.sessionId,
-              turnId,
-              type: "tool_call",
-              content: `Executing ${params.mockToolAction.toolName}`,
-              metadata: {
-                name: params.mockToolAction.toolName,
-                args: params.mockToolAction.args,
-              },
-              timestamp: Date.now(),
-            });
-
-            yield this._ringBuffer.push({
-              sessionId: this.sessionId,
-              turnId,
-              type: "tool_result",
-              content: params.mockToolAction.result,
-              metadata: {
-                name: params.mockToolAction.toolName,
-                args: params.mockToolAction.args,
-                exitCode: 0,
-              },
-              timestamp: Date.now(),
-            });
-          }
-
+        } else {
+          fullAssistantResponse += chunk.text;
           yield this._ringBuffer.push({
             sessionId: this.sessionId,
             turnId,
             type: "token",
-            content: `Execution completed for: ${params.prompt}`,
+            content: chunk.text,
             timestamp: Date.now(),
           });
         }
-      } else {
-        if (params.mockToolAction) {
-          yield this._ringBuffer.push({
-            sessionId: this.sessionId,
-            turnId,
-            type: "tool_call",
-            content: `Executing ${params.mockToolAction.toolName}`,
-            metadata: {
-              name: params.mockToolAction.toolName,
-              args: params.mockToolAction.args,
-            },
-            timestamp: Date.now(),
-          });
+      }
 
-          yield this._ringBuffer.push({
-            sessionId: this.sessionId,
-            turnId,
-            type: "tool_result",
-            content: params.mockToolAction.result,
-            metadata: {
-              name: params.mockToolAction.toolName,
-              args: params.mockToolAction.args,
-              exitCode: 0,
-            },
-            timestamp: Date.now(),
-          });
-        }
+      // 4. Save to session history
+      this._history.push(userMessage);
+      this._history.push({ role: "assistant", content: fullAssistantResponse });
+
+      // 5. Handle mock/simulated tool actions if explicitly supplied
+      if (params.mockToolAction) {
+        yield this._ringBuffer.push({
+          sessionId: this.sessionId,
+          turnId,
+          type: "tool_call",
+          content: `Executing ${params.mockToolAction.toolName}`,
+          metadata: {
+            name: params.mockToolAction.toolName,
+            args: params.mockToolAction.args,
+          },
+          timestamp: Date.now(),
+        });
 
         yield this._ringBuffer.push({
           sessionId: this.sessionId,
           turnId,
-          type: "token",
-          content: `Execution completed for: ${params.prompt}`,
+          type: "tool_result",
+          content: params.mockToolAction.result,
+          metadata: {
+            name: params.mockToolAction.toolName,
+            args: params.mockToolAction.args,
+            exitCode: 0,
+          },
           timestamp: Date.now(),
         });
       }
@@ -202,7 +220,7 @@ export class TrueForgeSession {
       });
     }
 
-    // 3. Turn completion marker
+    // 6. Turn completion marker
     yield this._ringBuffer.push({
       sessionId: this.sessionId,
       turnId,
@@ -215,7 +233,7 @@ export class TrueForgeSession {
 
 /**
  * TrueForgeClient
- * Client connector wrapping the official @truefoundry/trueforge-sdk targeting local or remote TrueForge execution harness.
+ * Client connector targeting local or remote TrueForge execution harness.
  */
 export class TrueForgeClient {
   readonly endpoint: string;

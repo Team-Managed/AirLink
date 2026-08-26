@@ -3,3 +3,5 @@ export * from "./prompt-builder.js";
 export * from "./trueforge-client.js";
 export * from "./approval-handler.js";
 export * from "./socket-bridge.js";
+export * from "./llm-runner.js";
+export * from "./workspace-tools.js";
