@@ -13,18 +13,72 @@ import {
 } from "@agent-remote/bridge-core";
 import { AgentChatViewProvider } from "./chat-webview.js";
 
+// ── Module-level bridge state ────────────────────────────────────────────────
 let activeBridge: SocketBridge | null = null;
 let activeSession: TrueForgeSession | null = null;
 let statusBarItem: vscode.StatusBarItem | null = null;
 let currentPin: string = "";
 
-function loadEnvironment(): void {
-  const candidates = [
-    path.resolve(process.cwd(), ".env"),
-    path.resolve(process.cwd(), "..", ".env"),
-    path.resolve(process.cwd(), "..", "..", ".env"),
-    path.resolve(os.homedir(), ".agent-remote", ".env"),
-  ];
+// ── Workspace path helpers ───────────────────────────────────────────────────
+
+/**
+ * Walk up from `startDir` to find the nearest directory that contains a
+ * recognised project root marker (`pnpm-workspace.yaml` for monorepos, or
+ * `package.json` for single-package projects).
+ *
+ * Returns the resolved root path, or `null` if none is found before reaching
+ * the filesystem root.
+ */
+function resolveWorkspacePath(startDir: string): string | null {
+  let current = startDir;
+  for (let i = 0; i < 12; i++) {
+    if (fs.existsSync(path.join(current, "pnpm-workspace.yaml"))) {
+      return current; // monorepo root
+    }
+    if (fs.existsSync(path.join(current, "package.json"))) {
+      return current; // single-package root
+    }
+    const parent = path.dirname(current);
+    if (parent === current) break; // reached filesystem root
+    current = parent;
+  }
+  return null;
+}
+
+/**
+ * Detect the active project root from the VS Code workspace folders.
+ *
+ * Never falls back to `process.cwd()`: inside the VS Code extension host that
+ * resolves to the VS Code *install* directory, not any user project.
+ */
+function detectWorkspacePath(): string | null {
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length === 0 || !folders[0]) return null;
+  const openFolder = folders[0].uri.fsPath;
+  return resolveWorkspacePath(openFolder) ?? openFolder;
+}
+
+// ── Environment helpers ──────────────────────────────────────────────────────
+
+/**
+ * Load a `.env` file, searching in priority order:
+ *   1. Resolved workspace root (the monorepo root the user has open)
+ *   2. The user's `~/.agent-remote/.env` (global fallback)
+ *
+ * We deliberately skip `process.cwd()` because it is unreliable in the
+ * extension host.
+ */
+function loadEnvironment(workspacePath: string | null): void {
+  const candidates: string[] = [];
+
+  if (workspacePath) {
+    candidates.push(
+      path.join(workspacePath, ".env"),
+      path.join(workspacePath, "..", ".env"),
+    );
+  }
+
+  candidates.push(path.join(os.homedir(), ".agent-remote", ".env"));
 
   for (const p of candidates) {
     if (fs.existsSync(p)) {
@@ -33,6 +87,8 @@ function loadEnvironment(): void {
     }
   }
 }
+
+// ── PIN helpers ──────────────────────────────────────────────────────────────
 
 export function generateSessionPin(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -46,23 +102,54 @@ export function formatPin(pin: string): string {
   return pin;
 }
 
+// ── Activation ───────────────────────────────────────────────────────────────
+
 /**
- * Activates the VS Code extension host and initializes the remote harness bridge.
+ * Activates the VS Code extension host and initialises the remote harness bridge.
  */
 export function activate(context: vscode.ExtensionContext): void {
-  loadEnvironment();
-
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  const workspacePath = workspaceFolders && workspaceFolders.length > 0 && workspaceFolders[0]
-    ? workspaceFolders[0].uri.fsPath
-    : process.cwd();
+  const workspacePath = detectWorkspacePath();
+  loadEnvironment(workspacePath);
 
   const config = vscode.workspace.getConfiguration("agentRemote");
-  const relayUrl = config.get<string>("relayUrl") || process.env["RELAY_URL"] || "http://localhost:3001";
-  const model = config.get<string>("model") || process.env["AGENT_MODEL"] || "gemini-2.0-flash";
+  const relayUrl =
+    config.get<string>("relayUrl") || process.env["RELAY_URL"] || "http://localhost:3001";
+  const model =
+    config.get<string>("model") || process.env["AGENT_MODEL"] || "gemini-2.0-flash";
+
   currentPin = generateSessionPin();
 
   const chatProvider = new AgentChatViewProvider(context.extensionUri);
+
+  // ── Workspace guard ──────────────────────────────────────────────────────
+  //
+  // Every action that touches the local filesystem calls requireWorkspace().
+  // It returns the resolved path on success, or posts a user-friendly message
+  // to the chat panel and returns null on failure — so the caller just does:
+  //
+  //   const wp = requireWorkspace();
+  //   if (!wp) return;
+  //   ... use wp ...
+  //
+  // Adding this to a NEW feature: call requireWorkspace() at the top of any
+  // handler that needs the project root. No other boilerplate needed.
+  //
+  function requireWorkspace(): string | null {
+    if (!workspacePath) {
+      chatProvider.addSystemMessage(
+        "⚠️ No workspace folder open.\n\n" +
+          "Agent Remote needs an open project folder to run workspace commands.\n" +
+          "Go to File → Open Folder, select your project root, then try again.",
+      );
+      void vscode.window.showWarningMessage(
+        "Agent Remote: Open a project folder first (File → Open Folder).",
+      );
+      return null;
+    }
+    return workspacePath;
+  }
+
+  // ── Bridge initialisation ────────────────────────────────────────────────
 
   function initializeBridge(pin: string): void {
     const rawPin = pin.replace(/\D/g, "");
@@ -72,17 +159,21 @@ export function activate(context: vscode.ExtensionContext): void {
       activeBridge.disconnect();
     }
 
+    // SocketBridge and TrueForgeSession accept an empty string for
+    // relay-only mode (no local filesystem operations).
+    const resolvedPath = workspacePath ?? "";
+
     const trueForgeClient = new TrueForgeClient({ defaultModel: model });
     activeSession = trueForgeClient.createSession({
       sessionId: rawPin,
-      workspacePath,
+      workspacePath: resolvedPath,
     });
 
     activeBridge = new SocketBridge({
       relayUrl,
       pin: rawPin,
       hostName: os.hostname(),
-      workspacePath,
+      workspacePath: resolvedPath,
       autoConnect: true,
     });
 
@@ -98,33 +189,33 @@ export function activate(context: vscode.ExtensionContext): void {
       statusBarItem.tooltip = `Agent Remote active (PIN: ${formatPin(rawPin)}). Click to copy pairing link.`;
     }
 
-    // Attach Socket Bridge listeners
+    // Remote prompt → local turn
     activeBridge.onPrompt((clientPrompt) => {
       void dispatchTurn(clientPrompt.prompt, "remote");
     });
 
+    // Mobile reconnect → replay buffered events
     activeBridge.onSync((sync) => {
       if (activeSession && activeBridge) {
-        const missedEvents = activeSession.ringBuffer.getEventsSince(sync.lastSeenSeq);
-        activeBridge.sendStreamBatch({
-          sessionId: rawPin,
-          events: missedEvents,
-        });
+        const missed = activeSession.ringBuffer.getEventsSince(sync.lastSeenSeq);
+        activeBridge.sendStreamBatch({ sessionId: rawPin, events: missed });
       }
     });
 
+    // Mobile paired notification
     activeBridge.onSessionConnected((sessionConn) => {
       void vscode.window.showInformationMessage(
         `📱 Mobile remote paired to session ${formatPin(sessionConn.sessionId)}`,
       );
     });
 
+    // Approval flow: show both webview card AND VS Code notification
     activeBridge.onHostApprovalPrompt((req) => {
       chatProvider.handleApprovalRequest(req);
 
-      const message = `⚠️ Action Approval: [${req.toolName}] ${req.commandOrDiff.slice(0, 100)}`;
+      const msg = `⚠️ Approval: [${req.toolName}] ${req.commandOrDiff.slice(0, 100)}`;
       void vscode.window
-        .showWarningMessage(message, { modal: false }, "Approve", "Deny")
+        .showWarningMessage(msg, { modal: false }, "Approve", "Deny")
         .then((selection) => {
           if (selection === "Approve" || selection === "Deny") {
             const approved = selection === "Approve";
@@ -132,7 +223,9 @@ export function activate(context: vscode.ExtensionContext): void {
               activeBridge.approvalManager.resolveApproval(
                 req.approvalId,
                 approved,
-                approved ? "Approved via VS Code Notification" : "Denied via VS Code Notification",
+                approved
+                  ? "Approved via VS Code Notification"
+                  : "Denied via VS Code Notification",
               );
               chatProvider.handleApprovalResolved(req.approvalId, approved);
             }
@@ -141,17 +234,18 @@ export function activate(context: vscode.ExtensionContext): void {
     });
   }
 
-  // 1. Initialize with initial PIN
+  // ── Startup ──────────────────────────────────────────────────────────────
+
   initializeBridge(currentPin);
 
-  // 2. Register Webview Provider
+  // Webview panel (sidebar)
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(AgentChatViewProvider.viewType, chatProvider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
   );
 
-  // 3. Create Status Bar Item
+  // Status bar item
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   statusBarItem.command = "agentRemote.copyPIN";
   statusBarItem.text = `$(radio-tower) Remote: ${formatPin(currentPin)}`;
@@ -159,13 +253,14 @@ export function activate(context: vscode.ExtensionContext): void {
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
 
+  // ── Turn dispatcher ──────────────────────────────────────────────────────
+
   let isExecuting = false;
 
-  // 4. Helper to execute turn
   async function dispatchTurn(promptText: string, origin: "local" | "remote"): Promise<void> {
     if (!activeSession || !activeBridge) return;
     if (isExecuting) {
-      void vscode.window.showWarningMessage("Agent Remote turn is already running.");
+      void vscode.window.showWarningMessage("Agent Remote: a turn is already running.");
       return;
     }
 
@@ -184,68 +279,105 @@ export function activate(context: vscode.ExtensionContext): void {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown execution failure";
       void vscode.window.showErrorMessage(`Agent Remote turn failed: ${msg}`);
+      chatProvider.addSystemMessage(`❌ Turn failed: ${msg}`);
     } finally {
       isExecuting = false;
     }
   }
 
-  // 5. Connect Webview actions
+  // ── Webview action handlers ──────────────────────────────────────────────
+  //
+  // Convention for new features:
+  //   - Workspace-dependent actions   → call requireWorkspace() at the top.
+  //   - Relay/session-only actions    → no guard needed.
+  //   - AI prompt actions             → call dispatchTurn(); no guard needed
+  //     (the session runs in relay-only mode when no workspace is open).
+
   chatProvider.onPrompt((text) => {
     void dispatchTurn(text, "local");
   });
 
   chatProvider.onAction(async (action, arg) => {
+    // ── Workspace-dependent actions ──────────────────────────────────────
     if (action === "diff") {
-      const diff = await getGitDiff(workspacePath);
-      chatProvider.addSystemMessage(`🔍 Current Git Diff:\n\n${diff}`);
+      const wp = requireWorkspace();
+      if (!wp) return;
+      chatProvider.addSystemMessage("🔍 Reading git diff...");
+      const diff = await getGitDiff(wp);
+      chatProvider.addSystemMessage(`🔍 Current Git Diff:\n\n${diff || "(no changes)"}`);
     } else if (action === "test") {
+      const wp = requireWorkspace();
+      if (!wp) return;
       chatProvider.addSystemMessage(`🧪 Running workspace tests${arg ? ` (filter: ${arg})` : ""}...`);
-      const result = await runWorkspaceTests(workspacePath, arg);
+      const result = await runWorkspaceTests(wp, arg);
       chatProvider.addSystemMessage(
         `${result.success ? "✔ Tests Passed" : "❌ Tests Failed"} (${result.durationMs}ms):\n\n${result.output}`,
       );
     } else if (action === "lint") {
+      const wp = requireWorkspace();
+      if (!wp) return;
       chatProvider.addSystemMessage("🧹 Running workspace typecheck...");
-      const result = await runWorkspaceLint(workspacePath);
+      const result = await runWorkspaceLint(wp);
       chatProvider.addSystemMessage(
         `${result.success ? "✔ Typecheck Passed" : "❌ Typecheck Failed"} (${result.durationMs}ms):\n\n${result.output}`,
       );
-    } else if (action === "stats") {
+    }
+    // ── Session/relay actions (no workspace needed) ───────────────────────
+    else if (action === "stats") {
       if (activeSession) {
         const stats = activeSession.getStats();
+        const wpDisplay = workspacePath ?? "(no workspace)";
         chatProvider.addSystemMessage(
-          `📊 Session Metrics:\n- PIN: ${formatPin(stats.sessionId)}\n- Turns: ${stats.turnCount}\n- Buffered Events: ${stats.bufferedEvents}\n- Latest Sequence: #${stats.latestSeq}\n- Provider: ${stats.provider} (Free)\n- Model: ${stats.activeModel}`,
+          `📊 Session Metrics:\n` +
+            `- PIN:              ${formatPin(stats.sessionId)}\n` +
+            `- Turns:            ${stats.turnCount}\n` +
+            `- Buffered Events:  ${stats.bufferedEvents}\n` +
+            `- Latest Sequence:  #${stats.latestSeq}\n` +
+            `- Provider:         ${stats.provider}\n` +
+            `- Model:            ${stats.activeModel}\n` +
+            `- Workspace:        ${wpDisplay}\n` +
+            `- Relay:            ${relayUrl}`,
         );
       }
     } else if (action === "setPin") {
       const input = await vscode.window.showInputBox({
         prompt: "Enter 6-digit PIN to host or pair with (e.g. 560-994)",
         value: formatPin(currentPin),
+        validateInput: (v) => {
+          const d = v.replace(/\D/g, "");
+          return d.length === 6 ? null : "PIN must be exactly 6 digits";
+        },
       });
       if (input) {
         const cleaned = input.replace(/\D/g, "");
-        if (cleaned.length === 6) {
-          initializeBridge(cleaned);
-          chatProvider.addSystemMessage(`✔ Session PIN updated to ${formatPin(cleaned)}. Relay room active.`);
-          void vscode.window.showInformationMessage(`Agent Remote PIN set to ${formatPin(cleaned)}`);
-        } else {
-          void vscode.window.showErrorMessage("PIN must be exactly 6 digits.");
-        }
+        initializeBridge(cleaned);
+        chatProvider.addSystemMessage(
+          `✔ Session PIN updated to ${formatPin(cleaned)}. Relay room active.`,
+        );
+        void vscode.window.showInformationMessage(
+          `Agent Remote PIN set to ${formatPin(cleaned)}`,
+        );
       }
     } else if (action === "copyPin") {
       const pairUrl = `https://agent-remote.dev/pair?pin=${currentPin}`;
       await vscode.env.clipboard.writeText(pairUrl);
-      chatProvider.addSystemMessage(`✔ Copied pairing URL to clipboard: ${pairUrl}`);
+      chatProvider.addSystemMessage(`✔ Copied pairing URL to clipboard:\n${pairUrl}`);
       void vscode.window.showInformationMessage(`Copied pairing URL: ${pairUrl}`);
     } else if (action === "clear") {
       if (activeSession) {
         activeSession.clearHistory();
         chatProvider.clearMessages();
-        chatProvider.addSystemMessage("✔ Conversation history and in-memory ring buffer reset.");
+        chatProvider.addSystemMessage(
+          "✔ Conversation history and in-memory ring buffer reset.",
+        );
       }
     }
+    // ── Future actions: add new else-if blocks here.
+    // Workspace-dependent → add requireWorkspace() at the top of the block.
+    // Relay/session-only  → no guard needed.
   });
 
+  // Approval responses from the webview
   chatProvider.onApprovalResponse((approvalId, approved) => {
     if (activeBridge) {
       activeBridge.approvalManager.resolveApproval(
@@ -257,13 +389,17 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   });
 
-  // 6. Register VS Code Commands
+  // ── VS Code command palette / keyboard commands ──────────────────────────
+  //
+  // Same convention: workspace-dependent commands call requireWorkspace().
+
   context.subscriptions.push(
+    // PIN / relay (no workspace needed)
     vscode.commands.registerCommand("agentRemote.copyPIN", async () => {
       const pairUrl = `https://agent-remote.dev/pair?pin=${currentPin}`;
       await vscode.env.clipboard.writeText(pairUrl);
       void vscode.window.showInformationMessage(
-        `✔ Copied pairing URL to clipboard: ${pairUrl} (PIN: ${formatPin(currentPin)})`,
+        `✔ Copied pairing URL: ${pairUrl} (PIN: ${formatPin(currentPin)})`,
       );
     }),
 
@@ -271,45 +407,17 @@ export function activate(context: vscode.ExtensionContext): void {
       const input = await vscode.window.showInputBox({
         prompt: "Enter 6-digit PIN to host or pair with (e.g. 560-994)",
         value: formatPin(currentPin),
+        validateInput: (v) => {
+          const d = v.replace(/\D/g, "");
+          return d.length === 6 ? null : "PIN must be exactly 6 digits";
+        },
       });
       if (input) {
         const cleaned = input.replace(/\D/g, "");
-        if (cleaned.length === 6) {
-          initializeBridge(cleaned);
-          void vscode.window.showInformationMessage(`Agent Remote PIN set to ${formatPin(cleaned)}`);
-        } else {
-          void vscode.window.showErrorMessage("PIN must be exactly 6 digits.");
-        }
-      }
-    }),
-
-    vscode.commands.registerCommand("agentRemote.createPR", () => {
-      void dispatchTurn("Create a pull request with all session changes and test results.", "local");
-    }),
-
-    vscode.commands.registerCommand("agentRemote.showDiff", async () => {
-      const diff = await getGitDiff(workspacePath);
-      chatProvider.addSystemMessage(`🔍 Current Git Diff:\n\n${diff}`);
-    }),
-
-    vscode.commands.registerCommand("agentRemote.clearSession", () => {
-      if (activeSession) {
-        activeSession.clearHistory();
-        chatProvider.clearMessages();
-        chatProvider.addSystemMessage("✔ Conversation history and in-memory ring buffer reset.");
-      }
-    }),
-
-    vscode.commands.registerCommand("agentRemote.importIssue", async () => {
-      const issueNum = await vscode.window.showInputBox({
-        prompt: "Enter GitHub Issue Number to load context (e.g. 42)",
-        placeHolder: "42",
-      });
-      if (issueNum) {
-        const cleaned = issueNum.replace(/\D/g, "");
-        if (cleaned) {
-          void dispatchTurn(`Fix GitHub Issue #${cleaned} and verify tests pass.`, "local");
-        }
+        initializeBridge(cleaned);
+        void vscode.window.showInformationMessage(
+          `Agent Remote PIN set to ${formatPin(cleaned)}`,
+        );
       }
     }),
 
@@ -326,11 +434,55 @@ export function activate(context: vscode.ExtensionContext): void {
         void vscode.window.showInformationMessage("Agent Remote bridge disconnected.");
       }
     }),
+
+    // Workspace-dependent commands
+    vscode.commands.registerCommand("agentRemote.showDiff", async () => {
+      const wp = requireWorkspace();
+      if (!wp) return;
+      chatProvider.addSystemMessage("🔍 Reading git diff...");
+      const diff = await getGitDiff(wp);
+      chatProvider.addSystemMessage(`🔍 Current Git Diff:\n\n${diff || "(no changes)"}`);
+    }),
+
+    vscode.commands.registerCommand("agentRemote.clearSession", () => {
+      if (activeSession) {
+        activeSession.clearHistory();
+        chatProvider.clearMessages();
+        chatProvider.addSystemMessage(
+          "✔ Conversation history and in-memory ring buffer reset.",
+        );
+      }
+    }),
+
+    // AI prompt commands (relay-only safe; workspace guard inside the agent turn if needed)
+    vscode.commands.registerCommand("agentRemote.createPR", () => {
+      void dispatchTurn(
+        "Create a pull request with all session changes and test results.",
+        "local",
+      );
+    }),
+
+    vscode.commands.registerCommand("agentRemote.importIssue", async () => {
+      const issueNum = await vscode.window.showInputBox({
+        prompt: "Enter GitHub Issue Number to load context (e.g. 42)",
+        placeHolder: "42",
+        validateInput: (v) =>
+          /^\d+$/.test(v.trim()) ? null : "Enter a numeric issue number",
+      });
+      if (issueNum) {
+        const cleaned = issueNum.replace(/\D/g, "");
+        if (cleaned) {
+          void dispatchTurn(`Fix GitHub Issue #${cleaned} and verify tests pass.`, "local");
+        }
+      }
+    }),
   );
 }
 
+// ── Deactivation ─────────────────────────────────────────────────────────────
+
 /**
- * Deactivates the VS Code extension host and releases socket resources.
+ * Deactivates the extension and releases all socket resources.
  */
 export function deactivate(): void {
   if (activeBridge) {
