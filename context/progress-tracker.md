@@ -30,6 +30,17 @@
   - Extracted shared `AgentHostController` abstraction in `packages/bridge-core`.
   - 100% test pass rate (19 test files, 166 unit/integration tests).
 
+- [x] **Mobile React Native Client & Control Shell (`apps/mobile`):**
+  - Scaffolded Expo SDK 51+ / React Native client shell with semantic dark developer theme tokens (`#090d16`).
+  - Built `MobileSocketService` managing real-time Socket.io tunnel, strict Zod protocol validation, monotonic sequence tracking, and catch-up sync.
+  - Implemented `PairingScreen` with 6-digit PIN input, monospace letter tracking, auto-submit on 6th digit, and error handling.
+  - Implemented virtualized `TerminalFeed` with streaming token aggregation, collapsible thought cards, tool call snippets, and auto-scroll locking.
+  - Implemented `PromptInputBar` with horizontal quick-action pills (`[Create PR]`, `[Import Issue]`, `[Run Tests]`, `[Git Status]`, `[Fix Lint]`, `[Rollback]`).
+  - Implemented `DiffCard` with unified Git diff parsing, line-by-line syntax highlighting, additions/deletions badges, and file path headers.
+  - Implemented `ApprovalDrawer` with 180s countdown progress bar (smooth color morph from green -> amber -> red), risk level badges, and dual `[Approve]` / `[Deny]` action buttons.
+  - Integrated `MobileHapticsService` with vibration fallback.
+  - 100% test pass rate across 26 test files and 192 unit/integration tests.
+
 ### Implementation Units Index
 
 - [x] **Unit 01:** Monorepo Workspace & Protocol Contracts (`packages/protocol`)
@@ -38,9 +49,9 @@
 - [x] **Unit 04:** Cloud Relay Server (`apps/relay`)
 - [x] **Unit 05:** Terminal CLI Host & Interactive Client (`apps/cli`)
 - [x] **Unit 06:** VS Code Extension Host & Chat Panel (`apps/vscode-extension`)
-- [ ] **Unit 07:** Mobile App Shell & Pairing (`apps/mobile`)
-- [ ] **Unit 08:** Mobile Streaming & Terminal Feed (`apps/mobile`)
-- [ ] **Unit 09:** Mobile Diff Card & Approval Drawer (`apps/mobile`)
+- [x] **Unit 07:** Mobile App Shell & Pairing (`apps/mobile`)
+- [x] **Unit 08:** Mobile Streaming & Terminal Feed (`apps/mobile`)
+- [x] **Unit 09:** Mobile Diff Card & Approval Drawer (`apps/mobile`)
 - [ ] **Unit 10:** BYOK Encrypted Vault & Model Routing (`apps/mobile` + `bridge-core`)
 - [ ] **Unit 11:** Reconnect Resilience & Hydration (`apps/mobile` + `bridge-core`)
 - [ ] **Unit 12:** Web Landing Page & Demo Shell (`apps/web`)
