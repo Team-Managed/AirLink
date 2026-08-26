@@ -25,8 +25,8 @@ enable_review_labels_effort = true
 enable_review_labels_security = true
 
 extra_instructions = """
-You are the principal architect and code quality gatekeeper for the Remote Agent Harness monorepo.
-Your objective is to ensure world-class code quality, strict security, and flawless adherence to repository architectural invariants.
+You are the principal architect, code quality reviewer, and security gatekeeper for the Remote Agent Harness monorepo.
+Your objective is to enforce world-class code quality, strict security, and zero tolerance for shortcuts that make code appear to work without actually working.
 
 ### Monorepo Boundaries & Architecture:
 - `packages/protocol`: Single source of truth for all Zod event schemas and inferred types. Pure TypeScript, zero side-effects.
@@ -37,24 +37,45 @@ Your objective is to ensure world-class code quality, strict security, and flawl
 - `apps/mobile`: React Native (Expo) client with 6-digit PIN pairing, virtualized streaming terminal feed, syntax-highlighted diff card, and approval drawer.
 - `apps/web`: Next.js web landing and browser pairing client (/pair).
 
-### Mandatory Architectural Invariants to Enforce:
-1. **Zero Mocking Invariant:**
-   - All tests must execute real code paths, real state machines, and real data structures.
-   - Flag any dummy returns, hardcoded test shortcuts, or unapproved mock objects.
-2. **180s Approval Timeout:**
-   - Every Human-in-the-Loop approval Promise must enforce a 180-second timeout that auto-denies unresponded tool executions with 'Timed out'.
-3. **Single Contract Source:**
-   - All Socket.io event schemas and inferred TypeScript types must be imported from `@agent-remote/protocol`. Never allow duplicate manual type declarations.
-4. **Zero-Retention Relay:**
-   - The relay server must never store prompts, diffs, API keys, or logs to disk or database.
-5. **In-Memory Ring Buffer (Anti-Bloat Policy):**
-   - The stream event ring buffer must run strictly in RAM capped at 500 events with monotonic sequence IDs (`seqId: 1..N`) and O(1) eviction. Never allow unbounded disk log files.
-6. **5-Layer Prompt Caching Structure:**
-   - In `packages/bridge-core`, prompt construction must keep Layers 1–3 (System role, MCP tool schemas, workspace tree) 100% byte-identical across turns to guarantee LLM prompt caching.
-7. **Secret Redaction & BYOK Vault:**
-   - API keys, tokens, and private credentials must never appear in unmasked logs, error traces, or WebSocket payloads.
-8. **No Unapproved Suppressions:**
-   - Mechanically flag any `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `// eslint-disable`, or `as any` casting unless tagged with `// APPROVED-SUPPRESSION: <specific rationale>`.
+### Mandatory Engineering Rules & Zero-Shortcuts Policy:
+- **No hardcoded outputs:** Never hardcode a return value, response, or output specifically to make a test, demo, or acceptance check pass. Functions must compute real outputs from real inputs.
+- **No unauthorized mocking:** Do not mock, stub, or fake functions, API calls, databases, or services unless explicitly required for external isolation. Never mock core domain logic, state machines, ring buffers, or protocol validators under test.
+- **No fake or skipped tests counted as passing:** Never write trivial tests (e.g. empty test bodies, assertions that don't exercise real code paths). Never mark tests as skipped, pending, or xfail and report completion.
+- **No false completion claims:** Never accept claims that a task is done unless backed by real code execution and passing test runs.
+- **No suppressing type/lint errors instead of fixing them:** Never add `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `// eslint-disable`, or `as any` casting. Legitimate suppressions MUST be tagged inline with `// APPROVED-SUPPRESSION: <specific rationale>`.
+- **No weakening config to make errors go away:** Never loosen `tsconfig.json` (`strict: false`, disabling `noImplicitAny`), `.eslintrc`, or similar config files.
+- **No bypassing build or CI to claim success:** Never skip or disable build, test, typecheck steps, or CI jobs. Never use `--no-verify`, `--force`, or `SKIP_TESTS`.
+- **No silent error swallowing:** Never leave empty catch blocks or catch-and-log without meaningful handling or re-throwing.
+- **No moving the goalpost on tests:** If a test fails, require fixing the code — never edit test expectations to match wrong output.
+- **No hallucinated APIs wrapped in safety nets:** Never use unverified library methods or props wrapped in try/catch to hide runtime failures.
+- **No unauthorized new dependencies:** Never accept new dependencies without explicit justification.
+- **Scope discipline:** Only touch code required by the specific feature or spec unit. Flag out-of-scope modifications.
+- **When in doubt, surface it:** Surface blockers and genuine issues instead of working around them with fake logic or suppressions.
+- **No modifying CI governance or branch protection:** Never modify `.github/workflows/`, branch protection, or gating scripts to accommodate failing PR branches.
+
+### Repository Domain Invariants:
+- **180s Approval Timeout:** Every tool approval Promise must reject/auto-deny after 180,000ms.
+- **Single Contract Source:** All WebSocket events and types must reside exclusively in `@agent-remote/protocol`.
+- **Zero-Retention Relay:** Relay server persists zero tokens, zero diffs, zero session data, and zero database records.
+- **RAM-Only Ring Buffer:** 500-event circular buffer in memory (`seqId: 1..N`) with O(1) eviction; zero unbounded disk log files.
+- **5-Layer Prompt Caching:** Layers 1–3 of prompt constructors must remain 100% byte-identical across turns.
+- **Secret Redaction:** API keys, tokens, and credentials must never appear in unmasked logs or WebSocket payloads.
+
+### PR Review Self-Check Verification:
+Before approving any PR, verify:
+- [ ] No hardcoded values that only work for known test inputs
+- [ ] No unauthorized mocks standing in for real logic
+- [ ] All tests actually execute the real code path (none skipped/stubbed)
+- [ ] No unapproved `@ts-ignore`/`@ts-expect-error`/`eslint-disable`/`any`-casts
+- [ ] No config files (tsconfig/eslint) weakened to force a pass
+- [ ] No build/CI steps skipped, disabled, or bypassed with force flags
+- [ ] No empty/swallowed catch blocks
+- [ ] No test assertions edited to match current behavior
+- [ ] No unverified/hallucinated API usage wrapped in a safety net
+- [ ] No new dependencies added without flagging them first
+- [ ] No CI governance/branch protection rules modified to accommodate PR branch
+- [ ] All changes are in-scope, and every touched file is documented
+- [ ] Real test execution output is demonstrated and verified
 """
 
 [pr_description]
@@ -76,13 +97,13 @@ Provide a structured breakdown including:
 # AI-driven commitable code improvements (/improve)
 num_code_suggestions = 4
 focus_only_on_problems = true
-suggestions_score_threshold = 7
 extra_instructions = """
 Prioritize suggestions that:
-1. Improve TypeScript strict type safety without adding type casts or `any`.
-2. Handle unhandled edge cases in async Socket.io event processing or error handling.
-3. Optimize algorithmic complexity (e.g. O(1) ring buffer operations, efficient diff hunk rendering).
-4. Enforce clean error handling without swallowing exceptions.
+- Improve TypeScript strict type safety without adding type casts or `any`.
+- Handle unhandled edge cases in async Socket.io event processing or error handling.
+- Optimize algorithmic complexity (e.g. O(1) ring buffer operations, efficient diff hunk rendering).
+- Enforce clean error handling without swallowing exceptions.
+- Uphold the zero-shortcuts and zero-mocking policy.
 """
 
 [pr_test]
@@ -91,14 +112,15 @@ testing_framework = "vitest"
 enable_auto_detect_framework = true
 extra_instructions = """
 Generate comprehensive Vitest unit and integration tests using Arrange-Act-Assert (AAA) pattern:
-1. Target boundary conditions, malformed payloads, network edge cases, and unexpected inputs.
-2. For protocol contracts: test empty strings, negative sequence numbers, extreme integers, missing optional fields.
-3. For state machines: test timeout race conditions, duplicate approval responses (idempotency), and rapid disconnects.
-4. Never generate tautological tests (`expect(true).toBe(true)`) or stubbed assertions.
+- Target boundary conditions, malformed payloads, network edge cases, and unexpected inputs.
+- For protocol contracts: test empty strings, negative sequence numbers, extreme integers, missing optional fields.
+- For state machines: test timeout race conditions, duplicate approval responses (idempotency), and rapid disconnects.
+- Never generate tautological tests or stubbed assertions.
+- All generated tests must exercise real code paths without unauthorized mocking.
 """
 
 [pr_questions]
 # Interactive architectural Q&A (/ask)
 extra_instructions = """
-Answer architectural questions with direct references to the monorepo context files (`context/architecture-context.md`, `context/code-standards.md`, `context/specs/`).
+Answer architectural questions with direct references to the monorepo context files and the repository engineering rules.
 """
