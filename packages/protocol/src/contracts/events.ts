@@ -118,7 +118,12 @@ export const ApprovalRequestSchema = z.object({
   commandOrDiff: z.string(),
   riskLevel: RiskLevelSchema,
   description: z.string().optional(),
-  timeoutMs: z.literal(APPROVAL_TIMEOUT_MS).default(APPROVAL_TIMEOUT_MS), // Strict 180s invariant - cannot be overridden
+  timeoutMs: z
+    .number()
+    .int("timeoutMs must be an integer")
+    .positive("timeoutMs must be positive")
+    .max(APPROVAL_TIMEOUT_MS, `timeoutMs cannot exceed ${APPROVAL_TIMEOUT_MS}ms (180s)`)
+    .default(APPROVAL_TIMEOUT_MS),
   createdAt: z.number().default(() => Date.now()),
 });
 export type ApprovalRequest = z.infer<typeof ApprovalRequestSchema>;

@@ -4,13 +4,6 @@ Provide a concise summary of the changes introduced in this pull request and the
 
 ---
 
-## Related Context
-
-- Spec Reference: `context/specs/`
-- Issue / Tracking:
-
----
-
 ## Type of Change
 
 - [ ] Feature (new functionality)
