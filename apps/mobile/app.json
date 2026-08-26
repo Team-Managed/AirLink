@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Agent Remote",
+    "slug": "agent-remote",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#090d16",
+    "primaryColor": "#38bdf8",
+    "splash": {
+      "backgroundColor": "#090d16"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
