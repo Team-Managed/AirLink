@@ -1,6 +1,8 @@
 import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import * as os from "node:os";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import chalk from "chalk";
 import dotenv from "dotenv";
 import {
@@ -24,7 +26,23 @@ import {
   formatAvailableModelsList,
 } from "./terminal-ui.js";
 
-dotenv.config();
+// Multi-level .env discovery (looks in current dir, monorepo root, or user home)
+function loadEnvironment(): void {
+  const candidates = [
+    path.resolve(process.cwd(), ".env"),
+    path.resolve(process.cwd(), "..", ".env"),
+    path.resolve(process.cwd(), "..", "..", ".env"),
+    path.resolve(os.homedir(), ".agent-remote", ".env"),
+  ];
+
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      dotenv.config({ path: p });
+      break;
+    }
+  }
+}
+loadEnvironment();
 
 export interface CliOptions {
   relayUrl: string;
@@ -43,8 +61,8 @@ export interface CliOptions {
 export function parseCliArgs(argv: string[]): CliOptions {
   let relayUrl = process.env["RELAY_URL"] || "http://localhost:3001";
   let pin = "";
-  let workspacePath = process.cwd();
-  let model = process.env["AGENT_MODEL"] || "0x-alpha";
+  let workspacePath = process.env["INIT_CWD"] || process.cwd();
+  let model = process.env["AGENT_MODEL"] || (process.env["GEMINI_API_KEY"] ? "gemini-2.0-flash" : "0x-alpha");
   let daemon = false;
   let issueNumber: number | undefined;
   let autoPr: boolean | undefined;

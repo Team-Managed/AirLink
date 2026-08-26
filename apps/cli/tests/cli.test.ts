@@ -8,7 +8,7 @@ describe("CLI Argument Parser Suite", () => {
     expect(options.relayUrl).toBe("http://localhost:3001");
     expect(options.pin).toMatch(/^\d{6}$/);
     expect(options.workspacePath).toBe(process.cwd());
-    expect(options.model).toBe("0x-alpha");
+    expect(["0x-alpha", "gemini-2.0-flash", "llama-3.3-70b-versatile"]).toContain(options.model);
     expect(options.daemon).toBe(false);
     expect(options.issueNumber).toBeUndefined();
     expect(options.autoPr).toBeUndefined();

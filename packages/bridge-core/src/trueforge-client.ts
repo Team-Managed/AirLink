@@ -51,7 +51,10 @@ export class TrueForgeSession {
     this._defaultModel = defaultModel;
     this._sdk = sdk;
     this._ringBuffer = new RingBuffer(500);
-    this._llmRunner = new LLMRunner({ model: defaultModel });
+    this._llmRunner = new LLMRunner(defaultModel !== "0x-alpha" ? { model: defaultModel } : undefined);
+    if (this._llmRunner.config.model && defaultModel === "0x-alpha") {
+      this._defaultModel = this._llmRunner.config.model;
+    }
   }
 
   get endpoint(): string {
