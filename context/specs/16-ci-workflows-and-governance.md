@@ -4,6 +4,7 @@ Also read `01-monorepo-and-protocol-contracts.md` and `context/ai-workflow-rules
 Implement the comprehensive GitHub Actions CI pipeline, multi-package typechecking, automated test suites, commit suppression governance, and secret detection.
 
 ## Implementation
+
 1. Create `.github/workflows/ci.yml`:
    - Trigger on all pull requests and pushes to `main`.
    - Configure workflow matrix:
@@ -24,16 +25,19 @@ Implement the comprehensive GitHub Actions CI pipeline, multi-package typechecki
    - Document branch protection invariants (mandatory CI pass before merging to `main`).
 
 ## Scope Limits
+
 - Do not disable typechecking or test steps in CI to force green builds.
 - Do not modify CI workflow files to bypass failing checks without explicit approval.
 - Do not permit commits with unapproved `@ts-ignore` or `any`-casting.
 
 ## Notes
+
 - Mechanical suppression checks enforce code quality standards at commit and PR time without relying on developer memory alone.
 - Multi-package typechecking guarantees type parity between protocol contracts and mobile/CLI consumers.
 - Depends on: 00, 01, 02, 03, 04, 05, 06, 07. Required before: 18.
 
 ## Check When Done
+
 - CI workflow runs and passes typecheck, lint, and tests across all monorepo workspaces.
 - `check-suppressions.mjs` correctly catches unapproved `@ts-ignore` or `any`-casts and passes approved suppressions.
 - Secret scanning verifies zero credentials exist in repository tracking.

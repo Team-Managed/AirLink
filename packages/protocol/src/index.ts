@@ -51,8 +51,7 @@ export const SOCKET_EVENTS = {
   ERROR: "session:error",
 } as const;
 
-export type SocketEventName =
-  (typeof SOCKET_EVENTS)[keyof typeof SOCKET_EVENTS];
+export type SocketEventName = (typeof SOCKET_EVENTS)[keyof typeof SOCKET_EVENTS];
 
 /**
  * Generic synchronous validation helper that throws a ZodError if invalid.
@@ -66,7 +65,7 @@ export function validatePayload<T>(schema: z.ZodType<T>, data: unknown): T {
  */
 export function safeValidatePayload<T>(
   schema: z.ZodType<T>,
-  data: unknown
+  data: unknown,
 ): z.SafeParseReturnType<unknown, T> {
   return schema.safeParse(data);
 }

@@ -4,6 +4,7 @@ Also read `01-monorepo-and-protocol-contracts.md`.
 Implement the standalone Socket.io cloud relay server with IP rate limiting, 5-minute TTL room sessions, and zero-retention message routing in `apps/relay`.
 
 ## Implementation
+
 1. Create `apps/relay/package.json` declaring dependencies on `socket.io`, `dotenv`, and `@agent-remote/protocol`, with scripts for building, running development servers, and testing.
 2. Create `apps/relay/src/rate-limiter.ts`:
    - Implement an in-memory IP rate limiter tracking failed pairing attempts per client IP address.
@@ -33,17 +34,20 @@ Implement the standalone Socket.io cloud relay server with IP rate limiting, 5-m
    - Test bidirectional message forwarding between paired host and client sockets.
 
 ## Scope Limits
+
 - Do not persist logs, tokens, diffs, or API keys to disk or cloud databases (stateless relay).
 - Do not execute tools or perform LLM inference on the relay.
 - Do not allow unauthenticated sockets to join active rooms without PIN validation.
 - Do not maintain session state past the 5-minute TTL without active host pinging.
 
 ## Notes
+
 - The relay server functions purely as an in-memory, zero-retention message router between the developer's PC and mobile device.
 - Rate-limiting prevents brute-force PIN enumeration across the 1,000,000 PIN keyspace.
 - Depends on: 00, 01. Required before: 05, 06, 07.
 
 ## Check When Done
+
 - Relay boots cleanly on the configured port (`PORT=3001`).
 - Two mock sockets can pair via 6-digit PIN and exchange messages.
 - Rate limiter locks out bad PIN attempts after 3 failures.

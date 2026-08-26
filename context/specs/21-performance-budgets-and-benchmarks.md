@@ -4,6 +4,7 @@ Also read `02-bridge-core-and-ring-buffer.md`, `08-mobile-streaming-and-terminal
 Define the performance budgets, latency targets, memory constraints, list virtualization rules, and prompt caching optimization benchmarks following the `performance-optimization` standard.
 
 ## Implementation
+
 1. Enforce Concrete Performance Budgets:
    - **Web Landing & Client (`apps/web`):**
      - Lighthouse Performance Score: $\ge 90$
@@ -29,16 +30,19 @@ Define the performance budgets, latency targets, memory constraints, list virtua
    - Create a synthetic load benchmark test in `packages/bridge-core/tests/performance.test.ts` verifying that pushing 1,000 events through the ring buffer executes in $< 5\text{ms}$ without memory leaks.
 
 ## Scope Limits
+
 - Do not add complex caching layers that introduce stale state bugs during active turn streaming.
 - Do not sacrifice type safety or contract validation for microsecond gains.
 - Do not let bundle size grow without automated review.
 
 ## Notes
+
 - Strict memory bounds prevent developer machines from experiencing log bloat or slowdowns during day-long agent pairing.
 - Prompt caching optimization delivers instantaneous agent responses on repeated refactoring turns.
 - Depends on: 00, 01, 02, 08, 12, 19. Required before: 15.
 
 ## Check When Done
+
 - Web landing page achieves $\ge 90$ score on Lighthouse synthetic audits.
 - Ring buffer benchmark confirms $< 5\text{ms}$ execution for 1,000 events.
 - Mobile terminal feed scrolls smoothly at 60fps under high-frequency token bursts.

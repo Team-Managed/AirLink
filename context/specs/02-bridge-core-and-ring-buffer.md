@@ -4,6 +4,7 @@ Also read `01-monorepo-and-protocol-contracts.md`.
 Implement the in-memory event ring buffer, TrueForge SDK connector, and 5-layer modular prompt constructor inside `packages/bridge-core`. Leave presentation CLI and VS Code wrappers to units 05 and 06.
 
 ## Implementation
+
 1. Create `packages/bridge-core/package.json` with name `@agent-remote/bridge-core`, referencing `@agent-remote/protocol` via workspace protocol, and depending on `@truefoundry/trueforge-sdk` and `socket.io-client`.
 2. Create `packages/bridge-core/src/ring-buffer.ts`:
    - Implement a `RingBuffer` class initialized with a default maximum capacity of 500 stream events.
@@ -28,17 +29,20 @@ Implement the in-memory event ring buffer, TrueForge SDK connector, and 5-layer 
    - `prompt-builder.test.ts`: Verify that Layers 1-3 remain byte-identical across multiple distinct user directives.
 
 ## Scope Limits
+
 - Do not write terminal formatting code (chalk/boxen) or VS Code extension APIs here.
 - Do not persist ring buffer events to disk (ring buffer lives strictly in RAM).
 - Do not execute unapproved destructive tool actions directly without delegating to unit 03's approval manager.
 - Do not hardcode model provider endpoints in core logic.
 
 ## Notes
+
 - The ring buffer is the foundation for solving the mobile reconnection "Elevator Problem".
 - Byte-identical prefixes across Layers 1-3 are mandatory for 0x Alpha and Claude prompt caching.
 - Depends on: 00, 01. Required before: 03, 05, 06.
 
 ## Check When Done
+
 - Ring buffer bounds memory strictly to 500 items under high throughput test.
 - Sequence numbers increment strictly by 1.
 - Unit tests pass with `pnpm --filter @agent-remote/bridge-core test`.
