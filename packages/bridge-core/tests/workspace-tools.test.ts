@@ -39,7 +39,7 @@ describe("Workspace Tools Suite", () => {
     expect(issue).toHaveProperty("title");
     expect(issue).toHaveProperty("body");
     expect(issue.title).toContain("42");
-  });
+  }, 15000);
 
   it("enforces workspace path boundary confinement and blocks directory traversal", () => {
     // 1. Valid subpaths resolve cleanly

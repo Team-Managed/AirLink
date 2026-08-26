@@ -51,9 +51,10 @@ export class RoomManager {
     const now = Date.now();
     const duration = ttlMs ?? this.defaultTtlMs;
 
-    // 2. If the room already exists for this PIN, synchronize the secondary host
+    // 2. If the room already exists for this PIN, refresh expiration and synchronize the host
     const existingRoom = this._rooms.get(pin);
-    if (existingRoom && now < existingRoom.expiresAt) {
+    if (existingRoom) {
+      existingRoom.expiresAt = now + duration;
       if (!existingRoom.hostSocketIds.includes(hostSocketId)) {
         existingRoom.hostSocketIds.push(hostSocketId);
       }
