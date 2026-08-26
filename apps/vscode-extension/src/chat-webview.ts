@@ -191,6 +191,8 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- VS Code webview CSP: inline scripts allowed, no inline event handlers -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
   <title>Agent Remote Chat</title>
   <style>
     :root {
@@ -390,196 +392,258 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
       <span style="font-size:10px; color:var(--text-dim);">Click PIN to pair/enter session</span>
     </div>
     <div style="display:flex; gap:6px; align-items:center;">
-      <span class="pin-badge" id="pin-label" onclick="sendAction('setPin')" title="Click to set or pair custom PIN">PIN: ---</span>
-      <button class="pill-btn" style="padding:2px 6px; font-size:10px;" onclick="sendAction('copyPin')" title="Copy pairing URL">📋</button>
+      <span class="pin-badge" id="pin-label" data-action="setPin" title="Click to set or pair custom PIN">PIN: ---</span>
+      <button class="pill-btn" id="copy-pin-btn" style="padding:2px 6px; font-size:10px;" title="Copy pairing URL">📋</button>
     </div>
   </div>
 
   <div id="messages"></div>
 
   <div id="quick-actions">
-    <button class="pill-btn" onclick="sendAction('diff')">🔍 Git Diff</button>
-    <button class="pill-btn" onclick="sendAction('test')">🧪 Run Tests</button>
-    <button class="pill-btn" onclick="sendAction('lint')">🧹 Typecheck</button>
-    <button class="pill-btn" onclick="sendAction('stats')">📊 Stats</button>
-    <button class="pill-btn" onclick="sendAction('setPin')">✏ Set PIN</button>
-    <button class="pill-btn" onclick="sendAction('clear')">🗑 Clear</button>
-    <button class="pill-btn" onclick="sendPrompt('Create a pull request with all session changes and test results.')">🐙 Create PR</button>
+    <button class="pill-btn" data-action="diff">🔍 Git Diff</button>
+    <button class="pill-btn" data-action="test">🧪 Run Tests</button>
+    <button class="pill-btn" data-action="lint">🧹 Typecheck</button>
+    <button class="pill-btn" data-action="stats">📊 Stats</button>
+    <button class="pill-btn" data-action="setPin">✏ Set PIN</button>
+    <button class="pill-btn" data-action="clear">🗑 Clear</button>
+    <button class="pill-btn" data-prompt="Create a pull request with all session changes and test results.">🐙 Create PR</button>
   </div>
 
   <div id="input-area">
     <textarea id="prompt-input" placeholder="Prompt AI agent or type /help for commands..."></textarea>
-    <button id="send-btn" onclick="handleSend()">Send</button>
+    <button id="send-btn">Send</button>
   </div>
 
   <script>
-    const vscode = acquireVsCodeApi();
-    const messagesEl = document.getElementById('messages');
-    const promptInput = document.getElementById('prompt-input');
-    const pinLabel = document.getElementById('pin-label');
-    const modelLabel = document.getElementById('model-label');
-    let currentTokenBlock = null;
+    (function() {
+      const vscode = acquireVsCodeApi();
+      const messagesEl = document.getElementById('messages');
+      const promptInput = document.getElementById('prompt-input');
+      const pinLabel = document.getElementById('pin-label');
+      const modelLabel = document.getElementById('model-label');
+      let currentTokenBlock = null;
 
-    // Send ready handshake immediately
-    vscode.postMessage({ command: 'ready' });
-
-    window.addEventListener('message', event => {
-      const msg = event.data;
-      switch (msg.command) {
-        case 'updateSession':
-          pinLabel.textContent = msg.pin ? 'PIN: ' + msg.pin : 'PIN: ---';
-          modelLabel.textContent = (msg.provider || 'Free Tier') + ': ' + (msg.model || 'llama-3.3-70b-versatile');
-          break;
-        case 'appendMessage':
-          appendMessageCard(msg.message);
-          break;
-        case 'streamChunk':
-          handleStreamChunk(msg.chunk);
-          break;
-        case 'approvalRequired':
-          renderApprovalCard(msg.request);
-          break;
-        case 'approvalResolved':
-          resolveApprovalCard(msg.approvalId, msg.approved);
-          break;
-        case 'clearMessages':
-          messagesEl.innerHTML = '';
-          currentTokenBlock = null;
-          break;
-      }
-    });
-
-    function handleSend() {
-      const text = promptInput.value.trim();
-      if (!text) return;
-
-      if (text.startsWith('/diff')) {
-        sendAction('diff');
-      } else if (text.startsWith('/clear') || text.startsWith('/reset')) {
-        sendAction('clear');
-      } else if (text.startsWith('/test')) {
-        sendAction('test', text.slice(5).trim());
-      } else if (text.startsWith('/lint')) {
-        sendAction('lint');
-      } else if (text.startsWith('/stats')) {
-        sendAction('stats');
-      } else {
-        vscode.postMessage({ command: 'submitPrompt', text });
+      // ── Messaging helpers ──────────────────────────────────────────────────
+      function sendAction(action, arg) {
+        vscode.postMessage({ command: 'triggerAction', action: action, arg: arg });
+        currentTokenBlock = null;
       }
 
-      promptInput.value = '';
-      currentTokenBlock = null;
-    }
-
-    function sendPrompt(text) {
-      vscode.postMessage({ command: 'submitPrompt', text });
-      currentTokenBlock = null;
-    }
-
-    function sendAction(action, arg) {
-      vscode.postMessage({ command: 'triggerAction', action, arg });
-      currentTokenBlock = null;
-    }
-
-    promptInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-      }
-    });
-
-    function appendMessageCard(m) {
-      const card = document.createElement('div');
-      card.className = 'message-card ' + (
-        m.sender === 'user_local' ? 'msg-user-local' :
-        m.sender === 'user_remote' ? 'msg-user-remote' :
-        m.sender === 'system' ? 'msg-system' : ''
-      );
-
-      if (m.sender !== 'system') {
-        const badge = document.createElement('span');
-        badge.className = 'badge-tag';
-        badge.textContent = m.sender === 'user_local' ? '💻 Local (VS Code)' : m.sender === 'user_remote' ? '📱 Remote (Phone)' : '⚡ Agent';
-        card.appendChild(badge);
+      function sendPrompt(text) {
+        vscode.postMessage({ command: 'submitPrompt', text: text });
+        currentTokenBlock = null;
       }
 
-      const content = document.createElement('div');
-      content.style.whiteSpace = 'pre-wrap';
-      content.textContent = m.content;
-      card.appendChild(content);
+      function handleSend() {
+        const text = promptInput.value.trim();
+        if (!text) return;
 
-      messagesEl.appendChild(card);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
+        if (text.startsWith('/diff')) {
+          sendAction('diff');
+        } else if (text.startsWith('/clear') || text.startsWith('/reset')) {
+          sendAction('clear');
+        } else if (text.startsWith('/test')) {
+          sendAction('test', text.slice(5).trim());
+        } else if (text.startsWith('/lint')) {
+          sendAction('lint');
+        } else if (text.startsWith('/stats')) {
+          sendAction('stats');
+        } else {
+          sendPrompt(text);
+        }
 
-    function handleStreamChunk(chunk) {
-      if (chunk.type === 'token') {
-        if (!currentTokenBlock) {
-          currentTokenBlock = document.createElement('div');
-          currentTokenBlock.className = 'message-card';
+        promptInput.value = '';
+        currentTokenBlock = null;
+      }
+
+      // ── Static button wiring (no inline handlers) ──────────────────────────
+      document.getElementById('send-btn').addEventListener('click', handleSend);
+      document.getElementById('copy-pin-btn').addEventListener('click', function() { sendAction('copyPin'); });
+      document.getElementById('pin-label').addEventListener('click', function() { sendAction('setPin'); });
+
+      // Wire all quick-action pill buttons via data-action / data-prompt attributes
+      document.getElementById('quick-actions').addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-action]');
+        const promptBtn = e.target.closest('[data-prompt]');
+        if (btn) {
+          sendAction(btn.dataset.action, btn.dataset.arg);
+        } else if (promptBtn) {
+          sendPrompt(promptBtn.dataset.prompt);
+        }
+      });
+
+      // Enter key in textarea (no shift)
+      promptInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleSend();
+        }
+      });
+
+      // Approval button clicks — event delegation on messages container
+      messagesEl.addEventListener('click', function(e) {
+        const approveBtn = e.target.closest('[data-approve]');
+        const denyBtn    = e.target.closest('[data-deny]');
+        if (approveBtn) {
+          respondApproval(approveBtn.dataset.approve, true);
+        } else if (denyBtn) {
+          respondApproval(denyBtn.dataset.deny, false);
+        }
+      });
+
+      // ── Inbound messages from extension host ──────────────────────────────
+      window.addEventListener('message', function(event) {
+        const msg = event.data;
+        switch (msg.command) {
+          case 'updateSession':
+            pinLabel.textContent = msg.pin ? 'PIN: ' + msg.pin : 'PIN: ---';
+            modelLabel.textContent = (msg.provider || 'Free Tier') + ': ' + (msg.model || 'llama-3.3-70b-versatile');
+            break;
+          case 'appendMessage':
+            appendMessageCard(msg.message);
+            break;
+          case 'streamChunk':
+            handleStreamChunk(msg.chunk);
+            break;
+          case 'approvalRequired':
+            renderApprovalCard(msg.request);
+            break;
+          case 'approvalResolved':
+            resolveApprovalCard(msg.approvalId, msg.approved);
+            break;
+          case 'clearMessages':
+            messagesEl.innerHTML = '';
+            currentTokenBlock = null;
+            break;
+        }
+      });
+
+      // Send ready handshake — extension host will replay buffered messages
+      vscode.postMessage({ command: 'ready' });
+
+      // ── Render helpers ─────────────────────────────────────────────────────
+      function appendMessageCard(m) {
+        const card = document.createElement('div');
+        card.className = 'message-card ' + (
+          m.sender === 'user_local'  ? 'msg-user-local'  :
+          m.sender === 'user_remote' ? 'msg-user-remote' :
+          m.sender === 'system'      ? 'msg-system'      : ''
+        );
+
+        if (m.sender !== 'system') {
           const badge = document.createElement('span');
           badge.className = 'badge-tag';
-          badge.textContent = '⚡ Agent';
-          currentTokenBlock.appendChild(badge);
-          messagesEl.appendChild(currentTokenBlock);
+          badge.textContent =
+            m.sender === 'user_local'  ? '💻 Local (VS Code)' :
+            m.sender === 'user_remote' ? '📱 Remote (Phone)'  : '⚡ Agent';
+          card.appendChild(badge);
         }
-        const span = document.createElement('span');
-        span.textContent = chunk.content;
-        currentTokenBlock.appendChild(span);
-      } else if (chunk.type === 'thought') {
-        const thought = document.createElement('div');
-        thought.className = 'thought-block';
-        thought.textContent = '💭 ' + chunk.content;
-        messagesEl.appendChild(thought);
-      } else if (chunk.type === 'tool_call') {
-        currentTokenBlock = null;
-        const tool = document.createElement('div');
-        tool.className = 'tool-block';
-        tool.textContent = '⚡ Tool Call: ' + (chunk.metadata?.name || 'tool') + ' ' + (chunk.metadata?.args ? JSON.stringify(chunk.metadata.args) : '');
-        messagesEl.appendChild(tool);
-      } else if (chunk.type === 'tool_result') {
-        currentTokenBlock = null;
-        const res = document.createElement('div');
-        res.className = 'tool-block';
-        res.style.borderColor = 'var(--accent-green)';
-        res.textContent = '✔ Result: ' + chunk.content;
-        messagesEl.appendChild(res);
-      } else if (chunk.type === 'done') {
-        currentTokenBlock = null;
+
+        const content = document.createElement('div');
+        content.style.whiteSpace = 'pre-wrap';
+        content.textContent = m.content;
+        card.appendChild(content);
+
+        messagesEl.appendChild(card);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
       }
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
 
-    function renderApprovalCard(req) {
-      const card = document.createElement('div');
-      card.id = 'approval-' + req.approvalId;
-      card.className = 'approval-box';
-
-      card.innerHTML = '<div class="approval-title">⚠️ Action Approval Required (' + req.riskLevel.toUpperCase() + ')</div>' +
-        '<div><strong>Tool:</strong> ' + req.toolName + '</div>' +
-        '<div class="tool-block">' + (req.commandOrDiff || '') + '</div>' +
-        '<div class="approval-actions">' +
-          '<button class="btn btn-approve" onclick="respondApproval(\x27' + req.approvalId + '\x27, true)">Approve</button>' +
-          '<button class="btn btn-deny" onclick="respondApproval(\x27' + req.approvalId + '\x27, false)">Deny</button>' +
-        '</div>';
-
-      messagesEl.appendChild(card);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-
-    function respondApproval(approvalId, approved) {
-      vscode.postMessage({ command: 'submitApproval', approvalId, approved });
-      resolveApprovalCard(approvalId, approved);
-    }
-
-    function resolveApprovalCard(approvalId, approved) {
-      const el = document.getElementById('approval-' + approvalId);
-      if (el) {
-        el.style.borderColor = approved ? 'var(--accent-green)' : 'var(--accent-red)';
-        el.innerHTML = '<div style="font-weight:bold; color:' + (approved ? 'var(--accent-green)' : 'var(--accent-red)') + '">' +
-          (approved ? '✔ Approved' : '✖ Denied') + '</div>';
+      function handleStreamChunk(chunk) {
+        if (chunk.type === 'token') {
+          if (!currentTokenBlock) {
+            currentTokenBlock = document.createElement('div');
+            currentTokenBlock.className = 'message-card';
+            const badge = document.createElement('span');
+            badge.className = 'badge-tag';
+            badge.textContent = '⚡ Agent';
+            currentTokenBlock.appendChild(badge);
+            messagesEl.appendChild(currentTokenBlock);
+          }
+          const span = document.createElement('span');
+          span.textContent = chunk.content;
+          currentTokenBlock.appendChild(span);
+        } else if (chunk.type === 'thought') {
+          const thought = document.createElement('div');
+          thought.className = 'thought-block';
+          thought.textContent = '💭 ' + chunk.content;
+          messagesEl.appendChild(thought);
+        } else if (chunk.type === 'tool_call') {
+          currentTokenBlock = null;
+          const tool = document.createElement('div');
+          tool.className = 'tool-block';
+          const meta = chunk.metadata || {};
+          tool.textContent = '⚡ Tool Call: ' + (meta.name || 'tool') + ' ' +
+            (meta.args ? JSON.stringify(meta.args) : '');
+          messagesEl.appendChild(tool);
+        } else if (chunk.type === 'tool_result') {
+          currentTokenBlock = null;
+          const res = document.createElement('div');
+          res.className = 'tool-block';
+          res.style.borderColor = 'var(--accent-green)';
+          res.textContent = '✔ Result: ' + chunk.content;
+          messagesEl.appendChild(res);
+        } else if (chunk.type === 'done') {
+          currentTokenBlock = null;
+        }
+        messagesEl.scrollTop = messagesEl.scrollHeight;
       }
-    }
+
+      function renderApprovalCard(req) {
+        const card = document.createElement('div');
+        card.id = 'approval-' + req.approvalId;
+        card.className = 'approval-box';
+
+        const title = document.createElement('div');
+        title.className = 'approval-title';
+        title.textContent = '⚠️ Action Approval Required (' + req.riskLevel.toUpperCase() + ')';
+        card.appendChild(title);
+
+        const toolLine = document.createElement('div');
+        toolLine.innerHTML = '<strong>Tool:</strong> ' + req.toolName;
+        card.appendChild(toolLine);
+
+        const codeBlock = document.createElement('div');
+        codeBlock.className = 'tool-block';
+        codeBlock.textContent = req.commandOrDiff || '';
+        card.appendChild(codeBlock);
+
+        const actions = document.createElement('div');
+        actions.className = 'approval-actions';
+
+        // Use data-approve / data-deny so the delegated listener above picks them up
+        const approveBtn = document.createElement('button');
+        approveBtn.className = 'btn btn-approve';
+        approveBtn.textContent = 'Approve';
+        approveBtn.dataset.approve = req.approvalId;
+
+        const denyBtn = document.createElement('button');
+        denyBtn.className = 'btn btn-deny';
+        denyBtn.textContent = 'Deny';
+        denyBtn.dataset.deny = req.approvalId;
+
+        actions.appendChild(approveBtn);
+        actions.appendChild(denyBtn);
+        card.appendChild(actions);
+
+        messagesEl.appendChild(card);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function respondApproval(approvalId, approved) {
+        vscode.postMessage({ command: 'submitApproval', approvalId: approvalId, approved: approved });
+        resolveApprovalCard(approvalId, approved);
+      }
+
+      function resolveApprovalCard(approvalId, approved) {
+        const el = document.getElementById('approval-' + approvalId);
+        if (el) {
+          el.style.borderColor = approved ? 'var(--accent-green)' : 'var(--accent-red)';
+          el.innerHTML = '<div style="font-weight:bold; color:' +
+            (approved ? 'var(--accent-green)' : 'var(--accent-red)') + '">' +
+            (approved ? '✔ Approved' : '✖ Denied') + '</div>';
+        }
+      }
+    })();
   </script>
 </body>
 </html>`;
