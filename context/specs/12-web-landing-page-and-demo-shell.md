@@ -11,11 +11,16 @@ Implement the responsive Web Landing Page and browser-based remote control shell
 2. Implement Landing Page Hero & Feature Showcase:
    - Header with wordmark _"Agent Remote"_, GitHub repository badge, and `Launch Web Client` primary action button.
    - Hero headline: _"Control Your Local Coding Agent From Anywhere"_, with subtitle explaining zero-port-forwarding pairing with TrueForge and 0x Alpha.
+   - One-Click Install Command Bar: Tabbed interactive copy snippet with options:
+     - **Windows:** `irm https://agent-remote.dev/install.ps1 | iex`
+     - **macOS / Linux:** `curl -fsSL https://agent-remote.dev/install.sh | bash`
+     - **npm / npx:** `npx @agent-remote/cli`
+   - Host static installer scripts in `apps/web/public/install.ps1` and `apps/web/public/install.sh` for direct browser and terminal script fetching.
    - Interactive Live Demo Simulator: An interactive terminal simulation card showing real-time streaming tokens, a synthetic unified Git diff, and an interactive "Approve" button that triggers simulated execution.
    - Feature Grid: 4 cards highlighting Zero-Config Pairing, Live Token Streaming, Visual Diff Approvals, and Reconnection Resilience (The Elevator Solution).
    - Architecture Diagram Section: Clean, interactive SVG/Mermaid visualization of Mobile Client Relay Workstation Bridge TrueForge.
 3. Implement Web Pairing & Client Shell:
-   - Clean browser URL route `/pair` (or modal) supporting 6-digit PIN entry and QR camera scanner.
+   - Clean browser URL route `/pair` (or modal) supporting 6-digit PIN entry and URL query auto-fill (`/pair?pin=834192`).
    - Embedded web version of `SessionScreen` enabling developers on tablets or second laptops to monitor and approve agent turns without installing an app.
 4. Implement SEO metadata, OpenGraph preview cards, favicon assets, and fast initial load optimization.
 

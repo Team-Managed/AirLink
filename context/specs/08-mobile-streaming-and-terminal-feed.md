@@ -15,10 +15,13 @@ Implement the real-time virtualized streaming terminal feed, token chunks, thoug
    - Implement auto-scroll to bottom behavior on incoming stream chunks, with user-initiated scroll detection that temporarily locks auto-scroll when reading earlier logs.
 2. Create `apps/mobile/src/components/PromptInputBar.tsx`:
    - Render a full-width text input container with placeholder _"Ask agent to build, refactor, or fix..."_.
-   - Render horizontal scrollable quick-action pills above the input (`[🧪 Run Tests]`, `[🔍 Git Status]`, `[🧹 Fix Lint]`, `[⚡ Rollback]`).
+   - Render horizontal scrollable quick-action pills above the input:
+     - `[🐙 Create PR]`: Pre-fills prompt to summarize current session changes, push branch, and open a GitHub Pull Request via `gh pr create`.
+     - `[📋 Import Issue]`: Opens quick modal or prompts for `#<issue_number>` to pull GitHub issue title and description into the active prompt.
+     - `[🧪 Run Tests]`, `[🔍 Git Status]`, `[🧹 Fix Lint]`, `[⚡ Rollback]`.
    - Render circular submit button with active color highlight when text is present.
 3. Create `apps/mobile/src/screens/SessionScreen.tsx`:
-   - Render top sticky status header showing host device name, green live connection dot, active model chip (`0x-alpha`), and disconnect button.
+   - Render top sticky status header showing host device name, green live connection dot, active Git branch / GitHub repo badge, active model chip (`0x-alpha`), and disconnect button.
    - Embed `TerminalFeed` in the scrollable body and position `PromptInputBar` sticky at the bottom.
    - Hook socket stream events to append incoming chunks in real-time.
 

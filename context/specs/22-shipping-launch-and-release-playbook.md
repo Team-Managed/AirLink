@@ -15,7 +15,7 @@ Define the pre-launch release gates, smoke test protocol, staging verification, 
 2. Staged Deployment & Smoke Test Sequence:
    - **Stage 1 (Staging Preview):** Deploy Cloud Relay Docker container to staging environment (`relay-staging.yourdomain.com`).
    - **Stage 2 (Local Host Smoke Test):**
-     - Run `pnpm dev:cli` on workstation -> verify bold banner and ASCII QR code generate.
+     - Run `pnpm dev:cli` on workstation -> verify bold banner and 6-digit PIN generate.
      - Connect mobile app via 6-digit PIN -> verify `session:connected` arrives in $< 200\text{ms}$.
    - **Stage 3 (Turn Execution & HITL Approval Smoke Test):**
      - Submit prompt from mobile -> verify tokens stream in real time.
