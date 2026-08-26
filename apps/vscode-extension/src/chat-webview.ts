@@ -68,6 +68,12 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage((data: { command: string; text?: string; approvalId?: string; approved?: boolean; action?: string; arg?: string }) => {
       switch (data.command) {
+        case "ready":
+          this._updateSessionHeader();
+          for (const msg of this._messages) {
+            this._postMessageToWebview({ command: "appendMessage", message: msg });
+          }
+          break;
         case "submitPrompt":
           if (data.text && this._onPromptHandler) {
             this._onPromptHandler(data.text);
@@ -379,8 +385,14 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
   <div id="header">
-    <span class="model-chip" id="model-label">Model: llama-3.3-70b-versatile (Free)</span>
-    <span class="pin-badge" id="pin-label" title="Click to copy pairing link">PIN: ---</span>
+    <div style="display:flex; flex-direction:column; gap:2px;">
+      <span class="model-chip" id="model-label">Loading model...</span>
+      <span style="font-size:10px; color:var(--text-dim);">Click PIN to pair/enter session</span>
+    </div>
+    <div style="display:flex; gap:6px; align-items:center;">
+      <span class="pin-badge" id="pin-label" onclick="sendAction('setPin')" title="Click to set or pair custom PIN">PIN: ---</span>
+      <button class="pill-btn" style="padding:2px 6px; font-size:10px;" onclick="sendAction('copyPin')" title="Copy pairing URL">📋</button>
+    </div>
   </div>
 
   <div id="messages"></div>
@@ -390,12 +402,13 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
     <button class="pill-btn" onclick="sendAction('test')">🧪 Run Tests</button>
     <button class="pill-btn" onclick="sendAction('lint')">🧹 Typecheck</button>
     <button class="pill-btn" onclick="sendAction('stats')">📊 Stats</button>
+    <button class="pill-btn" onclick="sendAction('setPin')">✏ Set PIN</button>
     <button class="pill-btn" onclick="sendAction('clear')">🗑 Clear</button>
     <button class="pill-btn" onclick="sendPrompt('Create a pull request with all session changes and test results.')">🐙 Create PR</button>
   </div>
 
   <div id="input-area">
-    <textarea id="prompt-input" placeholder="Prompt free AI agent or type /help for commands..."></textarea>
+    <textarea id="prompt-input" placeholder="Prompt AI agent or type /help for commands..."></textarea>
     <button id="send-btn" onclick="handleSend()">Send</button>
   </div>
 
@@ -406,6 +419,9 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
     const pinLabel = document.getElementById('pin-label');
     const modelLabel = document.getElementById('model-label');
     let currentTokenBlock = null;
+
+    // Send ready handshake immediately
+    vscode.postMessage({ command: 'ready' });
 
     window.addEventListener('message', event => {
       const msg = event.data;
