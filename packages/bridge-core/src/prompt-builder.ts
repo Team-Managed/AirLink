@@ -1,12 +1,9 @@
-/**
- * PromptBuilder
- * Constructs 5-layer modular prompts optimized for LLM prefix prompt caching.
- * Layers 1–3 remain 100% byte-identical across all turns to leverage provider prefix prompt caches.
- */
+import { SkillRegistry } from "./skills/skill-registry.js";
+import type { Skill } from "./skills/types.js";
 
 export interface PromptLayers {
   layer1: string; // Static System Role & Safety Invariants
-  layer2: string; // Static Few-Shot Examples
+  layer2: string; // Static Few-Shot Examples & Dynamic Skill Workflows
   layer3: string; // Static Tool Schemas (MCP)
   layer4: string; // Dynamic Workspace Context (Branch, Diff, Path, History)
   layer5: string; // Dynamic User Directive
@@ -18,6 +15,7 @@ export interface BuildPromptParams {
   gitBranch?: string;
   recentDiff?: string;
   history?: string[];
+  activeSkills?: Skill[];
 }
 
 export interface BuildPromptResult {
@@ -25,9 +23,20 @@ export interface BuildPromptResult {
   staticPrefix: string;
   dynamicSuffix: string;
   layers: PromptLayers;
+  matchedSkills?: Skill[];
 }
 
 export class PromptBuilder {
+  private readonly _skillRegistry: SkillRegistry;
+
+  constructor(skillRegistry?: SkillRegistry) {
+    this._skillRegistry = skillRegistry ?? new SkillRegistry();
+  }
+
+  get skillRegistry(): SkillRegistry {
+    return this._skillRegistry;
+  }
+
   /**
    * Layer 1: Static System Role & Safety Invariants (Byte-Identical)
    */
@@ -42,9 +51,9 @@ HUMAN-IN-THE-LOOP SAFETY POLICY:
 4. Output concise thoughts and streaming reasoning tokens before calling tools.`;
 
   /**
-   * Layer 2: Static Few-Shot Examples (Byte-Identical)
+   * Layer 2: Static Few-Shot Examples (Byte-Identical base)
    */
-  private readonly _layer2: string = `=== LAYER 2: FEW-SHOT PROTOCOL EXAMPLES ===
+  private readonly _layer2Base: string = `=== LAYER 2: FEW-SHOT PROTOCOL EXAMPLES ===
 Example 1 (Inspect & Edit):
 User: "Refactor the auth middleware to support refresh tokens."
 Thought: "I need to inspect the current auth middleware file first."
@@ -76,13 +85,13 @@ The following Model Context Protocol (MCP) tools are available on the workstatio
    * Returns the concatenated byte-identical static prefix (Layers 1 + 2 + 3).
    */
   getStaticPrefix(): string {
-    return `${this._layer1}\n\n${this._layer2}\n\n${this._layer3}`;
+    return `${this._layer1}\n\n${this._layer2Base}\n\n${this._layer3}`;
   }
 
   /**
-   * Builds Layer 4 (Dynamic Workspace Context) from current environment state.
+   * Builds Layer 4 (Dynamic Workspace Context) from current environment state and matched skills.
    */
-  private buildLayer4(params: BuildPromptParams): string {
+  private buildLayer4(params: BuildPromptParams, matchedSkills: Skill[]): string {
     const lines: string[] = ["=== LAYER 4: DYNAMIC WORKSPACE CONTEXT ==="];
 
     lines.push(`- Workspace Path: ${params.workspacePath || "Default Workspace"}`);
@@ -93,6 +102,10 @@ The following Model Context Protocol (MCP) tools are available on the workstatio
       lines.push("```diff");
       lines.push(params.recentDiff.trim());
       lines.push("```");
+    }
+
+    if (matchedSkills.length > 0) {
+      lines.push(`\n${this._skillRegistry.formatSkillsForPrompt(matchedSkills)}`);
     }
 
     if (params.history && params.history.length > 0) {
@@ -113,13 +126,15 @@ The following Model Context Protocol (MCP) tools are available on the workstatio
   }
 
   /**
-   * Constructs the complete 5-layer prompt.
+   * Constructs the complete 5-layer prompt with matched skill recipes.
    */
   buildPrompt(params: BuildPromptParams): BuildPromptResult {
+    const matched = params.activeSkills || this._skillRegistry.matchSkills(params.userPrompt).map((m) => m.skill);
+
     const layer1 = this._layer1;
-    const layer2 = this._layer2;
+    const layer2 = this._layer2Base;
     const layer3 = this._layer3;
-    const layer4 = this.buildLayer4(params);
+    const layer4 = this.buildLayer4(params, matched);
     const layer5 = this.buildLayer5(params.userPrompt);
 
     const staticPrefix = this.getStaticPrefix();
@@ -137,6 +152,7 @@ The following Model Context Protocol (MCP) tools are available on the workstatio
         layer4,
         layer5,
       },
+      matchedSkills: matched,
     };
   }
 }

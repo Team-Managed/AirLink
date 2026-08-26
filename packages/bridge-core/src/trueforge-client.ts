@@ -3,7 +3,7 @@ import type { BYOKConfig, AgentStream } from "@agent-remote/protocol";
 import { RingBuffer } from "./ring-buffer.js";
 import { LLMRunner, type ChatMessageParam, type ProviderConfig } from "./llm-runner.js";
 import { PromptBuilder } from "./prompt-builder.js";
-import { getGitDiff } from "./workspace-tools.js";
+import { getGitDiff, dispatchWorkspaceTool } from "./workspace-tools.js";
 
 export interface TrueForgeClientOptions {
   endpoint?: string | undefined;
@@ -225,61 +225,134 @@ export class TrueForgeSession {
     ];
 
     let fullAssistantResponse = "";
+    let turnsRemaining = 3;
 
     try {
-      // 3. Stream from live free LLM runner
-      for await (const chunk of this._llmRunner.streamChat({ messages: messagesToSend })) {
-        if (chunk.type === "thought") {
+      while (turnsRemaining > 0) {
+        turnsRemaining -= 1;
+        let turnResponse = "";
+
+        // 3. Stream from live LLM runner
+        for await (const chunk of this._llmRunner.streamChat({ messages: messagesToSend })) {
+          if (chunk.type === "thought") {
+            yield this._ringBuffer.push({
+              sessionId: this.sessionId,
+              turnId,
+              type: "thought",
+              content: chunk.text,
+              timestamp: Date.now(),
+            });
+          } else {
+            turnResponse += chunk.text;
+            yield this._ringBuffer.push({
+              sessionId: this.sessionId,
+              turnId,
+              type: "token",
+              content: chunk.text,
+              timestamp: Date.now(),
+            });
+          }
+        }
+
+        fullAssistantResponse += turnResponse;
+
+        // 4. Inspect if explicit mockToolAction is provided or model emitted tool invocation
+        if (params.mockToolAction) {
           yield this._ringBuffer.push({
             sessionId: this.sessionId,
             turnId,
-            type: "thought",
-            content: chunk.text,
+            type: "tool_call",
+            content: `Executing ${params.mockToolAction.toolName}`,
+            metadata: {
+              name: params.mockToolAction.toolName,
+              args: params.mockToolAction.args,
+            },
             timestamp: Date.now(),
+          });
+
+          yield this._ringBuffer.push({
+            sessionId: this.sessionId,
+            turnId,
+            type: "tool_result",
+            content: params.mockToolAction.result,
+            metadata: {
+              name: params.mockToolAction.toolName,
+              args: params.mockToolAction.args,
+              exitCode: 0,
+            },
+            timestamp: Date.now(),
+          });
+          break;
+        }
+
+        // Pattern: Tool: tool_name({"arg": "val"}) or ```tool\ntool_name({...})\n```
+        const toolMatch = turnResponse.match(/(?:Tool:\s*|```(?:tool|json)?\s*)(\w+)\s*\(([\s\S]*?)\)/i) ||
+          turnResponse.match(/`(\w+)`\s*with\s*(?:parameters?|args?)\s*({[\s\S]*?})/i);
+
+        if (toolMatch && toolMatch[1]) {
+          const toolName = toolMatch[1].trim();
+          let rawArgs = toolMatch[2]?.trim() || "{}";
+          let parsedArgs: Record<string, unknown> = {};
+
+          try {
+            parsedArgs = JSON.parse(rawArgs);
+          } catch {
+            const pathMatch = rawArgs.match(/path['":\s]+([^'"}\s]+)/i);
+            if (pathMatch && pathMatch[1]) {
+              parsedArgs = { path: pathMatch[1] };
+            }
+          }
+
+          // Emit tool_call stream event
+          yield this._ringBuffer.push({
+            sessionId: this.sessionId,
+            turnId,
+            type: "tool_call",
+            content: `Executing ${toolName}`,
+            metadata: {
+              name: toolName,
+              args: parsedArgs,
+            },
+            timestamp: Date.now(),
+          });
+
+          // Execute real workspace tool on PC
+          const toolOutput = await dispatchWorkspaceTool(toolName, parsedArgs, this.workspacePath);
+
+          // Truncate large tool results to prevent context window overflow
+          const previewOutput = toolOutput.length > 3000
+            ? `${toolOutput.slice(0, 1500)}\n\n[... ${toolOutput.length - 2500} bytes truncated ...]\n\n${toolOutput.slice(-1000)}`
+            : toolOutput;
+
+          // Emit tool_result stream event
+          yield this._ringBuffer.push({
+            sessionId: this.sessionId,
+            turnId,
+            type: "tool_result",
+            content: previewOutput,
+            metadata: {
+              name: toolName,
+              args: parsedArgs,
+              exitCode: 0,
+            },
+            timestamp: Date.now(),
+          });
+
+          // Feed tool result back to LLM for final synthesis
+          messagesToSend.push({ role: "assistant", content: turnResponse });
+          messagesToSend.push({
+            role: "user",
+            content: `Tool "${toolName}" executed with output:\n\`\`\`\n${previewOutput}\n\`\`\`\nNow explain the result and answer the user's directive thoroughly.`,
           });
         } else {
-          fullAssistantResponse += chunk.text;
-          yield this._ringBuffer.push({
-            sessionId: this.sessionId,
-            turnId,
-            type: "token",
-            content: chunk.text,
-            timestamp: Date.now(),
-          });
+          // No further tools needed, turn is complete
+          break;
         }
       }
 
-      // 4. Save to session history
+      // 5. Save to session history
       this._history.push(userMessage);
       this._history.push({ role: "assistant", content: fullAssistantResponse });
-
-      // 5. Handle mock/simulated tool actions if explicitly supplied
-      if (params.mockToolAction) {
-        yield this._ringBuffer.push({
-          sessionId: this.sessionId,
-          turnId,
-          type: "tool_call",
-          content: `Executing ${params.mockToolAction.toolName}`,
-          metadata: {
-            name: params.mockToolAction.toolName,
-            args: params.mockToolAction.args,
-          },
-          timestamp: Date.now(),
-        });
-
-        yield this._ringBuffer.push({
-          sessionId: this.sessionId,
-          turnId,
-          type: "tool_result",
-          content: params.mockToolAction.result,
-          metadata: {
-            name: params.mockToolAction.toolName,
-            args: params.mockToolAction.args,
-            exitCode: 0,
-          },
-          timestamp: Date.now(),
-        });
-      }
     } catch (err) {
       yield this._ringBuffer.push({
         sessionId: this.sessionId,

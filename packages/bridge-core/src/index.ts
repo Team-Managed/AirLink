@@ -5,3 +5,4 @@ export * from "./approval-handler.js";
 export * from "./socket-bridge.js";
 export * from "./llm-runner.js";
 export * from "./workspace-tools.js";
+export * from "./skills/index.js";
