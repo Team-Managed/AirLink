@@ -4,6 +4,7 @@ Also read `16-ci-workflows-and-governance.md` and `17-deep-qodo-integration-and-
 Define the exact PR workflow, branch-slicing playbook, interactive Qodo command audit trail, and submission criteria required to win the WeMakeDevs Q Branch Track ($5,000 prize for Best Code Quality with Qodo Gen & Qodo Merge).
 
 ## Implementation
+
 1. Create PR Slicing & Branching Protocol:
    - Every implementation unit must be submitted as an independent, focused pull request following the branch naming standard: `feat/unit-XX-<name>` (e.g. `feat/unit-01-protocol-contracts`, `feat/unit-02-bridge-core-ring-buffer`).
    - PRs must remain compact (<400 lines of diff) so Qodo Merge can perform high-depth semantic analysis.
@@ -34,12 +35,14 @@ Define the exact PR workflow, branch-slicing playbook, interactive Qodo command 
    - Metrics summary: 100% PR review coverage, >90% test coverage via Qodo Gen, 0 unapproved code suppressions.
 
 ## Scope Limits
+
 - Do not submit giant "dump everything in one PR" pull requests (each unit must have its own review trail).
 - Do not merge PRs without an automated Qodo Merge review comment.
 - Do not skip applying legitimate Qodo `/improve` recommendations.
 - Do not fake test coverage or mock out core logic.
 
 ## Notes
+
 - Hackathon judges will inspect the GitHub PR history to verify real Qodo usage during development, not just a static badge in the README.
 - Demonstrating the full interactive loop (`/review`, `/improve`, `/test`, `/ask`) directly satisfies all Q Branch scoring criteria.
 - Depends on: 00, 16, 17.

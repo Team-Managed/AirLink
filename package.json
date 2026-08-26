@@ -1,12 +1,15 @@
 {
   "name": "agent-remote-monorepo",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "description": "Open-Source Coding Agent Universal Remote Control",
   "scripts": {
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
-    "lint": "pnpm -r run lint",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "format": "prettier --write .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "check:suppressions": "node scripts/check-suppressions.mjs",

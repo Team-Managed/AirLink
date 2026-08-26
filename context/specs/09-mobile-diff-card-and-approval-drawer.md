@@ -4,6 +4,7 @@ Also read `01-monorepo-and-protocol-contracts.md` through `08-mobile-streaming-a
 Implement the color-coded unified Git diff card, modal bottom-sheet approval drawer, and haptic feedback triggers in `apps/mobile`.
 
 ## Implementation
+
 1. Create `apps/mobile/src/components/DiffCard.tsx`:
    - Parse unified diff strings (`@@ -x,y +a,b @@` format).
    - Render a line-by-line syntax-highlighted code container:
@@ -27,17 +28,20 @@ Implement the color-coded unified Git diff card, modal bottom-sheet approval dra
    - Trigger success/error haptic pulse on button taps.
 
 ## Scope Limits
+
 - Do not let the approval modal close on backdrop tap without an explicit decision.
 - Do not hide the command or diff content behind collapsed accordions by default.
 - Do not allow the user to approve after the 180s timer has expired.
 - Do not modify files directly from the mobile app (all execution is delegated to the host daemon).
 
 ## Notes
+
 - Interactive approvals give developers complete confidence to run agents remotely while away from their desks.
 - Unified Git diff parsing handles multi-hunk patches cleanly with line numbers.
 - Depends on: 00, 01, 07, 08. Required before: 11.
 
 ## Check When Done
+
 - Receiving `agent:approval_required` automatically opens the bottom-sheet drawer.
 - Unified Git diffs render with green and red line highlights.
 - Tapping Approve or Deny dismisses the drawer and sends response over WebSocket.

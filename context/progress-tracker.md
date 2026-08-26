@@ -3,17 +3,23 @@
 ## Current Phase: Phase 3 (Monorepo Scaffolding & Incremental Implementation)
 
 ### Completed Work
+
 - [x] Cloned empty repository at `agent-harness`
 - [x] Defined product scope, hackathon tracks, and core invariants in `context/project-overview.md`
 - [x] Documented Dual-Memory Model & Local Anti-Bloat Policy in `context/architecture-context.md`
-- [x] Authored complete, clean 17-unit Spec Suite in `context/specs/` (`00-product-map.md` through `17-deep-qodo-integration-and-quality-harness.md`)
+- [x] Authored complete, clean 22-unit Spec Suite in `context/specs/` (`00-product-map.md` through `22-shipping-launch-and-release-playbook.md`)
 - [x] Defined UI design system tokens in `context/ui-context.md`
 - [x] Defined TypeScript and Prompt rules in `context/code-standards.md`
 - [x] Established Spec-Driven Incremental Workflow in `context/ai-workflow-rules.md`
 - [x] Purged all duplicate, redundant, and excessive files from context
+- [x] **Unit 01:** Monorepo Workspace & Protocol Contracts (`packages/protocol`)
+- [x] **Unit 16:** CI Workflows, Governance & Secret Scanning (`.github/workflows/ci.yml`, `secret_scan.yml`, `scripts/check-suppressions.mjs`)
+- [x] **Unit 17:** Deep Qodo Integration, Test Harness & PR Automation (`.pr_agent.toml`, `.github/workflows/qodo_merge.yml`, `tests/qodo/`)
+- [x] **Unit 18:** Qodo PR Playbook & Track Alignment Playbook (`context/specs/18-qodo-pr-playbook-and-track-alignment.md`, `.github/pull_request_template.md`)
 
 ### Implementation Units Index
-- [ ] **Unit 01:** Monorepo Workspace & Protocol Contracts (`packages/protocol`)
+
+- [x] **Unit 01:** Monorepo Workspace & Protocol Contracts (`packages/protocol`)
 - [ ] **Unit 02:** Bridge Core Engine & Ring Buffer (`packages/bridge-core`)
 - [ ] **Unit 03:** Approval State Machine & Timeouts (`packages/bridge-core`)
 - [ ] **Unit 04:** Cloud Relay Server (`apps/relay`)
@@ -28,5 +34,10 @@
 - [ ] **Unit 13:** Smooth UX, Motion Design & Haptics (`apps/mobile` + `apps/web`)
 - [ ] **Unit 14:** External Integrations & Webhook Alerts (`packages/bridge-core`)
 - [ ] **Unit 15:** Production Deployment & Release (`infra/` + `apps/*`)
-- [ ] **Unit 16:** CI Workflows, Governance & Secret Scanning (`.github/workflows` + `scripts/`)
-- [ ] **Unit 17:** Deep Qodo Integration, Test Harness & PR Automation (.pr_agent.toml + 	ests/qodo)\n- [ ] **Unit 18:** Qodo PR Playbook & Track Alignment Playbook (`context/specs/18-qodo-pr-playbook-and-track-alignment.md`)\n- [ ] **Unit 19:** Observability, Telemetry & Metrics (packages/bridge-core/src/telemetry)\n- [ ] **Unit 20:** Security Threat Model & Hardening (packages/bridge-core/src/security)\n- [ ] **Unit 21:** Performance Budgets & Benchmarks (context/specs/21-performance-budgets-and-benchmarks.md)\n- [ ] **Unit 22:** Shipping, Launch & Release Playbook (context/specs/22-shipping-launch-and-release-playbook.md)
+- [x] **Unit 16:** CI Workflows, Governance & Secret Scanning (`.github/workflows` + `scripts/`)
+- [x] **Unit 17:** Deep Qodo Integration, Test Harness & PR Automation (`.pr_agent.toml` + `tests/qodo`)
+- [x] **Unit 18:** Qodo PR Playbook & Track Alignment Playbook (`context/specs/18-qodo-pr-playbook-and-track-alignment.md`)
+- [ ] **Unit 19:** Observability, Telemetry & Metrics (`packages/bridge-core/src/telemetry`)
+- [ ] **Unit 20:** Security Threat Model & Hardening (`packages/bridge-core/src/security`)
+- [ ] **Unit 21:** Performance Budgets & Benchmarks (`context/specs/21-performance-budgets-and-benchmarks.md`)
+- [ ] **Unit 22:** Shipping, Launch & Release Playbook (`context/specs/22-shipping-launch-and-release-playbook.md`)

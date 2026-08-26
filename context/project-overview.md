@@ -1,11 +1,13 @@
 # Project Overview: Remote Agent Harness
 
 ## 1. Product Definition & Mission
+
 An open-source, multiplatform remote control system for local coding agents (TrueForge / 0x Alpha / DeepSeek / Claude). It allows developers to prompt their workstation agent, view real-time streaming tokens and terminal outputs, inspect visual Git diffs, and approve or reject sensitive tool actions (e.g. bash commands, file modifications) from a mobile app or web browser, controlled locally via either a **Terminal CLI** or a **VS Code Extension**.
 
 ---
 
 ## 2. Core Goals & Hackathon Objectives
+
 1. **WeMakeDevs Hackathon — Double-O Track (TrueFoundry):**
    - Maximize utilization of TrueForge as the core agent execution harness.
    - Harness MCP (Model Context Protocol) tool servers for local filesystem and terminal interactions.
@@ -25,6 +27,7 @@ An open-source, multiplatform remote control system for local coding agents (Tru
 ## 3. High-Level Feature Scope
 
 ### In-Scope for MVP
+
 - **Shared Protocol Contracts (`packages/protocol`):** Zod schemas and inferred TypeScript types for all WebSocket events.
 - **Shared Bridge Engine (`packages/bridge-core`):** Reusable core logic for Socket.io tunnel, TrueForge SDK connector, event ring buffer (`seq_id`), approval Promise map, and external webhook notifiers.
 - **Terminal CLI Host (`apps/cli`):** Standalone Node.js CLI with chalk boxen banner, ASCII QR code, and interactive terminal `[y/N]` approval prompts.
@@ -41,6 +44,7 @@ An open-source, multiplatform remote control system for local coding agents (Tru
 - **CI Governance & Quality Gate:** GitHub Actions CI, mechanical suppression checking (`scripts/check-suppressions.mjs`), and automated Qodo Merge reviews.
 
 ### Out-of-Scope for MVP
+
 - Complex user authentication databases (ephemeral PIN rooms remove all cloud database overhead).
 - Mandatory camera-only QR scanner requirement (PIN input is universal across Web/Emulators/Phones).
 - Raw voice model fine-tuning (reserved for V2).
