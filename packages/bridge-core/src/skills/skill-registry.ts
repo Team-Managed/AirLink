@@ -141,9 +141,7 @@ export class SkillRegistry {
       }
     }
 
-    return results
-      .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, maxMatches);
+    return results.sort((a, b) => b.confidence - a.confidence).slice(0, maxMatches);
   }
 
   /**

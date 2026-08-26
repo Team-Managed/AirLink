@@ -3,7 +3,11 @@ import type { Skill, SkillManifest } from "./types.js";
 /**
  * Parses frontmatter and markdown body from a SKILL.md file content string.
  */
-export function parseSkillMarkdown(content: string, sourcePath?: string, isBuiltin: boolean = false): Skill {
+export function parseSkillMarkdown(
+  content: string,
+  sourcePath?: string,
+  isBuiltin: boolean = false,
+): Skill {
   const trimmed = content.trim();
 
   // Check for YAML frontmatter delimiters (--- ... ---)
@@ -26,7 +30,9 @@ export function parseSkillMarkdown(content: string, sourcePath?: string, isBuilt
   // Fallback if no frontmatter is found
   return {
     manifest: {
-      name: sourcePath ? sourcePath.split(/[/\\]/).slice(-2, -1)[0] || "unnamed-skill" : "unnamed-skill",
+      name: sourcePath
+        ? sourcePath.split(/[/\\]/).slice(-2, -1)[0] || "unnamed-skill"
+        : "unnamed-skill",
       description: "Custom user workflow skill",
     },
     instructions: trimmed,
@@ -93,7 +99,9 @@ export function parseYamlFrontmatter(yamlText: string): SkillManifest {
     name: String(result["name"] || "custom-skill"),
     description: String(result["description"] || ""),
     triggers: Array.isArray(result["triggers"]) ? result["triggers"].map(String) : undefined,
-    toolsRequired: Array.isArray(result["toolsRequired"]) ? result["toolsRequired"].map(String) : undefined,
+    toolsRequired: Array.isArray(result["toolsRequired"])
+      ? result["toolsRequired"].map(String)
+      : undefined,
     tags: Array.isArray(result["tags"]) ? result["tags"].map(String) : undefined,
   };
 }

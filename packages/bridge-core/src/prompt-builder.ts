@@ -129,7 +129,8 @@ The following Model Context Protocol (MCP) tools are available on the workstatio
    * Constructs the complete 5-layer prompt with matched skill recipes.
    */
   buildPrompt(params: BuildPromptParams): BuildPromptResult {
-    const matched = params.activeSkills || this._skillRegistry.matchSkills(params.userPrompt).map((m) => m.skill);
+    const matched =
+      params.activeSkills || this._skillRegistry.matchSkills(params.userPrompt).map((m) => m.skill);
 
     const layer1 = this._layer1;
     const layer2 = this._layer2Base;

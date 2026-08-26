@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import * as path from "node:path";
-import { SkillRegistry, parseSkillMarkdown, parseYamlFrontmatter, BUILTIN_SKILLS, PromptBuilder } from "../src/index.js";
+import {
+  SkillRegistry,
+  parseSkillMarkdown,
+  parseYamlFrontmatter,
+  BUILTIN_SKILLS,
+  PromptBuilder,
+} from "../src/index.js";
 
 describe("Skill & Plugin Architecture Suite", () => {
   it("parses YAML frontmatter and markdown body correctly", () => {
@@ -61,7 +67,9 @@ tags:
     expect(tddMatches.length).toBeGreaterThan(0);
     expect(tddMatches[0]!.skill.manifest.name).toBe("test-driven-development");
 
-    const reviewMatches = registry.matchSkills("Run a thorough code review and security audit on this PR");
+    const reviewMatches = registry.matchSkills(
+      "Run a thorough code review and security audit on this PR",
+    );
     expect(reviewMatches.length).toBeGreaterThan(0);
     expect(reviewMatches[0]!.skill.manifest.name).toBe("code-review-and-quality");
   });
