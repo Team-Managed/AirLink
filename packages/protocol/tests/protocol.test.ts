@@ -44,6 +44,10 @@ import {
   isClientSync,
   isStreamBatch,
   isStandardError,
+  parseSocketEvent,
+  createSafeEvent,
+  APPROVAL_TIMEOUT_MS,
+  MAX_RING_BUFFER_SIZE,
 } from "../src/index.js";
 
 describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
@@ -381,7 +385,7 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
   });
 
   describe("7. ApprovalRequestSchema", () => {
-    it("parses valid approval request with 180s default timeout", () => {
+    it("parses valid approval request with strict 180s default timeout", () => {
       const before = Date.now();
       const valid = {
         seqId: 4,
@@ -401,26 +405,54 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
       expect(parsed.toolName).toBe("execute_bash");
       expect(parsed.commandOrDiff).toBe("rm -rf node_modules && pnpm install");
       expect(parsed.riskLevel).toBe("high");
-      expect(parsed.timeoutMs).toBe(180000); // 180s timeout invariant
+      expect(parsed.timeoutMs).toBe(180000); // Strict 180s invariant
       expect(parsed.createdAt).toBeGreaterThanOrEqual(before);
       expect(parsed.createdAt).toBeLessThanOrEqual(after);
       expect(isApprovalRequest(valid)).toBe(true);
     });
 
-    it("accepts custom positive timeoutMs", () => {
+    it("accepts explicit timeoutMs when exactly matching 180000ms invariant", () => {
       const valid = {
         seqId: 5,
-        approvalId: "appr_custom_timeout",
+        approvalId: "appr_exact_timeout",
         sessionId: "session_834192",
         turnId: "turn_1",
         toolName: "write_file",
         commandOrDiff: "+ const x = 1;",
         riskLevel: "low" as const,
-        timeoutMs: 60000,
+        timeoutMs: APPROVAL_TIMEOUT_MS,
       };
       const parsed = parseApprovalRequest(valid);
-      expect(parsed.timeoutMs).toBe(60000);
+      expect(parsed.timeoutMs).toBe(180000);
       expect(isApprovalRequest(valid)).toBe(true);
+    });
+
+    it("rejects non-180000 timeoutMs overrides to preserve 180s auto-deny invariant", () => {
+      expect(() =>
+        parseApprovalRequest({
+          seqId: 1,
+          approvalId: "appr_short_timeout",
+          sessionId: "session_834192",
+          turnId: "turn_1",
+          toolName: "execute_bash",
+          commandOrDiff: "git push",
+          riskLevel: "medium",
+          timeoutMs: 60000, // Reject custom short timeout
+        }),
+      ).toThrow();
+
+      expect(() =>
+        parseApprovalRequest({
+          seqId: 1,
+          approvalId: "appr_long_timeout",
+          sessionId: "session_834192",
+          turnId: "turn_1",
+          toolName: "execute_bash",
+          commandOrDiff: "git push",
+          riskLevel: "medium",
+          timeoutMs: 500000, // Reject custom long timeout
+        }),
+      ).toThrow();
     });
 
     it("parses and validates risk levels", () => {
@@ -574,7 +606,7 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
       expect(isStreamBatch(valid)).toBe(true);
     });
 
-    it("parses batch containing multiple valid stream events", () => {
+    it("parses batch containing multiple valid stream events with matching sessionId", () => {
       const valid = {
         sessionId: "session_834192",
         events: [
@@ -601,7 +633,70 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
       expect(isStreamBatch(valid)).toBe(true);
     });
 
-    it("rejects batch if any event is invalid", () => {
+    it("rejects batch if any event contains mismatched sessionId (cross-session isolation)", () => {
+      const crossSessionBatch = {
+        sessionId: "session_834192",
+        events: [
+          {
+            seqId: 1,
+            sessionId: "session_834192",
+            turnId: "turn_1",
+            type: "token" as const,
+            content: "Legitimate event",
+          },
+          {
+            seqId: 2,
+            sessionId: "session_OTHER_ATTACKER", // Mismatched sessionId
+            turnId: "turn_1",
+            type: "token" as const,
+            content: "Spoofed cross-session event",
+          },
+        ],
+      };
+      expect(() => parseStreamBatch(crossSessionBatch)).toThrow(
+        /All stream batch events must match/,
+      );
+      expect(isStreamBatch(crossSessionBatch)).toBe(false);
+    });
+
+    it("accepts exactly 500 events (maximum ring buffer bound)", () => {
+      const events = Array.from({ length: MAX_RING_BUFFER_SIZE }, (_, i) => ({
+        seqId: i + 1,
+        sessionId: "session_834192",
+        turnId: "turn_1",
+        type: "token" as const,
+        content: `Token ${i + 1}`,
+      }));
+
+      const batch = {
+        sessionId: "session_834192",
+        events,
+      };
+
+      const parsed = parseStreamBatch(batch);
+      expect(parsed.events).toHaveLength(500);
+      expect(isStreamBatch(batch)).toBe(true);
+    });
+
+    it("rejects batch exceeding 500 events (unbounded stream prevention)", () => {
+      const events = Array.from({ length: 501 }, (_, i) => ({
+        seqId: i + 1,
+        sessionId: "session_834192",
+        turnId: "turn_1",
+        type: "token" as const,
+        content: `Token ${i + 1}`,
+      }));
+
+      const batch = {
+        sessionId: "session_834192",
+        events,
+      };
+
+      expect(() => parseStreamBatch(batch)).toThrow(/cannot exceed maximum ring buffer bound/);
+      expect(isStreamBatch(batch)).toBe(false);
+    });
+
+    it("rejects batch if any event has invalid structure", () => {
       const invalid = {
         sessionId: "session_834192",
         events: [
@@ -640,7 +735,7 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
     });
   });
 
-  describe("12. Socket Events Constants & Validation Helpers", () => {
+  describe("12. Socket Events Constants, Schemas & Validation Helpers", () => {
     it("defines constant Socket.io event name mappings", () => {
       expect(SOCKET_EVENTS.REGISTER_HOST).toBe("host:register");
       expect(SOCKET_EVENTS.JOIN_SESSION).toBe("client:join");
@@ -652,6 +747,57 @@ describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
       expect(SOCKET_EVENTS.CLIENT_SYNC).toBe("client:sync");
       expect(SOCKET_EVENTS.STREAM_BATCH).toBe("agent:stream_batch");
       expect(SOCKET_EVENTS.ERROR).toBe("session:error");
+    });
+
+    it("parseSocketEvent parses valid socket event payloads", () => {
+      const prompt = parseSocketEvent(SOCKET_EVENTS.CLIENT_PROMPT, {
+        sessionId: "session_123",
+        prompt: "Refactor auth handler",
+      });
+      expect(prompt.sessionId).toBe("session_123");
+      expect(prompt.prompt).toBe("Refactor auth handler");
+
+      const approval = parseSocketEvent(SOCKET_EVENTS.APPROVAL_REQUIRED, {
+        seqId: 1,
+        approvalId: "appr_test",
+        sessionId: "session_123",
+        turnId: "turn_1",
+        toolName: "execute_bash",
+        commandOrDiff: "pnpm test",
+        riskLevel: "low",
+      });
+      expect(approval.timeoutMs).toBe(180000);
+    });
+
+    it("parseSocketEvent throws on mismatched or invalid payload", () => {
+      expect(() =>
+        parseSocketEvent(SOCKET_EVENTS.CLIENT_PROMPT, {
+          sessionId: "session_123",
+          // missing prompt
+        }),
+      ).toThrow();
+    });
+
+    it("createSafeEvent safely validates socket events without throwing", () => {
+      const safeSuccess = createSafeEvent(SOCKET_EVENTS.REGISTER_HOST, {
+        pin: "123456",
+        hostName: "MacBook Pro",
+        workspacePath: "/Users/dev/repo",
+      });
+      expect(safeSuccess.success).toBe(true);
+      if (safeSuccess.success) {
+        expect(safeSuccess.data.pin).toBe("123456");
+      }
+
+      const safeFailure = createSafeEvent(SOCKET_EVENTS.REGISTER_HOST, {
+        pin: "short", // invalid pin length
+        hostName: "MacBook Pro",
+        workspacePath: "/Users/dev/repo",
+      });
+      expect(safeFailure.success).toBe(false);
+      if (!safeFailure.success) {
+        expect(safeFailure.error.issues.length).toBeGreaterThan(0);
+      }
     });
 
     it("validatePayload parses valid data and throws on invalid data", () => {
