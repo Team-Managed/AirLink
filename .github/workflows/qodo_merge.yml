@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Qodo Merge PR Agent
-        uses: qodo-ai/pr-agent-action@v0.22
+        uses: qodo-ai/pr-agent@main
         continue-on-error: true
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_KEY || secrets.QODO_API_KEY }}
