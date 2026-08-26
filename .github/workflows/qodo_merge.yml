@@ -7,13 +7,14 @@ on:
     types: [created, edited]
 
 concurrency:
-  group: qodo-merge-${{ github.event.pull_request.number || github.event.issue.number }}
-  cancel-in-progress: true
+  group: qodo-merge-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
+  cancel-in-progress: false
 
 jobs:
   qodo_merge:
     name: Qodo Merge AI Review
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: ${{ github.event.pull_request.draft == false }}
     permissions:
       contents: write
