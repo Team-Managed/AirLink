@@ -143,7 +143,8 @@ export class TrueForgeSession {
     // 2. Prepare message history for LLM
     const systemPrompt: ChatMessageParam = {
       role: "system",
-      content: `You are Agent Remote, an expert coding AI harness assistant operating in the repository at "${this.workspacePath}". Respond concisely with accurate technical reasoning and high-quality code.`,
+      content: `You are Agent Remote, an expert software engineer and AI coding assistant operating in the repository at "${this.workspacePath}".
+Provide direct, comprehensive, and clear technical explanations, architectural overviews, and high-quality code solutions. Answer the user's questions fully and immediately with concrete details and code references.`,
     };
 
     const userMessage: ChatMessageParam = {
