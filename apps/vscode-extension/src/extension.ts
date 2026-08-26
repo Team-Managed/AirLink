@@ -1,6 +1,13 @@
 import * as vscode from "vscode";
 import * as os from "node:os";
-import { SocketBridge, TrueForgeClient, TrueForgeSession } from "@agent-remote/bridge-core";
+import {
+  SocketBridge,
+  TrueForgeClient,
+  TrueForgeSession,
+  getGitDiff,
+  runWorkspaceTests,
+  runWorkspaceLint,
+} from "@agent-remote/bridge-core";
 import { AgentChatViewProvider } from "./chat-webview.js";
 
 let activeBridge: SocketBridge | null = null;
@@ -30,7 +37,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const config = vscode.workspace.getConfiguration("agentRemote");
   const relayUrl = config.get<string>("relayUrl") || process.env["RELAY_URL"] || "http://localhost:3001";
-  const model = config.get<string>("model") || process.env["AGENT_MODEL"] || "0x-alpha";
+  const model = config.get<string>("model") || process.env["AGENT_MODEL"] || "llama-3.3-70b-versatile";
   const pin = generateSessionPin();
   const sessionId = pin.replace(/\D/g, "");
 
@@ -52,7 +59,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // 3. Register Sidebar Chat View Provider
   const chatProvider = new AgentChatViewProvider(context.extensionUri);
-  chatProvider.setSessionInfo(formatPin(pin), relayUrl, model);
+  chatProvider.setSessionInfo(
+    formatPin(pin),
+    relayUrl,
+    activeSession.defaultModel,
+    activeSession.providerConfig.provider,
+  );
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(AgentChatViewProvider.viewType, chatProvider, {
@@ -98,9 +110,41 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   }
 
-  // 6. Connect Webview actions
+  // 6. Connect Webview actions and quick pills
   chatProvider.onPrompt((text) => {
     void dispatchTurn(text, "local");
+  });
+
+  chatProvider.onAction(async (action, arg) => {
+    if (action === "diff") {
+      const diff = await getGitDiff(workspacePath);
+      chatProvider.addSystemMessage(`🔍 Current Git Diff:\n\n${diff}`);
+    } else if (action === "test") {
+      chatProvider.addSystemMessage(`🧪 Running workspace tests${arg ? ` (filter: ${arg})` : ""}...`);
+      const result = await runWorkspaceTests(workspacePath, arg);
+      chatProvider.addSystemMessage(
+        `${result.success ? "✔ Tests Passed" : "❌ Tests Failed"} (${result.durationMs}ms):\n\n${result.output}`,
+      );
+    } else if (action === "lint") {
+      chatProvider.addSystemMessage("🧹 Running workspace typecheck...");
+      const result = await runWorkspaceLint(workspacePath);
+      chatProvider.addSystemMessage(
+        `${result.success ? "✔ Typecheck Passed" : "❌ Typecheck Failed"} (${result.durationMs}ms):\n\n${result.output}`,
+      );
+    } else if (action === "stats") {
+      if (activeSession) {
+        const stats = activeSession.getStats();
+        chatProvider.addSystemMessage(
+          `📊 Session Metrics:\n- PIN: ${formatPin(stats.sessionId)}\n- Turns: ${stats.turnCount}\n- Buffered Events: ${stats.bufferedEvents}\n- Latest Sequence: #${stats.latestSeq}\n- Provider: ${stats.provider} (Free)\n- Model: ${stats.activeModel}`,
+        );
+      }
+    } else if (action === "clear") {
+      if (activeSession) {
+        activeSession.clearHistory();
+        chatProvider.clearMessages();
+        chatProvider.addSystemMessage("✔ Conversation history and in-memory ring buffer reset.");
+      }
+    }
   });
 
   chatProvider.onApprovalResponse((approvalId, approved) => {
@@ -170,6 +214,19 @@ export function activate(context: vscode.ExtensionContext): void {
 
     vscode.commands.registerCommand("agentRemote.createPR", () => {
       void dispatchTurn("Create a pull request with all session changes and test results.", "local");
+    }),
+
+    vscode.commands.registerCommand("agentRemote.showDiff", async () => {
+      const diff = await getGitDiff(workspacePath);
+      chatProvider.addSystemMessage(`🔍 Current Git Diff:\n\n${diff}`);
+    }),
+
+    vscode.commands.registerCommand("agentRemote.clearSession", () => {
+      if (activeSession) {
+        activeSession.clearHistory();
+        chatProvider.clearMessages();
+        chatProvider.addSystemMessage("✔ Conversation history and in-memory ring buffer reset.");
+      }
     }),
 
     vscode.commands.registerCommand("agentRemote.importIssue", async () => {

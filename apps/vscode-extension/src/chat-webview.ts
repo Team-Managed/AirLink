@@ -3,7 +3,7 @@ import type { AgentStream, ApprovalRequest } from "@agent-remote/protocol";
 
 export interface ChatMessage {
   id: string;
-  sender: "user_local" | "user_remote" | "agent";
+  sender: "user_local" | "user_remote" | "agent" | "system";
   type: "text" | "thought" | "tool_call" | "tool_result" | "approval_request" | "done" | "error";
   content: string;
   metadata?: Record<string, unknown> | undefined;
@@ -12,6 +12,7 @@ export interface ChatMessage {
 
 export type WebviewPromptHandler = (prompt: string) => void;
 export type WebviewApprovalResponseHandler = (approvalId: string, approved: boolean) => void;
+export type WebviewActionHandler = (action: string, arg?: string) => void;
 
 /**
  * AgentChatViewProvider
@@ -23,16 +24,19 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
   private readonly _messages: ChatMessage[] = [];
   private _activePin: string = "";
   private _relayUrl: string = "";
-  private _model: string = "0x-alpha";
+  private _model: string = "llama-3.3-70b-versatile";
+  private _provider: string = "Groq (Free)";
   private _onPromptHandler?: WebviewPromptHandler;
   private _onApprovalResponseHandler?: WebviewApprovalResponseHandler;
+  private _onActionHandler?: WebviewActionHandler;
 
   constructor(private readonly _extensionUri: vscode.Uri) {}
 
-  public setSessionInfo(pin: string, relayUrl: string, model: string): void {
+  public setSessionInfo(pin: string, relayUrl: string, model: string, provider: string = "Free Tier"): void {
     this._activePin = pin;
     this._relayUrl = relayUrl;
     this._model = model;
+    this._provider = provider;
     this._updateSessionHeader();
   }
 
@@ -42,6 +46,10 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
 
   public onApprovalResponse(handler: WebviewApprovalResponseHandler): void {
     this._onApprovalResponseHandler = handler;
+  }
+
+  public onAction(handler: WebviewActionHandler): void {
+    this._onActionHandler = handler;
   }
 
   public resolveWebviewView(
@@ -58,7 +66,7 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this.getHtmlForWebview(webviewView.webview);
 
-    webviewView.webview.onDidReceiveMessage((data: { command: string; text?: string; approvalId?: string; approved?: boolean }) => {
+    webviewView.webview.onDidReceiveMessage((data: { command: string; text?: string; approvalId?: string; approved?: boolean; action?: string; arg?: string }) => {
       switch (data.command) {
         case "submitPrompt":
           if (data.text && this._onPromptHandler) {
@@ -68,6 +76,11 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
         case "submitApproval":
           if (data.approvalId && data.approved !== undefined && this._onApprovalResponseHandler) {
             this._onApprovalResponseHandler(data.approvalId, data.approved);
+          }
+          break;
+        case "triggerAction":
+          if (data.action && this._onActionHandler) {
+            this._onActionHandler(data.action, data.arg);
           }
           break;
       }
@@ -107,6 +120,21 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
+   * Pushes a system or tool notification card into the chat view.
+   */
+  public addSystemMessage(content: string): void {
+    const msg: ChatMessage = {
+      id: `sys_${Date.now()}`,
+      sender: "system",
+      type: "text",
+      content,
+      timestamp: Date.now(),
+    };
+    this._messages.push(msg);
+    this._postMessageToWebview({ command: "appendMessage", message: msg });
+  }
+
+  /**
    * Streams an AgentStream chunk to the chat view.
    */
   public handleStreamChunk(chunk: AgentStream): void {
@@ -127,12 +155,21 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
     this._postMessageToWebview({ command: "approvalResolved", approvalId, approved });
   }
 
+  /**
+   * Clears the messages in the webview.
+   */
+  public clearMessages(): void {
+    this._messages.length = 0;
+    this._postMessageToWebview({ command: "clearMessages" });
+  }
+
   private _updateSessionHeader(): void {
     this._postMessageToWebview({
       command: "updateSession",
       pin: this._activePin,
       relayUrl: this._relayUrl,
       model: this._model,
+      provider: this._provider,
     });
   }
 
@@ -158,6 +195,7 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
       --accent-green: #22c55e;
       --accent-red: #ef4444;
       --accent-yellow: #f59e0b;
+      --accent-purple: #a855f7;
       --text-main: var(--vscode-editor-foreground, #f8fafc);
       --text-dim: var(--vscode-descriptionForeground, #94a3b8);
       --font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace);
@@ -222,6 +260,12 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
       background: rgba(168, 85, 247, 0.15);
       border-color: rgba(168, 85, 247, 0.4);
     }
+    .msg-system {
+      align-self: center;
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border-color);
+      font-size: 12px;
+    }
     .badge-tag {
       font-size: 10px;
       font-weight: bold;
@@ -244,6 +288,7 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
       font-size: 11px;
       margin: 4px 0;
       border: 1px solid var(--border-color);
+      white-space: pre-wrap;
     }
     .approval-box {
       border: 1px solid var(--accent-yellow);
@@ -334,21 +379,23 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
   <div id="header">
-    <span class="model-chip" id="model-label">Model: 0x-alpha</span>
+    <span class="model-chip" id="model-label">Model: llama-3.3-70b-versatile (Free)</span>
     <span class="pin-badge" id="pin-label" title="Click to copy pairing link">PIN: ---</span>
   </div>
 
   <div id="messages"></div>
 
   <div id="quick-actions">
-    <button class="pill-btn" onclick="sendQuickAction('Create a pull request with all session changes and test results.')">🐙 Create PR</button>
-    <button class="pill-btn" onclick="sendQuickAction('Run test suite and report results.')">🧪 Run Tests</button>
-    <button class="pill-btn" onclick="sendQuickAction('Show git diff and pending changes.')">🔍 Git Diff</button>
-    <button class="pill-btn" onclick="sendQuickAction('Fix any lint errors across the workspace.')">🧹 Fix Lint</button>
+    <button class="pill-btn" onclick="sendAction('diff')">🔍 Git Diff</button>
+    <button class="pill-btn" onclick="sendAction('test')">🧪 Run Tests</button>
+    <button class="pill-btn" onclick="sendAction('lint')">🧹 Typecheck</button>
+    <button class="pill-btn" onclick="sendAction('stats')">📊 Stats</button>
+    <button class="pill-btn" onclick="sendAction('clear')">🗑 Clear</button>
+    <button class="pill-btn" onclick="sendPrompt('Create a pull request with all session changes and test results.')">🐙 Create PR</button>
   </div>
 
   <div id="input-area">
-    <textarea id="prompt-input" placeholder="Prompt TrueForge agent or ask a question..."></textarea>
+    <textarea id="prompt-input" placeholder="Prompt free AI agent or type /help for commands..."></textarea>
     <button id="send-btn" onclick="handleSend()">Send</button>
   </div>
 
@@ -365,7 +412,7 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
       switch (msg.command) {
         case 'updateSession':
           pinLabel.textContent = msg.pin ? 'PIN: ' + msg.pin : 'PIN: ---';
-          modelLabel.textContent = 'Model: ' + (msg.model || '0x-alpha');
+          modelLabel.textContent = (msg.provider || 'Free Tier') + ': ' + (msg.model || 'llama-3.3-70b-versatile');
           break;
         case 'appendMessage':
           appendMessageCard(msg.message);
@@ -379,19 +426,42 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
         case 'approvalResolved':
           resolveApprovalCard(msg.approvalId, msg.approved);
           break;
+        case 'clearMessages':
+          messagesEl.innerHTML = '';
+          currentTokenBlock = null;
+          break;
       }
     });
 
     function handleSend() {
       const text = promptInput.value.trim();
       if (!text) return;
-      vscode.postMessage({ command: 'submitPrompt', text });
+
+      if (text.startsWith('/diff')) {
+        sendAction('diff');
+      } else if (text.startsWith('/clear') || text.startsWith('/reset')) {
+        sendAction('clear');
+      } else if (text.startsWith('/test')) {
+        sendAction('test', text.slice(5).trim());
+      } else if (text.startsWith('/lint')) {
+        sendAction('lint');
+      } else if (text.startsWith('/stats')) {
+        sendAction('stats');
+      } else {
+        vscode.postMessage({ command: 'submitPrompt', text });
+      }
+
       promptInput.value = '';
       currentTokenBlock = null;
     }
 
-    function sendQuickAction(text) {
+    function sendPrompt(text) {
       vscode.postMessage({ command: 'submitPrompt', text });
+      currentTokenBlock = null;
+    }
+
+    function sendAction(action, arg) {
+      vscode.postMessage({ command: 'triggerAction', action, arg });
       currentTokenBlock = null;
     }
 
@@ -404,13 +474,21 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
 
     function appendMessageCard(m) {
       const card = document.createElement('div');
-      card.className = 'message-card ' + (m.sender === 'user_local' ? 'msg-user-local' : m.sender === 'user_remote' ? 'msg-user-remote' : '');
-      const badge = document.createElement('span');
-      badge.className = 'badge-tag';
-      badge.textContent = m.sender === 'user_local' ? '💻 Local (VS Code)' : m.sender === 'user_remote' ? '📱 Remote (Phone)' : '⚡ Agent';
-      card.appendChild(badge);
+      card.className = 'message-card ' + (
+        m.sender === 'user_local' ? 'msg-user-local' :
+        m.sender === 'user_remote' ? 'msg-user-remote' :
+        m.sender === 'system' ? 'msg-system' : ''
+      );
+
+      if (m.sender !== 'system') {
+        const badge = document.createElement('span');
+        badge.className = 'badge-tag';
+        badge.textContent = m.sender === 'user_local' ? '💻 Local (VS Code)' : m.sender === 'user_remote' ? '📱 Remote (Phone)' : '⚡ Agent';
+        card.appendChild(badge);
+      }
 
       const content = document.createElement('div');
+      content.style.whiteSpace = 'pre-wrap';
       content.textContent = m.content;
       card.appendChild(content);
 
