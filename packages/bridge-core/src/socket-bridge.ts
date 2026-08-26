@@ -50,7 +50,10 @@ export class SocketBridge {
   private readonly _hostName: string;
   private readonly _workspacePath: string;
   private readonly _approvalManager: ApprovalManager;
+  private readonly _reconnectionAttempts: number;
+  private readonly _reconnectionDelay: number;
   private _socket: Socket | null = null;
+  private _approvalUnsubscribe: (() => void) | null = null;
 
   private readonly _promptHandlers = new Set<PromptHandler>();
   private readonly _syncHandlers = new Set<SyncHandler>();
@@ -65,18 +68,10 @@ export class SocketBridge {
     this._hostName = options.hostName;
     this._workspacePath = options.workspacePath;
     this._approvalManager = options.approvalManager ?? new ApprovalManager();
+    this._reconnectionAttempts = options.reconnectionAttempts ?? Infinity;
+    this._reconnectionDelay = options.reconnectionDelay ?? 1000;
 
-    // Hook approval manager to auto-send approval requests over socket and trigger host approval prompt
-    this._approvalManager.onApprovalRequested((req) => {
-      this.sendApprovalRequest(req);
-      for (const handler of this._hostApprovalHandlers) {
-        try {
-          handler(req);
-        } catch {
-          // Safe handler dispatch
-        }
-      }
-    });
+    this._setupApprovalHook();
 
     if (options.autoConnect !== false) {
       this.connect();
@@ -103,6 +98,14 @@ export class SocketBridge {
     return this._approvalManager;
   }
 
+  get reconnectionAttempts(): number {
+    return this._reconnectionAttempts;
+  }
+
+  get reconnectionDelay(): number {
+    return this._reconnectionDelay;
+  }
+
   get socket(): Socket | null {
     return this._socket;
   }
@@ -114,10 +117,29 @@ export class SocketBridge {
     return this._socket !== null && this._socket.connected;
   }
 
+  private _setupApprovalHook(): void {
+    if (this._approvalUnsubscribe) {
+      this._approvalUnsubscribe();
+    }
+
+    this._approvalUnsubscribe = this._approvalManager.onApprovalRequested((req) => {
+      this.sendApprovalRequest(req);
+      for (const handler of this._hostApprovalHandlers) {
+        try {
+          handler(req);
+        } catch {
+          // Safe handler dispatch
+        }
+      }
+    });
+  }
+
   /**
    * Initializes and connects the Socket.io client to the Relay server.
    */
   connect(): Socket {
+    this._setupApprovalHook();
+
     if (this._socket && this._socket.connected) {
       return this._socket;
     }
@@ -131,8 +153,8 @@ export class SocketBridge {
       transports: ["websocket", "polling"],
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
+      reconnectionAttempts: this._reconnectionAttempts,
+      reconnectionDelay: this._reconnectionDelay,
     });
 
     this._setupSocketListeners();
@@ -140,13 +162,25 @@ export class SocketBridge {
   }
 
   /**
-   * Disconnects the socket and cleans up handlers.
+   * Disconnects the socket and cleans up handlers and listeners.
    */
   disconnect(): void {
+    if (this._approvalUnsubscribe) {
+      this._approvalUnsubscribe();
+      this._approvalUnsubscribe = null;
+    }
+
     if (this._socket) {
       this._socket.disconnect();
       this._socket = null;
     }
+  }
+
+  /**
+   * Alias for disconnect to allow explicit resource disposal.
+   */
+  dispose(): void {
+    this.disconnect();
   }
 
   private _setupSocketListeners(): void {
@@ -241,6 +275,11 @@ export class SocketBridge {
 
     const validated = RegisterHostSchema.parse(payload);
     this._socket.emit(SOCKET_EVENTS.REGISTER_HOST, validated);
+
+    // Replay active pending approvals upon reconnect so mobile client receives in-flight requests
+    for (const pending of this._approvalManager.getAllPending()) {
+      this.sendApprovalRequest(pending.request);
+    }
   }
 
   /**

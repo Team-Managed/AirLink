@@ -77,4 +77,44 @@ describe("SocketBridge", () => {
     unsubError();
     unsubDisconnect();
   });
+
+  it("stores and exposes custom reconnection attempts and delay configuration", () => {
+    const customBridge = new SocketBridge({
+      relayUrl: "http://localhost:3001",
+      pin: "999999",
+      hostName: "custom-host",
+      workspacePath: "/custom/path",
+      autoConnect: false,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2500,
+    });
+
+    expect(customBridge.reconnectionAttempts).toBe(5);
+    expect(customBridge.reconnectionDelay).toBe(2500);
+    customBridge.dispose();
+  });
+
+  it("cleans up ApprovalManager listener on disconnect / dispose", async () => {
+    let capturedPrompt: ApprovalRequest | null = null;
+    bridge.onHostApprovalPrompt((req) => {
+      capturedPrompt = req;
+    });
+
+    bridge.dispose();
+
+    const promise = approvalManager.requestApproval({
+      seqId: 2,
+      sessionId: "sess_200",
+      turnId: "turn_300",
+      toolName: "execute_bash",
+      commandOrDiff: "ls",
+      riskLevel: "low",
+    });
+
+    // Since bridge was disposed, host approval prompt should not be dispatched through disposed bridge
+    expect(capturedPrompt).toBeNull();
+
+    approvalManager.cancelAll();
+    await promise;
+  });
 });

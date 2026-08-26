@@ -54,6 +54,13 @@ export class ApprovalManager {
   }
 
   /**
+   * Returns an array of all currently active pending approvals.
+   */
+  getAllPending(): PendingApproval[] {
+    return Array.from(this._activeApprovals.values());
+  }
+
+  /**
    * Checks if an approval request is currently active.
    */
   hasPending(approvalId: string): boolean {
@@ -90,6 +97,10 @@ export class ApprovalManager {
     const approvalId =
       params.approvalId ||
       `appr_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+    if (this._activeApprovals.has(approvalId)) {
+      throw new Error(`Duplicate approvalId "${approvalId}" is already active and pending.`);
+    }
 
     const timeoutMs = Math.min(
       params.timeoutMs ?? APPROVAL_TIMEOUT_MS,

@@ -239,4 +239,34 @@ describe("ApprovalManager", () => {
     manager.cancelAll();
     await Promise.all([promise1, promise2]);
   });
+
+  it("throws an error when a duplicate approvalId is provided for an active request", async () => {
+    const promise1 = manager.requestApproval({
+      seqId: 30,
+      approvalId: "fixed_approval_id_123",
+      sessionId: "session_123",
+      turnId: "turn_456",
+      toolName: "t1",
+      commandOrDiff: "c1",
+      riskLevel: "low",
+    });
+
+    expect(() => {
+      manager.requestApproval({
+        seqId: 31,
+        approvalId: "fixed_approval_id_123",
+        sessionId: "session_123",
+        turnId: "turn_456",
+        toolName: "t2",
+        commandOrDiff: "c2",
+        riskLevel: "high",
+      });
+    }).toThrow('Duplicate approvalId "fixed_approval_id_123" is already active and pending.');
+
+    expect(manager.getAllPending().length).toBe(1);
+    expect(manager.getAllPending()[0]?.request.approvalId).toBe("fixed_approval_id_123");
+
+    manager.resolveApproval("fixed_approval_id_123", true);
+    await promise1;
+  });
 });
