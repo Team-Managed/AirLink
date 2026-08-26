@@ -13,7 +13,7 @@
 - [x] Purged all duplicate, redundant, and excessive files from context
 
 ### Implementation Units Index
-- [ ] **Unit 01:** Monorepo Workspace & Protocol Contracts (`packages/protocol`)
+- [x] **Unit 01:** Monorepo Workspace & Protocol Contracts (`packages/protocol`)
 - [ ] **Unit 02:** Bridge Core Engine & Ring Buffer (`packages/bridge-core`)
 - [ ] **Unit 03:** Approval State Machine & Timeouts (`packages/bridge-core`)
 - [ ] **Unit 04:** Cloud Relay Server (`apps/relay`)
@@ -29,4 +29,9 @@
 - [ ] **Unit 14:** External Integrations & Webhook Alerts (`packages/bridge-core`)
 - [ ] **Unit 15:** Production Deployment & Release (`infra/` + `apps/*`)
 - [ ] **Unit 16:** CI Workflows, Governance & Secret Scanning (`.github/workflows` + `scripts/`)
-- [ ] **Unit 17:** Deep Qodo Integration, Test Harness & PR Automation (.pr_agent.toml + 	ests/qodo)\n- [ ] **Unit 18:** Qodo PR Playbook & Track Alignment Playbook (`context/specs/18-qodo-pr-playbook-and-track-alignment.md`)\n- [ ] **Unit 19:** Observability, Telemetry & Metrics (packages/bridge-core/src/telemetry)\n- [ ] **Unit 20:** Security Threat Model & Hardening (packages/bridge-core/src/security)\n- [ ] **Unit 21:** Performance Budgets & Benchmarks (context/specs/21-performance-budgets-and-benchmarks.md)\n- [ ] **Unit 22:** Shipping, Launch & Release Playbook (context/specs/22-shipping-launch-and-release-playbook.md)
+- [ ] **Unit 17:** Deep Qodo Integration, Test Harness & PR Automation (`.pr_agent.toml` + `tests/qodo`)
+- [ ] **Unit 18:** Qodo PR Playbook & Track Alignment Playbook (`context/specs/18-qodo-pr-playbook-and-track-alignment.md`)
+- [ ] **Unit 19:** Observability, Telemetry & Metrics (`packages/bridge-core/src/telemetry`)
+- [ ] **Unit 20:** Security Threat Model & Hardening (`packages/bridge-core/src/security`)
+- [ ] **Unit 21:** Performance Budgets & Benchmarks (`context/specs/21-performance-budgets-and-benchmarks.md`)
+- [ ] **Unit 22:** Shipping, Launch & Release Playbook (`context/specs/22-shipping-launch-and-release-playbook.md`)
