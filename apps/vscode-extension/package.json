@@ -5,6 +5,11 @@
   "version": "0.1.0",
   "publisher": "agent-remote",
   "main": "./dist/extension.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agent-remote/agent-remote"
+  },
   "engines": {
     "vscode": "^1.90.0"
   },
@@ -67,6 +72,7 @@
   "scripts": {
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
+    "package": "node esbuild.mjs && vsce package --no-dependencies",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "test": "vitest run"
@@ -79,6 +85,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.28.2",
     "typescript": "^5.5.4",
     "vitest": "^2.0.5"

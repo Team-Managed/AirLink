@@ -1,0 +1,8 @@
+.vscode/**
+src/**
+tests/**
+tsconfig.json
+tsconfig.tsbuildinfo
+vitest.config.ts
+esbuild.mjs
+*.vsix
