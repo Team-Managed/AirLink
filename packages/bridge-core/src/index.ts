@@ -1,3 +1,5 @@
 export * from "./ring-buffer.js";
 export * from "./prompt-builder.js";
 export * from "./trueforge-client.js";
+export * from "./approval-handler.js";
+export * from "./socket-bridge.js";
