@@ -45,6 +45,6 @@ Define the exact PR workflow, branch-slicing playbook, interactive Qodo command 
 - Depends on: 00, 16, 17.
 
 ## Check When Done
-- `.github/pull_request_template.md` is created and configured.
+
 - Branching and PR slicing workflow is documented in `context/specs/00-product-map.md` and `context/ai-workflow-rules.md`.
 - PR playbook guarantees every feature increment produces verifiable Qodo quality evidence.
