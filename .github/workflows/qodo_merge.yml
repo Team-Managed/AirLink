@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run Qodo Merge PR Agent
         uses: qodo-ai/pr-agent-action@v0.22
