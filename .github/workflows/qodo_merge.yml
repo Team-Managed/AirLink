@@ -26,8 +26,11 @@ jobs:
 
       - name: Run Qodo Merge PR Agent
         uses: qodo-ai/pr-agent-action@v0.22
+        continue-on-error: true
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_KEY || secrets.QODO_API_KEY }}
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CONFIG.AUTO_REVIEW: "true"
           CONFIG.AUTO_DESCRIBE: "true"
