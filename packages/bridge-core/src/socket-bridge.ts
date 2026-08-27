@@ -54,6 +54,7 @@ export class SocketBridge {
   private readonly _reconnectionDelay: number;
   private _socket: Socket | null = null;
   private _approvalUnsubscribe: (() => void) | null = null;
+  private _heartbeatTimer: NodeJS.Timeout | null = null;
 
   private readonly _promptHandlers = new Set<PromptHandler>();
   private readonly _syncHandlers = new Set<SyncHandler>();
@@ -170,6 +171,11 @@ export class SocketBridge {
       this._approvalUnsubscribe = null;
     }
 
+    if (this._heartbeatTimer) {
+      clearInterval(this._heartbeatTimer);
+      this._heartbeatTimer = null;
+    }
+
     if (this._socket) {
       this._socket.disconnect();
       this._socket = null;
@@ -188,6 +194,16 @@ export class SocketBridge {
 
     this._socket.on("connect", () => {
       this._registerHost();
+
+      if (this._heartbeatTimer) {
+        clearInterval(this._heartbeatTimer);
+      }
+      this._heartbeatTimer = setInterval(() => {
+        this._registerHost();
+      }, 30_000);
+      if (typeof this._heartbeatTimer.unref === "function") {
+        this._heartbeatTimer.unref();
+      }
     });
 
     this._socket.on(SOCKET_EVENTS.SESSION_CONNECTED, (data: unknown) => {
@@ -254,6 +270,10 @@ export class SocketBridge {
     });
 
     this._socket.on("disconnect", (reason: string) => {
+      if (this._heartbeatTimer) {
+        clearInterval(this._heartbeatTimer);
+        this._heartbeatTimer = null;
+      }
       for (const handler of this._disconnectHandlers) {
         try {
           handler(reason);

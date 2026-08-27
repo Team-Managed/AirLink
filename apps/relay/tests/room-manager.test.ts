@@ -136,4 +136,19 @@ describe("RoomManager", () => {
     expect(cleaned).toBe(2);
     expect(manager.getActiveRoomCount()).toBe(0);
   });
+
+  it("purges stale client sockets and creates a fresh session when createRoom is called after TTL expiry", () => {
+    manager.createRoom("STALE_PIN", "old_host", "Old Host", "/path");
+    manager.pairClient("STALE_PIN", "old_client");
+    expect(manager.getRoom("STALE_PIN")?.clientSocketId).toBe("old_client");
+
+    // Advance beyond TTL
+    vi.advanceTimersByTime(300_001);
+
+    // Re-register the PIN with a new host
+    const freshRoom = manager.createRoom("STALE_PIN", "new_host", "New Host", "/new-path");
+    expect(freshRoom.hostSocketId).toBe("new_host");
+    expect(freshRoom.clientSocketId).toBeUndefined();
+    expect(manager.getRoomByClientSocketId("old_client")).toBeUndefined();
+  });
 });

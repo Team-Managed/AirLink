@@ -34,12 +34,17 @@ describe("Workspace Tools Suite", () => {
     expect(diff.length).toBeGreaterThan(0);
   });
 
-  it("handles GitHub issue resolution gracefully", async () => {
-    const issue = await fetchGitHubIssue(42, process.cwd());
-    expect(issue).toHaveProperty("title");
-    expect(issue).toHaveProperty("body");
-    expect(issue.title).toContain("42");
-  });
+  it("handles GitHub issue resolution authentically or throws clear authentication error", async () => {
+    try {
+      const issue = await fetchGitHubIssue(42, process.cwd());
+      expect(issue).toHaveProperty("title");
+      expect(issue).toHaveProperty("body");
+    } catch (err: unknown) {
+      expect(err).toBeInstanceOf(Error);
+      expect((err as Error).message).toMatch(/Failed to fetch GitHub issue #42/i);
+      expect((err as Error).message).toMatch(/gh auth login|GITHUB_TOKEN/i);
+    }
+  }, 15000);
 
   it("enforces workspace path boundary confinement and blocks directory traversal", () => {
     // 1. Valid subpaths resolve cleanly
