@@ -38,8 +38,9 @@
   - Implemented `PromptInputBar` with horizontal quick-action pills (`[Create PR]`, `[Import Issue]`, `[Run Tests]`, `[Git Status]`, `[Fix Lint]`, `[Rollback]`).
   - Implemented `DiffCard` with unified Git diff parsing, line-by-line syntax highlighting, additions/deletions badges, and file path headers.
   - Implemented `ApprovalDrawer` with 180s countdown progress bar (smooth color morph from green -> amber -> red), risk level badges, and dual `[Approve]` / `[Deny]` action buttons.
-  - Integrated `MobileHapticsService` with vibration fallback.
-  - 100% test pass rate across 26 test files and 192 unit/integration tests.
+  - Integrated `MobileHapticsService` with native `Vibration` and web vibration fallback.
+  - Resolved all 10 Qodo review findings on PR #14: reconnection join-before-sync, stream auto-scroll on content size changes, user prompt vs agent token separation (`role: "user"`), multicast socket subscriptions with lifecycle cleanup, expired room purging to prevent client resurrection, dynamic approval timeout reporting, and slide-modal UI context alignment.
+  - 100% test pass rate across 26 test files and 193 unit/integration tests.
 
 ### Implementation Units Index
 
