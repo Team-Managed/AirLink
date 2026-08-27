@@ -152,10 +152,8 @@ export class MobileSocketService {
         const payload = parseSocketEvent(SOCKET_EVENTS.SESSION_CONNECTED, raw);
         if (payload.status === "connected") {
           this.activeSessionId = payload.sessionId;
-          // If we reconnected with prior stream history, send sync request after pairing confirmation
-          if (this.lastSeenSeq > 0) {
-            this.sync(this.lastSeenSeq);
-          }
+          // Hydrate stream events from host (works for both fresh attach seq=0 and reconnect seq>0)
+          this.sync(this.lastSeenSeq);
         }
         this.notify("onSessionConnected", payload);
       } catch (err) {

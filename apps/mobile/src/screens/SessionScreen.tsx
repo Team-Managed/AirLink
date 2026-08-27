@@ -93,16 +93,24 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
       },
 
       onStreamBatch: (payload: StreamBatch) => {
-        const mappedBatch: StreamFeedItem[] = payload.events.map((event) => ({
-          id: `batch_${event.seqId}_${Date.now()}`,
-          seqId: event.seqId,
-          type: event.type,
-          content: event.content,
-          role: "agent",
-          metadata: event.metadata,
-          timestamp: event.timestamp,
-        }));
-        setFeedItems((prev) => [...prev, ...mappedBatch]);
+        setFeedItems((prev) => {
+          const existingSeqs = new Set(prev.map((i) => i.seqId).filter((s) => s > 0));
+          const newItems: StreamFeedItem[] = [];
+          for (const event of payload.events) {
+            if (!existingSeqs.has(event.seqId)) {
+              newItems.push({
+                id: `batch_${event.seqId}_${event.timestamp}`,
+                seqId: event.seqId,
+                type: event.type,
+                content: event.content,
+                role: "agent",
+                metadata: event.metadata,
+                timestamp: event.timestamp,
+              });
+            }
+          }
+          return [...prev, ...newItems];
+        });
       },
 
       onError: (payload: StandardError) => {

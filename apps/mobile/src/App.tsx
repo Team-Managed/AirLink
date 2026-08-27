@@ -16,10 +16,49 @@ export function App(): React.JSX.Element {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [byokConfig, setByokConfig] = useState<BYOKConfig | null>(null);
 
+  const STORAGE_PIN_KEY = "agent_remote_active_pin";
+  const STORAGE_RELAY_KEY = "agent_remote_active_relay";
+
+  const handleConnect = (pin: string, relayUrl: string) => {
+    setErrorMessage(null);
+    setIsConnecting(true);
+
+    if (typeof localStorage !== "undefined") {
+      try {
+        localStorage.setItem(STORAGE_PIN_KEY, pin);
+        localStorage.setItem(STORAGE_RELAY_KEY, relayUrl);
+      } catch {
+        // Storage fallback
+      }
+    }
+
+    try {
+      mobileSocketService.connect(relayUrl);
+      mobileSocketService.join(pin, "Agent Remote Mobile Client");
+    } catch (err) {
+      setIsConnecting(false);
+      const msg = err instanceof Error ? err.message : String(err);
+      setErrorMessage(`Connection initialization error: ${msg}`);
+    }
+  };
+
   useEffect(() => {
     void (async () => {
       const active = await vaultService.getActiveConfig();
       setByokConfig(active);
+
+      // Auto-reconnect to existing active session on page reload or app restart
+      if (typeof localStorage !== "undefined") {
+        try {
+          const savedPin = localStorage.getItem(STORAGE_PIN_KEY);
+          const savedRelay = localStorage.getItem(STORAGE_RELAY_KEY) || "http://localhost:3001";
+          if (savedPin && savedPin.replace(/\D/g, "").length === 6) {
+            handleConnect(savedPin.replace(/\D/g, ""), savedRelay);
+          }
+        } catch {
+          // Storage fallback
+        }
+      }
     })();
 
     const unsubscribe = mobileSocketService.subscribe({
@@ -28,6 +67,13 @@ export function App(): React.JSX.Element {
         if (data.status === "disconnected") {
           setIsPaired(false);
           setSessionData(null);
+          if (typeof localStorage !== "undefined") {
+            try {
+              localStorage.removeItem(STORAGE_PIN_KEY);
+            } catch {
+              // Ignore
+            }
+          }
           setErrorMessage("Workstation host has disconnected from the room.");
           return;
         }
@@ -37,6 +83,15 @@ export function App(): React.JSX.Element {
       },
       onError: (err: StandardError) => {
         setIsConnecting(false);
+        if (err.code === "INVALID_PIN" || err.code === "ROOM_EXPIRED" || err.code === "RATE_LIMITED") {
+          if (typeof localStorage !== "undefined") {
+            try {
+              localStorage.removeItem(STORAGE_PIN_KEY);
+            } catch {
+              // Ignore
+            }
+          }
+        }
         setErrorMessage(`[${err.code}] ${err.message}`);
       },
       onDisconnect: (_reason: string) => {
@@ -55,25 +110,19 @@ export function App(): React.JSX.Element {
     };
   }, []);
 
-  const handleConnect = (pin: string, relayUrl: string) => {
-    setErrorMessage(null);
-    setIsConnecting(true);
-
-    try {
-      mobileSocketService.connect(relayUrl);
-      mobileSocketService.join(pin, "Agent Remote Mobile Client");
-    } catch (err) {
-      setIsConnecting(false);
-      const msg = err instanceof Error ? err.message : String(err);
-      setErrorMessage(`Connection initialization error: ${msg}`);
-    }
-  };
-
   const handleDisconnect = () => {
     mobileSocketService.disconnect();
     setIsPaired(false);
     setSessionData(null);
     setErrorMessage(null);
+    if (typeof localStorage !== "undefined") {
+      try {
+        localStorage.removeItem(STORAGE_PIN_KEY);
+        localStorage.removeItem(STORAGE_RELAY_KEY);
+      } catch {
+        // Ignore
+      }
+    }
   };
 
   return (
