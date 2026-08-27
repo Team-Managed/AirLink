@@ -303,12 +303,13 @@ export async function executeWorkspaceBash(
 }
 
 /**
- * Fetches GitHub issue details using the `gh` CLI if installed.
+ * Fetches GitHub issue details using the `gh` CLI or GitHub REST API.
  */
 export async function fetchGitHubIssue(
   issueNumber: number,
   workspacePath: string = process.cwd(),
 ): Promise<{ title: string; body: string; url?: string | undefined }> {
+  // 1. Try official GitHub CLI (gh)
   try {
     const { stdout } = await execAsync(`gh issue view ${issueNumber} --json title,body,url`, {
       cwd: workspacePath,
@@ -316,17 +317,63 @@ export async function fetchGitHubIssue(
     });
 
     const data = JSON.parse(stdout) as { title?: string; body?: string; url?: string };
-    return {
-      title: data.title || `Issue #${issueNumber}`,
-      body: data.body || "No description provided.",
-      ...(data.url ? { url: data.url } : {}),
-    };
-  } catch {
-    return {
-      title: `Issue #${issueNumber}`,
-      body: `Resolve GitHub issue #${issueNumber} according to repository specifications.`,
-    };
+    if (data.title) {
+      return {
+        title: data.title,
+        body: data.body || "No description provided.",
+        ...(data.url ? { url: data.url } : {}),
+      };
+    }
+  } catch (ghErr) {
+    // 2. Try direct GitHub REST API if GITHUB_TOKEN or GH_TOKEN is present
+    const token = process.env["GITHUB_TOKEN"] || process.env["GH_TOKEN"];
+    if (token) {
+      try {
+        const { stdout: remoteUrl } = await execAsync("git config --get remote.origin.url", {
+          cwd: workspacePath,
+          timeout: 5000,
+        });
+
+        const match = remoteUrl.trim().match(/github\.com[/:]([^/]+)\/([^/.]+)(?:\.git)?/i);
+        if (match && match[1] && match[2]) {
+          const owner = match[1];
+          const repo = match[2];
+          const response = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/vnd.github+json",
+                "User-Agent": "agent-remote-harness",
+              },
+            },
+          );
+
+          if (response.ok) {
+            const data = (await response.json()) as {
+              title?: string;
+              body?: string;
+              html_url?: string;
+            };
+            return {
+              title: data.title || `Issue #${issueNumber}`,
+              body: data.body || "No description provided.",
+              ...(data.html_url ? { url: data.html_url } : {}),
+            };
+          }
+        }
+      } catch {
+        // Fall through to authentic error
+      }
+    }
+
+    const errMsg = ghErr instanceof Error ? ghErr.message : String(ghErr);
+    throw new Error(
+      `Failed to fetch GitHub issue #${issueNumber}: ${errMsg.trim()}. Please authenticate GitHub CLI via 'gh auth login' or configure GITHUB_TOKEN in .env.`,
+    );
   }
+
+  throw new Error(`Failed to fetch GitHub issue #${issueNumber}.`);
 }
 
 /**
