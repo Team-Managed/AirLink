@@ -32,7 +32,7 @@
 - **Pairing Screen:** Centered 6-digit PIN input with wide letter spacing (`letterSpacing: 8`) and instant auto-submit on 6th digit.
 - **Live Terminal Feed:** Virtualized `FlatList` with auto-scroll lock, streaming markdown chunks, and collapsible thought blocks.
 - **DiffCard Component:** Syntax-highlighted unified Git diff with green (`+`) and red (`-`) line tinted backgrounds.
-- **Approval Drawer:** Spring-animated bottom sheet with amber warning header, 180s countdown progress bar (smooth color morph from green $\to$ amber $\to$ red), and large thumb-friendly touch targets.
+- **Approval Drawer:** Slide-animated modal bottom sheet (`Modal animationType="slide"`) with amber warning header, countdown progress bar (smooth color morph from green $\to$ amber $\to$ red), and large thumb-friendly touch targets.
 
 ### C. Motion Design & Haptics
 

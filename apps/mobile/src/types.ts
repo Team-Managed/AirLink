@@ -12,11 +12,14 @@ import type {
 
 export type ConnectionStatus = "disconnected" | "connecting" | "paired" | "reconnecting";
 
+export type FeedItemRole = "user" | "agent" | "system";
+
 export interface StreamFeedItem {
   id: string;
   seqId: number;
   type: StreamEventType;
   content: string;
+  role?: FeedItemRole | undefined;
   metadata?: ToolMetadata | undefined;
   timestamp: number;
   collapsed?: boolean;

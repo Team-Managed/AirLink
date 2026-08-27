@@ -51,22 +51,27 @@ export class RoomManager {
     const now = Date.now();
     const duration = ttlMs ?? this.defaultTtlMs;
 
-    // 2. If the room already exists for this PIN, refresh expiration and synchronize the host
+    // 2. If the room already exists for this PIN, check expiry or refresh and synchronize
     const existingRoom = this._rooms.get(pin);
     if (existingRoom) {
-      existingRoom.expiresAt = now + duration;
-      if (!existingRoom.hostSocketIds.includes(hostSocketId)) {
-        existingRoom.hostSocketIds.push(hostSocketId);
+      if (now >= existingRoom.expiresAt) {
+        // Room has expired: clean it up completely to prevent resurrection of stale client sockets
+        this.removeRoom(pin);
+      } else {
+        existingRoom.expiresAt = now + duration;
+        if (!existingRoom.hostSocketIds.includes(hostSocketId)) {
+          existingRoom.hostSocketIds.push(hostSocketId);
+        }
+        existingRoom.hostSocketId = hostSocketId;
+        if (workspacePath && workspacePath.trim().length > 0) {
+          existingRoom.workspacePath = workspacePath;
+        }
+        if (hostName) {
+          existingRoom.hostName = hostName;
+        }
+        this._hostSocketToPin.set(hostSocketId, pin);
+        return existingRoom;
       }
-      existingRoom.hostSocketId = hostSocketId;
-      if (workspacePath && workspacePath.trim().length > 0) {
-        existingRoom.workspacePath = workspacePath;
-      }
-      if (hostName) {
-        existingRoom.hostName = hostName;
-      }
-      this._hostSocketToPin.set(hostSocketId, pin);
-      return existingRoom;
     }
 
     // 3. Create fresh room session

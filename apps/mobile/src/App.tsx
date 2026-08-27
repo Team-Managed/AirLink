@@ -13,9 +13,15 @@ export function App(): React.JSX.Element {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    mobileSocketService.setCallbacks({
+    const unsubscribe = mobileSocketService.subscribe({
       onSessionConnected: (data: SessionConnected) => {
         setIsConnecting(false);
+        if (data.status === "disconnected") {
+          setIsPaired(false);
+          setSessionData(null);
+          setErrorMessage("Workstation host has disconnected from the room.");
+          return;
+        }
         setIsPaired(true);
         setSessionData(data);
         setErrorMessage(null);
@@ -35,6 +41,7 @@ export function App(): React.JSX.Element {
     });
 
     return () => {
+      unsubscribe();
       mobileSocketService.disconnect();
     };
   }, []);

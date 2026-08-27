@@ -32,8 +32,10 @@ export class MobileSocketService {
   private socket: Socket | null = null;
   private currentPin: string | null = null;
   private lastSeenSeq: number = 0;
-  private callbacks: MobileSocketCallbacks = {};
+  private listeners: Set<MobileSocketCallbacks> = new Set();
+  private baseCallbacks: MobileSocketCallbacks = {};
   private activeSessionId: string | null = null;
+  private isReconnecting: boolean = false;
 
   private constructor() {}
 
@@ -44,8 +46,40 @@ export class MobileSocketService {
     return MobileSocketService.instance;
   }
 
+  /**
+   * Sets base callbacks (legacy support).
+   */
   public setCallbacks(callbacks: MobileSocketCallbacks): void {
-    this.callbacks = { ...this.callbacks, ...callbacks };
+    this.baseCallbacks = { ...this.baseCallbacks, ...callbacks };
+  }
+
+  /**
+   * Subscribes a listener set and returns an unsubscribe function.
+   */
+  public subscribe(callbacks: MobileSocketCallbacks): () => void {
+    this.listeners.add(callbacks);
+    return () => {
+      this.listeners.delete(callbacks);
+    };
+  }
+
+  private notify<K extends keyof MobileSocketCallbacks>(
+    event: K,
+    ...args: Parameters<NonNullable<MobileSocketCallbacks[K]>>
+  ): void {
+    // Notify base callbacks
+    const baseFn = this.baseCallbacks[event];
+    if (typeof baseFn === "function") {
+      (baseFn as (...a: unknown[]) => void)(...args);
+    }
+
+    // Notify subscribed listeners
+    for (const listener of this.listeners) {
+      const fn = listener[event];
+      if (typeof fn === "function") {
+        (fn as (...a: unknown[]) => void)(...args);
+      }
+    }
   }
 
   public getSocket(): Socket | null {
@@ -77,6 +111,8 @@ export class MobileSocketService {
       this.socket.disconnect();
     }
 
+    this.isReconnecting = false;
+
     this.socket = io(relayUrl, {
       transports: ["websocket", "polling"],
       reconnection: true,
@@ -93,37 +129,35 @@ export class MobileSocketService {
     if (!this.socket) return;
 
     this.socket.on("connect", () => {
-      if (this.callbacks.onConnect) {
-        this.callbacks.onConnect();
-      }
+      this.notify("onConnect");
 
-      // If we already have a PIN and session ID, perform reconnection sync
-      if (this.currentPin && this.activeSessionId && this.lastSeenSeq > 0) {
-        this.sync(this.lastSeenSeq);
-      } else if (this.currentPin) {
-        this.join(this.currentPin);
+      // On transport reconnect, always rejoin the saved PIN first to re-establish room pairing on relay
+      if (this.isReconnecting && this.currentPin) {
+        this.emitJoin(this.currentPin);
       }
+      this.isReconnecting = false;
     });
 
     this.socket.on("disconnect", (reason: string) => {
-      if (this.callbacks.onDisconnect) {
-        this.callbacks.onDisconnect(reason);
-      }
+      this.isReconnecting = true;
+      this.notify("onDisconnect", reason);
     });
 
     this.socket.on("connect_error", (error: Error) => {
-      if (this.callbacks.onConnectError) {
-        this.callbacks.onConnectError(error);
-      }
+      this.notify("onConnectError", error);
     });
 
     this.socket.on(SOCKET_EVENTS.SESSION_CONNECTED, (raw: unknown) => {
       try {
         const payload = parseSocketEvent(SOCKET_EVENTS.SESSION_CONNECTED, raw);
-        this.activeSessionId = payload.sessionId;
-        if (this.callbacks.onSessionConnected) {
-          this.callbacks.onSessionConnected(payload);
+        if (payload.status === "connected") {
+          this.activeSessionId = payload.sessionId;
+          // If we reconnected with prior stream history, send sync request after pairing confirmation
+          if (this.lastSeenSeq > 0) {
+            this.sync(this.lastSeenSeq);
+          }
         }
+        this.notify("onSessionConnected", payload);
       } catch (err) {
         this.handleContractError("session:connected", err);
       }
@@ -135,9 +169,7 @@ export class MobileSocketService {
         if (payload.seqId > this.lastSeenSeq) {
           this.lastSeenSeq = payload.seqId;
         }
-        if (this.callbacks.onAgentStream) {
-          this.callbacks.onAgentStream(payload);
-        }
+        this.notify("onAgentStream", payload);
       } catch (err) {
         this.handleContractError("agent:stream", err);
       }
@@ -149,9 +181,7 @@ export class MobileSocketService {
         if (payload.seqId > this.lastSeenSeq) {
           this.lastSeenSeq = payload.seqId;
         }
-        if (this.callbacks.onApprovalRequired) {
-          this.callbacks.onApprovalRequired(payload);
-        }
+        this.notify("onApprovalRequired", payload);
       } catch (err) {
         this.handleContractError("agent:approval_required", err);
       }
@@ -165,9 +195,7 @@ export class MobileSocketService {
             this.lastSeenSeq = event.seqId;
           }
         }
-        if (this.callbacks.onStreamBatch) {
-          this.callbacks.onStreamBatch(payload);
-        }
+        this.notify("onStreamBatch", payload);
       } catch (err) {
         this.handleContractError("agent:stream_batch", err);
       }
@@ -176,9 +204,7 @@ export class MobileSocketService {
     this.socket.on(SOCKET_EVENTS.ERROR, (raw: unknown) => {
       try {
         const payload = parseSocketEvent(SOCKET_EVENTS.ERROR, raw);
-        if (this.callbacks.onError) {
-          this.callbacks.onError(payload);
-        }
+        this.notify("onError", payload);
       } catch (err) {
         this.handleContractError("session:error", err);
       }
@@ -187,12 +213,19 @@ export class MobileSocketService {
 
   private handleContractError(event: string, err: unknown): void {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    if (this.callbacks.onError) {
-      this.callbacks.onError({
-        code: "INVALID_CONTRACT_PAYLOAD",
-        message: `Failed to validate event '${event}': ${errorMsg}`,
-      });
-    }
+    this.notify("onError", {
+      code: "INVALID_CONTRACT_PAYLOAD",
+      message: `Failed to validate event '${event}': ${errorMsg}`,
+    });
+  }
+
+  private emitJoin(pin: string, clientName: string = "Mobile App"): void {
+    if (!this.socket) return;
+    const payload: JoinSession = {
+      pin,
+      clientName,
+    };
+    this.socket.emit(SOCKET_EVENTS.JOIN_SESSION, payload);
   }
 
   /**
@@ -203,11 +236,7 @@ export class MobileSocketService {
       throw new Error("Socket is not initialized. Call connect() first.");
     }
     this.currentPin = pin;
-    const payload: JoinSession = {
-      pin,
-      clientName,
-    };
-    this.socket.emit(SOCKET_EVENTS.JOIN_SESSION, payload);
+    this.emitJoin(pin, clientName);
   }
 
   /**
@@ -267,6 +296,7 @@ export class MobileSocketService {
     this.currentPin = null;
     this.activeSessionId = null;
     this.lastSeenSeq = 0;
+    this.isReconnecting = false;
   }
 }
 

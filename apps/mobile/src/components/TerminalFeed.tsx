@@ -25,7 +25,13 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
     if (!isAutoScrollLocked && items.length > 0) {
       flatListRef.current?.scrollToEnd({ animated: true });
     }
-  }, [items.length, isAutoScrollLocked]);
+  }, [items, isAutoScrollLocked]);
+
+  const handleContentSizeChange = () => {
+    if (!isAutoScrollLocked && items.length > 0) {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }
+  };
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
@@ -153,6 +159,7 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         onScroll={handleScroll}
+        onContentSizeChange={handleContentSizeChange}
         scrollEventThrottle={100}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={true}

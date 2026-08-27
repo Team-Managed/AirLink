@@ -38,7 +38,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
   useEffect(() => {
-    mobileSocketService.setCallbacks({
+    const unsubscribe = mobileSocketService.subscribe({
       onAgentStream: (payload: AgentStream) => {
         setIsStreaming(true);
         if (payload.type === "done") {
@@ -51,7 +51,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
             payload.type === "token" &&
             lastItem &&
             lastItem.type === "token" &&
-            !lastItem.metadata
+            lastItem.role !== "user"
           ) {
             const updated = [...prev];
             updated[updated.length - 1] = {
@@ -67,11 +67,19 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
             seqId: payload.seqId,
             type: payload.type,
             content: payload.content,
+            role: "agent",
             metadata: payload.metadata,
             timestamp: payload.timestamp,
           };
           return [...prev, newItem];
         });
+      },
+
+      onSessionConnected: (payload: SessionConnected) => {
+        if (payload.status === "disconnected") {
+          setIsStreaming(false);
+          setErrorBanner("Workstation host has disconnected.");
+        }
       },
 
       onApprovalRequired: (payload: ApprovalRequest) => {
@@ -84,6 +92,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
           seqId: event.seqId,
           type: event.type,
           content: event.content,
+          role: "agent",
           metadata: event.metadata,
           timestamp: event.timestamp,
         }));
@@ -97,9 +106,13 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
 
       onDisconnect: (reason: string) => {
         setIsStreaming(false);
-        setErrorBanner(`Disconnected from host: ${reason}`);
+        setErrorBanner(`Disconnected from relay: ${reason}`);
       },
     });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const handleSendPrompt = (promptText: string) => {
@@ -111,6 +124,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
       seqId: 0,
       type: "token",
       content: `> ${promptText}`,
+      role: "user",
       timestamp: Date.now(),
     };
     setFeedItems((prev) => [...prev, userPromptItem]);

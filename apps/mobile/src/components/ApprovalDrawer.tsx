@@ -55,7 +55,7 @@ export const ApprovalDrawer: React.FC<ApprovalDrawerProps> = ({
       setSecondsRemaining((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          onDeny(activeApproval.approvalId, "Approval timed out after 180s");
+          onDeny(activeApproval.approvalId, `Approval timed out after ${totalSeconds}s`);
           return 0;
         }
         return prev - 1;

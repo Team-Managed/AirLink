@@ -45,3 +45,13 @@ export const Animated = {
     },
   }),
 };
+
+export const Vibration = {
+  vibrate: (_pattern: any) => {},
+  cancel: () => {},
+};
+
+export const Platform = {
+  OS: "web",
+  select: (obj: any) => obj.web || obj.default,
+};

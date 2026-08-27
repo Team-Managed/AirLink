@@ -1,7 +1,4 @@
-/**
- * Haptic Feedback Service for Mobile Client
- * Integrates with expo-haptics / navigator.vibrate with graceful headless/web fallback.
- */
+import { Vibration, Platform } from "react-native";
 
 export type ImpactStyle = "light" | "medium" | "heavy";
 
@@ -78,6 +75,19 @@ export class MobileHapticsService {
   }
 
   private vibrate(pattern: number | number[]): void {
+    if (!this.isEnabled) return;
+
+    // 1. Native iOS / Android platforms via React Native Vibration API
+    if (typeof Platform !== "undefined" && (Platform.OS === "ios" || Platform.OS === "android")) {
+      try {
+        Vibration.vibrate(pattern);
+        return;
+      } catch {
+        // Silently catch native vibration errors
+      }
+    }
+
+    // 2. Web browser fallback via Navigator Vibration API
     if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
       try {
         navigator.vibrate(pattern);
