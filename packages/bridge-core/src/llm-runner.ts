@@ -125,11 +125,15 @@ export function getProviderApiKey(provider: FreeProvider): string | undefined {
     case "groq":
       return process.env["GROQ_API_KEY"];
     case "gemini":
-      return process.env["GEMINI_API_KEY"];
+      return process.env["GEMINI_API_KEY"] || process.env["GOOGLE_API_KEY"];
     case "openrouter_free":
       return process.env["OPENROUTER_API_KEY"] || process.env["OPENROUTER_FREE_KEY"];
     case "github_models":
-      return process.env["GITHUB_TOKEN"];
+      return process.env["GITHUB_TOKEN"] || process.env["GH_TOKEN"];
+    case "openai":
+      return process.env["OPENAI_API_KEY"];
+    case "anthropic":
+      return process.env["ANTHROPIC_API_KEY"];
     case "ollama":
     case "simulated":
       return undefined;
@@ -238,14 +242,8 @@ export class LLMRunner {
     };
   }
 
-  public setProvider(provider: FreeProvider, apiKey?: string, baseUrl?: string): void {
-    this._config.provider = provider;
-    this._config.baseUrl = baseUrl !== undefined ? baseUrl : getProviderDefaultBaseUrl(provider);
-    this._config.apiKey = apiKey !== undefined ? apiKey : getProviderApiKey(provider);
-  }
-
   /**
-   * Streams chat completions from the active provider with BYOK and cancellation support.
+   * Streams chat completions from the active provider or simulated fallback.
    */
   async *streamChat(params: LLMStreamParams): AsyncIterable<StreamEventChunk> {
     let provider: FreeProvider = params.provider || this._config.provider;
@@ -257,18 +255,58 @@ export class LLMRunner {
         ? getProviderDefaultBaseUrl(params.provider)
         : this._config.baseUrl || getProviderDefaultBaseUrl(provider));
 
-    // Handle BYOK overrides
+    // Handle BYOK overrides with strict provider routing
     if (params.byokConfig) {
       const byok = params.byokConfig;
       if (byok.provider === "openrouter") provider = "openrouter_free";
       else if (byok.provider === "groq") provider = "groq";
       else if (byok.provider === "gemini") provider = "gemini";
       else if (byok.provider === "openai") provider = "openai";
+      else if (byok.provider === "anthropic") provider = "anthropic";
+      else if (byok.provider === "custom") provider = "ollama";
 
       if (byok.model) model = byok.model;
       if (byok.apiKey) apiKey = byok.apiKey;
-      if (byok.baseUrl) baseUrl = byok.baseUrl;
-      else baseUrl = getProviderDefaultBaseUrl(provider);
+      // Only attach custom base URL if explicit custom/openrouter provider
+      if (byok.baseUrl && (byok.provider === "custom" || byok.provider === "openrouter")) {
+        baseUrl = byok.baseUrl;
+      } else {
+        baseUrl = getProviderDefaultBaseUrl(provider);
+      }
+    }
+
+    // Anthropic Messages API routing
+    if (provider === "anthropic") {
+      if (!apiKey) {
+        yield {
+          type: "thought",
+          text: "Anthropic API key missing. Falling back to local execution mode.",
+        };
+        yield* this._streamSimulated(params.messages);
+        return;
+      }
+      try {
+        for await (const chunk of this._streamAnthropic(
+          params,
+          model,
+          apiKey,
+          baseUrl,
+          params.signal,
+        )) {
+          yield chunk;
+        }
+      } catch (err) {
+        if (params.signal?.aborted) {
+          yield { type: "thought", text: "Turn execution cancelled by client." };
+          return;
+        }
+        yield {
+          type: "thought",
+          text: `Anthropic API error (${err instanceof Error ? err.message : String(err)}). Using local execution mode.`,
+        };
+        yield* this._streamSimulated(params.messages);
+      }
+      return;
     }
 
     if (provider === "simulated" || (!apiKey && provider !== "ollama")) {
@@ -276,7 +314,7 @@ export class LLMRunner {
       return;
     }
 
-    // Standard OpenAI-compatible SSE streaming (Gemini, Groq, OpenRouter, GitHub Models, Ollama)
+    // Standard OpenAI-compatible SSE streaming (Gemini, Groq, OpenRouter, GitHub Models, Ollama / Custom)
     try {
       for await (const chunk of this._streamOpenAICompatible(
         provider,
@@ -301,6 +339,102 @@ export class LLMRunner {
         text: `Live LLM provider [${provider}] offline or key missing (${err instanceof Error ? err.message : String(err)}). Using local execution mode.`,
       };
       yield* this._streamSimulated(params.messages);
+    }
+  }
+
+  /**
+   * Anthropic Messages API streaming.
+   */
+  private async *_streamAnthropic(
+    params: LLMStreamParams,
+    model: string,
+    apiKey: string,
+    customBaseUrl?: string,
+    signal?: AbortSignal,
+  ): AsyncIterable<StreamEventChunk> {
+    const baseUrl = customBaseUrl || "https://api.anthropic.com/v1";
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    };
+
+    const systemMessage = params.messages.find((m) => m.role === "system")?.content || "";
+    const conversationMessages = params.messages
+      .filter((m) => m.role !== "system")
+      .map((m) => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.content,
+      }));
+
+    const payload: Record<string, unknown> = {
+      model,
+      max_tokens: 4096,
+      messages:
+        conversationMessages.length > 0
+          ? conversationMessages
+          : [{ role: "user", content: "Hello" }],
+      stream: true,
+      temperature: 0.2,
+    };
+    if (systemMessage) {
+      payload["system"] = systemMessage;
+    }
+
+    const fetchOptions: RequestInit = {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    };
+    if (signal) {
+      fetchOptions.signal = signal;
+    }
+
+    const response = await fetch(`${baseUrl}/messages`, fetchOptions);
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Anthropic API error (${response.status}): ${errText}`);
+    }
+
+    if (!response.body) {
+      throw new Error("Anthropic API returned empty response body");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    while (true) {
+      if (signal?.aborted) {
+        await reader.cancel();
+        return;
+      }
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const jsonStr = trimmed.slice(5).trim();
+        if (!jsonStr || jsonStr === "[DONE]") continue;
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (parsed.type === "content_block_delta") {
+            if (parsed.delta?.type === "text_delta" && parsed.delta.text) {
+              yield { type: "token", text: parsed.delta.text };
+            } else if (parsed.delta?.type === "thinking_delta" && parsed.delta.thinking) {
+              yield { type: "thought", text: parsed.delta.thinking };
+            }
+          }
+        } catch {
+          // Ignore partial stream chunks
+        }
+      }
     }
   }
 

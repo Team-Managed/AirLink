@@ -12,13 +12,26 @@ export interface StoredVaultData {
   baseUrl?: string;
 }
 
+interface SecureStoreInterface {
+  isAvailableAsync?: () => Promise<boolean>;
+  setItemAsync: (key: string, value: string, options?: Record<string, unknown>) => Promise<void>;
+  getItemAsync: (key: string) => Promise<string | null>;
+  deleteItemAsync: (key: string) => Promise<void>;
+  WHEN_UNLOCKED_THIS_DEVICE_ONLY?: string;
+}
+
 /**
  * Secure In-Device Vault Service
- * Stores BYOK credentials and model selections securely in keychain / encrypted storage.
+ * Stores BYOK credentials and model selections securely across platforms:
+ * - Native iOS/Android: Hardware-backed Keychain / Keystore via expo-secure-store.
+ * - Web Browsers: Client-side local storage with runtime origin isolation.
+ * - Headless / Test: In-memory secure fallback store.
  */
 export class SecureVaultService {
   private static instance: SecureVaultService | null = null;
   private memoryStore: Map<string, string> = new Map();
+  private secureStoreModule: SecureStoreInterface | null = null;
+  private hasCheckedSecureStore: boolean = false;
 
   private constructor() {}
 
@@ -29,8 +42,47 @@ export class SecureVaultService {
     return SecureVaultService.instance;
   }
 
+  private async getSecureStore(): Promise<SecureStoreInterface | null> {
+    if (this.hasCheckedSecureStore) {
+      return this.secureStoreModule;
+    }
+    this.hasCheckedSecureStore = true;
+    try {
+      const dynamicImport = new Function('return import("expo-secure-store")');
+      const mod = (await dynamicImport()) as SecureStoreInterface | null;
+      if (mod && typeof mod.getItemAsync === "function") {
+        if (typeof mod.isAvailableAsync === "function") {
+          const available = await mod.isAvailableAsync();
+          if (available) {
+            this.secureStoreModule = mod;
+            return mod;
+          }
+        } else {
+          this.secureStoreModule = mod;
+          return mod;
+        }
+      }
+    } catch {
+      // Native module not loaded or running on Web/Node
+    }
+    return null;
+  }
+
   private async setItem(key: string, value: string): Promise<void> {
     this.memoryStore.set(key, value);
+
+    const secureStore = await this.getSecureStore();
+    if (secureStore) {
+      try {
+        await secureStore.setItemAsync(key, value, {
+          keychainAccessible: secureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+        });
+        return;
+      } catch (err) {
+        // Fall back to web/memory if secure store fails
+        console.warn(`[Vault] SecureStore set failed for ${key}:`, err);
+      }
+    }
 
     if (typeof localStorage !== "undefined") {
       try {
@@ -42,6 +94,16 @@ export class SecureVaultService {
   }
 
   private async getItem(key: string): Promise<string | null> {
+    const secureStore = await this.getSecureStore();
+    if (secureStore) {
+      try {
+        const nativeVal = await secureStore.getItemAsync(key);
+        if (nativeVal !== null) return nativeVal;
+      } catch {
+        // Fall back to web/memory
+      }
+    }
+
     if (typeof localStorage !== "undefined") {
       try {
         const val = localStorage.getItem(key);
@@ -55,6 +117,16 @@ export class SecureVaultService {
 
   private async removeItem(key: string): Promise<void> {
     this.memoryStore.delete(key);
+
+    const secureStore = await this.getSecureStore();
+    if (secureStore) {
+      try {
+        await secureStore.deleteItemAsync(key);
+      } catch {
+        // Fallback to web/memory
+      }
+    }
+
     if (typeof localStorage !== "undefined") {
       try {
         localStorage.removeItem(key);
@@ -100,8 +172,13 @@ export class SecureVaultService {
   ): Promise<void> {
     await this.setItem(ACTIVE_PROVIDER_KEY, provider);
     await this.setItem(ACTIVE_MODEL_KEY, model.trim());
-    if (baseUrl && baseUrl.trim().length > 0) {
-      await this.setItem(CUSTOM_BASE_URL_KEY, baseUrl.trim());
+    // Only store custom base URL when applicable to prevent cross-provider leak
+    if (provider === "custom" || provider === "openrouter") {
+      if (baseUrl && baseUrl.trim().length > 0) {
+        await this.setItem(CUSTOM_BASE_URL_KEY, baseUrl.trim());
+      } else {
+        await this.removeItem(CUSTOM_BASE_URL_KEY);
+      }
     } else {
       await this.removeItem(CUSTOM_BASE_URL_KEY);
     }
@@ -119,7 +196,11 @@ export class SecureVaultService {
     }
 
     const apiKey = await this.getApiKey(provider);
-    const baseUrl = await this.getItem(CUSTOM_BASE_URL_KEY);
+    const storedBaseUrl = await this.getItem(CUSTOM_BASE_URL_KEY);
+
+    // Enforce endpoint hygiene: only attach baseUrl for custom/openrouter providers
+    const baseUrl =
+      provider === "custom" || provider === "openrouter" ? storedBaseUrl || undefined : undefined;
 
     const config: BYOKConfig = {
       provider,

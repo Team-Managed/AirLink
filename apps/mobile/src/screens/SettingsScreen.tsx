@@ -44,27 +44,47 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
   const [isMasked, setIsMasked] = useState<boolean>(true);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
+  // 1. On mount: load active configuration and set active provider
   useEffect(() => {
-    void loadCurrentConfig();
-  }, [selectedProvider]);
+    void (async () => {
+      const activeConfig = await vaultService.getActiveConfig();
+      if (activeConfig) {
+        setSelectedProvider(activeConfig.provider);
+        setModelName(activeConfig.model);
+        setBaseUrl(activeConfig.baseUrl || "");
+        const storedKey = await vaultService.getApiKey(activeConfig.provider);
+        setApiKey(storedKey || "");
+      } else {
+        const defaultProv: LLMProvider = "openrouter";
+        setSelectedProvider(defaultProv);
+        setModelName(vaultService.getDefaultModel(defaultProv));
+        setBaseUrl("");
+        const storedKey = await vaultService.getApiKey(defaultProv);
+        setApiKey(storedKey || "");
+      }
+    })();
+  }, []);
 
-  const loadCurrentConfig = async () => {
-    const storedKey = await vaultService.getApiKey(selectedProvider);
-    setApiKey(storedKey || "");
-
-    const activeConfig = await vaultService.getActiveConfig();
-    if (activeConfig && activeConfig.provider === selectedProvider) {
-      setModelName(activeConfig.model);
-      setBaseUrl(activeConfig.baseUrl || "");
-    } else {
-      setModelName(vaultService.getDefaultModel(selectedProvider));
-    }
-  };
-
-  const handleSelectProvider = (provider: LLMProvider) => {
+  // 2. When provider selection changes
+  const handleSelectProvider = async (provider: LLMProvider) => {
     hapticsService.triggerSelection();
     setSelectedProvider(provider);
     setStatusMessage(null);
+
+    const storedKey = await vaultService.getApiKey(provider);
+    setApiKey(storedKey || "");
+
+    const activeConfig = await vaultService.getActiveConfig();
+    if (activeConfig && activeConfig.provider === provider) {
+      setModelName(activeConfig.model);
+      setBaseUrl(activeConfig.baseUrl || "");
+    } else {
+      setModelName(vaultService.getDefaultModel(provider));
+      // Clear custom base URL when switching to standard cloud providers
+      if (provider !== "custom" && provider !== "openrouter") {
+        setBaseUrl("");
+      }
+    }
   };
 
   const handleSelectModelSuggestion = (model: string) => {
@@ -79,6 +99,31 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
       return;
     }
 
+    const trimmedBaseUrl = baseUrl.trim();
+    // Validate custom base URL format if provided
+    if (
+      (selectedProvider === "custom" || selectedProvider === "openrouter") &&
+      trimmedBaseUrl.length > 0
+    ) {
+      try {
+        const parsed = new URL(trimmedBaseUrl);
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+          setStatusMessage("Error: Custom Base URL must use http:// or https:// protocol.");
+          return;
+        }
+      } catch {
+        setStatusMessage(
+          "Error: Invalid Custom Base URL. Please enter a valid URL (e.g. http://localhost:11434/v1).",
+        );
+        return;
+      }
+    }
+
+    const finalBaseUrl =
+      selectedProvider === "custom" || selectedProvider === "openrouter"
+        ? trimmedBaseUrl || undefined
+        : undefined;
+
     try {
       if (apiKey.trim()) {
         await vaultService.saveApiKey(selectedProvider, apiKey.trim());
@@ -89,7 +134,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
       await vaultService.saveActiveSelection(
         selectedProvider,
         modelName.trim(),
-        baseUrl.trim() || undefined,
+        finalBaseUrl,
       );
 
       const savedConfig = await vaultService.getActiveConfig();
@@ -237,8 +282,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
           </TouchableOpacity>
         </View>
         <Text style={styles.helperText}>
-          Keys are stored in your device&apos;s encrypted keychain and never persisted to the cloud
-          relay.
+          Keys are stored in your device&apos;s secure vault (hardware keychain on iOS/Android,
+          client storage on Web) and never persisted to the cloud relay.
         </Text>
 
         {/* 4. Custom Base URL (Optional) */}
