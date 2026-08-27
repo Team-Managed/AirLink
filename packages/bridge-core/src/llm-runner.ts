@@ -618,19 +618,26 @@ export class LLMRunner {
   }
 
   /**
-   * Simulated stream fallback when no free API key is configured.
+   * Simulated stream fallback when network is offline or no API key is available.
    */
   private async *_streamSimulated(messages: ChatMessageParam[]): AsyncIterable<StreamEventChunk> {
-    const lastUserPrompt = messages.filter((m) => m.role === "user").pop()?.content || "Directive";
+    const rawUserMessage =
+      messages.filter((m) => m.role === "user").pop()?.content || "Directive";
+
+    // Extract the clean user request from Layer 5 prompt envelope if present
+    const match = rawUserMessage.match(
+      /=== LAYER 5: DYNAMIC USER DIRECTIVE ===\s*\n(?:User Request:\s*)?([\s\S]*)/i,
+    );
+    const cleanPrompt = (match && match[1] ? match[1] : rawUserMessage).trim();
 
     yield {
       type: "thought",
-      text: `Analyzing directive in local test mode: "${lastUserPrompt.slice(0, 60)}"`,
+      text: `Processing directive: "${cleanPrompt.slice(0, 60)}"`,
     };
 
     yield {
       type: "token",
-      text: `[Agent Harness]: Processed request: "${lastUserPrompt}".\n\n💡 Tip: To enable real live LLM inference with 100% free models, add any free API key to your .env:\n  - GROQ_API_KEY (Free on console.groq.com)\n  - GEMINI_API_KEY (Free on aistudio.google.com)\n  - OPENROUTER_API_KEY (Free models on openrouter.ai)\n  - GITHUB_TOKEN (Free GitHub Models)`,
+      text: `[Agent Harness Offline Mode]\nProcessed request: "${cleanPrompt}"\n\n⚠️ Notice: Network dropped or LLM provider endpoint is unreachable. To enable live frontier AI inference, check your connection or configure an API key in the BYOK Settings.`,
     };
   }
 }
