@@ -18,24 +18,30 @@ import type {
   AgentStream,
   StreamBatch,
   StandardError,
+  BYOKConfig,
 } from "../types";
 
 export interface SessionScreenProps {
   sessionData: SessionConnected;
   onDisconnect: () => void;
   initialFeedItems?: StreamFeedItem[];
+  byokConfig?: BYOKConfig | null;
+  onOpenSettings?: () => void;
 }
 
 export const SessionScreen: React.FC<SessionScreenProps> = ({
   sessionData,
   onDisconnect,
   initialFeedItems = [],
+  byokConfig = null,
+  onOpenSettings,
 }) => {
   const [feedItems, setFeedItems] = useState<StreamFeedItem[]>(initialFeedItems);
   const [activeApproval, setActiveApproval] = useState<ApprovalRequest | null>(null);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
-  const [activeModel] = useState<string>("0x-alpha");
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
+
+  const currentDisplayModel = byokConfig?.model || "0x-alpha";
 
   useEffect(() => {
     const unsubscribe = mobileSocketService.subscribe({
@@ -130,7 +136,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
     setFeedItems((prev) => [...prev, userPromptItem]);
 
     try {
-      mobileSocketService.sendPrompt(promptText);
+      mobileSocketService.sendPrompt(promptText, byokConfig || undefined);
     } catch (err) {
       setIsStreaming(false);
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -180,9 +186,13 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
         </View>
 
         <View style={styles.headerRight}>
-          <View style={styles.modelChip}>
-            <Text style={styles.modelChipText}>{activeModel}</Text>
-          </View>
+          <TouchableOpacity
+            style={styles.modelChip}
+            onPress={onOpenSettings}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.modelChipText}>{currentDisplayModel}</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.disconnectButton}

@@ -118,3 +118,5 @@ export class RingBuffer {
     this._currentSeq = 0;
   }
 }
+
+export { RingBuffer as EventRingBuffer };

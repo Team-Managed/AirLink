@@ -1,18 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, StatusBar } from "react-native";
+import { View, StyleSheet, StatusBar, Modal } from "react-native";
 import { THEME_COLORS } from "./theme";
 import { PairingScreen } from "./screens/PairingScreen";
 import { SessionScreen } from "./screens/SessionScreen";
+import { SettingsScreen } from "./screens/SettingsScreen";
 import { mobileSocketService } from "./services/socket";
-import type { SessionConnected, StandardError } from "./types";
+import { vaultService } from "./services/vault";
+import type { SessionConnected, StandardError, BYOKConfig } from "./types";
 
 export function App(): React.JSX.Element {
   const [isPaired, setIsPaired] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [sessionData, setSessionData] = useState<SessionConnected | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [byokConfig, setByokConfig] = useState<BYOKConfig | null>(null);
 
   useEffect(() => {
+    void (async () => {
+      const active = await vaultService.getActiveConfig();
+      setByokConfig(active);
+    })();
+
     const unsubscribe = mobileSocketService.subscribe({
       onSessionConnected: (data: SessionConnected) => {
         setIsConnecting(false);
@@ -71,14 +80,32 @@ export function App(): React.JSX.Element {
     <View style={styles.rootContainer}>
       <StatusBar barStyle="light-content" backgroundColor={THEME_COLORS.backgroundBase} />
       {isPaired && sessionData ? (
-        <SessionScreen sessionData={sessionData} onDisconnect={handleDisconnect} />
+        <SessionScreen
+          sessionData={sessionData}
+          onDisconnect={handleDisconnect}
+          byokConfig={byokConfig}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
       ) : (
         <PairingScreen
           onConnect={handleConnect}
           isConnecting={isConnecting}
           errorMessage={errorMessage}
+          onOpenSettings={() => setIsSettingsOpen(true)}
         />
       )}
+
+      <Modal
+        visible={isSettingsOpen}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setIsSettingsOpen(false)}
+      >
+        <SettingsScreen
+          onClose={() => setIsSettingsOpen(false)}
+          onConfigSaved={(cfg) => setByokConfig(cfg)}
+        />
+      </Modal>
     </View>
   );
 }

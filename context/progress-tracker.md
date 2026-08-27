@@ -42,6 +42,17 @@
   - Resolved all 10 Qodo review findings on PR #14: reconnection join-before-sync, stream auto-scroll on content size changes, user prompt vs agent token separation (`role: "user"`), multicast socket subscriptions with lifecycle cleanup, expired room purging to prevent client resurrection, dynamic approval timeout reporting, and slide-modal UI context alignment.
   - 100% test pass rate across 26 test files and 193 unit/integration tests.
 
+- [x] **Unit 10: BYOK Encrypted Vault & Model Routing (`apps/mobile` + `bridge-core`):**
+  - Created `SecureVaultService` in `apps/mobile/src/services/vault.ts` for encrypted in-device storage of credentials and active models.
+  - Implemented `SettingsScreen` in `apps/mobile/src/screens/SettingsScreen.tsx` with provider selector pills (`OpenRouter`, `Gemini`, `Anthropic`, `OpenAI`, `Groq`, `Custom`), model suggestion chips, masked API key inputs, custom base URL configuration, and keychain actions.
+  - Integrated `BYOKConfig` payload into `SessionScreen` and `MobileSocketService.sendPrompt()`.
+  - Wired `HostController` and `TrueForgeClient` to dynamically route turns using `byokConfig` or local defaults.
+- [x] **Unit 11: Reconnect Resilience & Hydration (`apps/mobile` + `bridge-core`):**
+  - Implemented monotonic sequence tracking and reconnect `client:sync` with `lastSeenSeq` in `MobileSocketService`.
+  - Wired `RingBuffer.getEventsSince(lastSeenSeq)` in `SocketBridge` / `HostController` and batch stream hydration in `TerminalFeed`.
+  - Authored comprehensive integration tests in `packages/bridge-core/tests/reconnect.test.ts`, `apps/mobile/tests/vault.test.ts`, and `apps/mobile/tests/settings-screen.test.ts`.
+  - 100% test pass rate across 29 test files and 204 unit/integration tests.
+
 ### Implementation Units Index
 
 - [x] **Unit 01:** Monorepo Workspace & Protocol Contracts (`packages/protocol`)
@@ -53,8 +64,8 @@
 - [x] **Unit 07:** Mobile App Shell & Pairing (`apps/mobile`)
 - [x] **Unit 08:** Mobile Streaming & Terminal Feed (`apps/mobile`)
 - [x] **Unit 09:** Mobile Diff Card & Approval Drawer (`apps/mobile`)
-- [ ] **Unit 10:** BYOK Encrypted Vault & Model Routing (`apps/mobile` + `bridge-core`)
-- [ ] **Unit 11:** Reconnect Resilience & Hydration (`apps/mobile` + `bridge-core`)
+- [x] **Unit 10:** BYOK Encrypted Vault & Model Routing (`apps/mobile` + `bridge-core`)
+- [x] **Unit 11:** Reconnect Resilience & Hydration (`apps/mobile` + `bridge-core`)
 - [ ] **Unit 12:** Web Landing Page & Demo Shell (`apps/web`)
 - [ ] **Unit 13:** Smooth UX, Motion Design & Haptics (`apps/mobile` + `apps/web`)
 - [ ] **Unit 14:** External Integrations & Webhook Alerts (`packages/bridge-core`)

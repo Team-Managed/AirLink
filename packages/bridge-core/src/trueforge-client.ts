@@ -160,6 +160,13 @@ export class TrueForgeSession {
   }
 
   /**
+   * Aborts currently executing turn stream locally.
+   */
+  public abortActiveTurn(): void {
+    this._activeAbortController?.abort();
+  }
+
+  /**
    * Downloads a sandbox file generated in a session turn.
    */
   public async downloadSandboxFile(turnId: string, filePath: string): Promise<unknown> {
