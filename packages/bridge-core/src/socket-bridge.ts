@@ -229,6 +229,17 @@ export class SocketBridge {
             // Safe handler dispatch
           }
         }
+      } else {
+        const errorDetails = parsed.error.errors
+          .map((e) => `${e.path.join(".") || "payload"}: ${e.message}`)
+          .join("; ");
+        if (this._socket) {
+          this._socket.emit(SOCKET_EVENTS.ERROR, {
+            code: "INVALID_PROMPT_PAYLOAD",
+            message: `Invalid prompt payload: ${errorDetails}`,
+            timestamp: Date.now(),
+          });
+        }
       }
     });
 

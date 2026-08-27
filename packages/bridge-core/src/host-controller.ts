@@ -1,5 +1,10 @@
 import * as os from "node:os";
-import type { AgentStream, ApprovalRequest, SessionConnected } from "@agent-remote/protocol";
+import type {
+  AgentStream,
+  ApprovalRequest,
+  SessionConnected,
+  BYOKConfig,
+} from "@agent-remote/protocol";
 import { TrueForgeClient, type TrueForgeSession } from "./trueforge-client.js";
 import { SocketBridge } from "./socket-bridge.js";
 import { saveActiveSession, loadActiveSession, clearActiveSession } from "./session-persistence.js";
@@ -178,7 +183,7 @@ export class AgentHostController {
 
     // Wire bridge listeners
     this._bridge.onPrompt((clientPrompt) => {
-      void this.dispatchTurn(clientPrompt.prompt, "remote");
+      void this.dispatchTurn(clientPrompt.prompt, "remote", clientPrompt.byokConfig);
     });
 
     this._bridge.onSync((sync) => {
@@ -218,7 +223,10 @@ export class AgentHostController {
       this._bridge.disconnect();
       this._bridge = null;
     }
-    this._session = null;
+    if (this._session) {
+      this._session.abortActiveTurn();
+      this._session = null;
+    }
   }
 
   /**
@@ -275,7 +283,11 @@ export class AgentHostController {
   /**
    * Dispatches an agent turn, streaming chunks across listeners and socket bridge.
    */
-  public async dispatchTurn(promptText: string, origin: "local" | "remote"): Promise<void> {
+  public async dispatchTurn(
+    promptText: string,
+    origin: "local" | "remote",
+    byokConfig?: BYOKConfig,
+  ): Promise<void> {
     if (!this._session || !this._bridge) {
       this.start();
     }
@@ -298,7 +310,10 @@ export class AgentHostController {
     try {
       if (!this._session || !this._bridge) return;
 
-      for await (const chunk of this._session.executeTurn({ prompt: promptText })) {
+      for await (const chunk of this._session.executeTurn({
+        prompt: promptText,
+        ...(byokConfig ? { byokConfig } : {}),
+      })) {
         // Forward to socket bridge for mobile/web remotes
         this._bridge.sendStream(chunk);
 

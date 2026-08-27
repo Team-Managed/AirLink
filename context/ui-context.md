@@ -31,8 +31,8 @@
 
 - **Pairing Screen:** Centered 6-digit PIN input with wide letter spacing (`letterSpacing: 8`) and instant auto-submit on 6th digit.
 - **Live Terminal Feed:** Virtualized `FlatList` with auto-scroll lock, streaming markdown chunks, and collapsible thought blocks.
-- **DiffCard Component:** Syntax-highlighted unified Git diff with green (`+`) and red (`-`) line tinted backgrounds.
 - **Approval Drawer:** Slide-animated modal bottom sheet (`Modal animationType="slide"`) with amber warning header, countdown progress bar (smooth color morph from green $\to$ amber $\to$ red), and large thumb-friendly touch targets.
+- **Settings & BYOK Vault Modal:** Page-sheet slide modal (`presentationStyle="pageSheet"`) accessible from the PairingScreen header and SessionScreen active model badge. Features AI provider selector pills (`OpenRouter`, `Gemini`, `Anthropic`, `OpenAI`, `Groq`, `Custom`), model suggestion chips, masked password API key entry with show/hide toggle, custom endpoint base URL input, and `[Save Configuration]` / `[Clear Key]` actions with tactile haptics.
 
 ### C. Motion Design & Haptics
 
