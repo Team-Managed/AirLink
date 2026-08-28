@@ -26,8 +26,7 @@ describe("Approval Drawer Logic & Invariants", () => {
 
   it("detects destructive terminal commands vs git diff patches", () => {
     const isBashDiff =
-      sampleApproval.toolName === "write_file" ||
-      sampleApproval.commandOrDiff.includes("@@");
+      sampleApproval.toolName === "write_file" || sampleApproval.commandOrDiff.includes("@@");
     expect(isBashDiff).toBe(false);
 
     const diffApproval: ApprovalRequest = {
@@ -37,8 +36,7 @@ describe("Approval Drawer Logic & Invariants", () => {
       riskLevel: "medium",
     };
     const isFileDiff =
-      diffApproval.toolName === "write_file" ||
-      diffApproval.commandOrDiff.includes("@@");
+      diffApproval.toolName === "write_file" || diffApproval.commandOrDiff.includes("@@");
     expect(isFileDiff).toBe(true);
   });
 });

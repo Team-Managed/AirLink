@@ -1,9 +1,11 @@
 import React from "react";
 
-export const View = ({ children, style, ...props }: any) => React.createElement("div", { style, ...props }, children);
-export const Text = ({ children, style, ...props }: any) => React.createElement("span", { style, ...props }, children);
+export const View = ({ children, style, ...props }: any) =>
+  React.createElement("div", { style, ...props }, children);
+export const Text = ({ children, style, ...props }: any) =>
+  React.createElement("span", { style, ...props }, children);
 export const TextInput = React.forwardRef(({ style, ...props }: any, ref: any) =>
-  React.createElement("input", { ref, style, ...props })
+  React.createElement("input", { ref, style, ...props }),
 );
 export const TouchableOpacity = ({ children, style, onPress, ...props }: any) =>
   React.createElement("button", { style, onClick: onPress, ...props }, children);
@@ -16,9 +18,10 @@ export const FlatList = ({ data, renderItem, keyExtractor }: any) =>
     data?.map((item: any, idx: number) => {
       const key = keyExtractor ? keyExtractor(item, idx) : String(idx);
       return React.createElement(React.Fragment, { key }, renderItem({ item, index: idx }));
-    })
+    }),
   );
-export const Modal = ({ children, visible }: any) => (visible ? React.createElement("div", null, children) : null);
+export const Modal = ({ children, visible }: any) =>
+  visible ? React.createElement("div", null, children) : null;
 export const SafeAreaView = ({ children, style, ...props }: any) =>
   React.createElement("div", { style, ...props }, children);
 export const StatusBar = () => null;

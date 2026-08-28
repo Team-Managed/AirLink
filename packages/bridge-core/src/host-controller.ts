@@ -259,7 +259,7 @@ export class AgentHostController {
     }
     clearActiveSession(this._workspacePath);
     for (const listener of this._systemMessageListeners) {
-      listener("✔ Conversation history and in-memory ring buffer reset.");
+      listener("[OK] Conversation history and in-memory ring buffer reset.");
     }
   }
 
@@ -293,7 +293,7 @@ export class AgentHostController {
     }
 
     if (this._isExecuting) {
-      const warnMsg = "⚠️ Agent turn is already running. Please wait...";
+      const warnMsg = "[WARN] Agent turn is already running. Please wait...";
       for (const listener of this._systemMessageListeners) {
         listener(warnMsg);
       }
@@ -328,7 +328,7 @@ export class AgentHostController {
         listener(error);
       }
       for (const listener of this._systemMessageListeners) {
-        listener(`❌ Turn execution error: ${error.message}`);
+        listener(`[ERROR] Turn execution error: ${error.message}`);
       }
     } finally {
       this._isExecuting = false;

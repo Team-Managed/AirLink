@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
 import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_SPACING, THEME_RADII } from "../theme";
 import { hapticsService } from "../services/haptics";
 import type { QuickActionItem } from "../types";
@@ -22,7 +15,8 @@ export const QUICK_ACTIONS: QuickActionItem[] = [
     id: "create-pr",
     label: "Create PR",
     icon: "PR",
-    promptText: "Summarize the changes in this session, push the branch, and create a GitHub Pull Request.",
+    promptText:
+      "Summarize the changes in this session, push the branch, and create a GitHub Pull Request.",
   },
   {
     id: "import-issue",

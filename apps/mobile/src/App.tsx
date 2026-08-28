@@ -83,7 +83,11 @@ export function App(): React.JSX.Element {
       },
       onError: (err: StandardError) => {
         setIsConnecting(false);
-        if (err.code === "INVALID_PIN" || err.code === "ROOM_EXPIRED" || err.code === "RATE_LIMITED") {
+        if (
+          err.code === "INVALID_PIN" ||
+          err.code === "ROOM_EXPIRED" ||
+          err.code === "RATE_LIMITED"
+        ) {
           if (typeof localStorage !== "undefined") {
             try {
               localStorage.removeItem(STORAGE_PIN_KEY);

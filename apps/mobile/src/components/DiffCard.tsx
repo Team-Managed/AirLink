@@ -9,7 +9,10 @@ export interface DiffCardProps {
   onOpenPR?: () => void;
 }
 
-export function parseUnifiedDiff(rawDiff: string, fallbackPath: string = "workspace/change.diff"): ParsedDiff {
+export function parseUnifiedDiff(
+  rawDiff: string,
+  fallbackPath: string = "workspace/change.diff",
+): ParsedDiff {
   const lines = rawDiff.split("\n");
   let filePath = fallbackPath;
   let oldFile = fallbackPath;
@@ -157,13 +160,15 @@ export const DiffCard: React.FC<DiffCardProps> = ({ diffText, filePath, onOpenPR
                 return (
                   <View
                     key={`line-${hunkIdx}-${lineIdx}`}
-                    style={[
-                      styles.lineRow,
-                      isAdd && styles.lineRowAdd,
-                      isDel && styles.lineRowDel,
-                    ]}
+                    style={[styles.lineRow, isAdd && styles.lineRowAdd, isDel && styles.lineRowDel]}
                   >
-                    <Text style={[styles.linePrefix, isAdd && styles.prefixAdd, isDel && styles.prefixDel]}>
+                    <Text
+                      style={[
+                        styles.linePrefix,
+                        isAdd && styles.prefixAdd,
+                        isDel && styles.prefixDel,
+                      ]}
+                    >
                       {isAdd ? "+" : isDel ? "-" : " "}
                     </Text>
                     <Text

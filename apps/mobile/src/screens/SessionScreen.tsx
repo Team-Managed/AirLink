@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
 import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_SPACING, THEME_RADII } from "../theme";
 import { TerminalFeed } from "../components/TerminalFeed";
 import { PromptInputBar } from "../components/PromptInputBar";
 import { ApprovalDrawer } from "../components/ApprovalDrawer";
+import { TerminalFeedSkeleton } from "../components/SkeletonLoader";
 import { mobileSocketService } from "../services/socket";
+import { feedbackService } from "../services/feedback";
 import type {
   StreamFeedItem,
   ApprovalRequest,
@@ -27,6 +23,7 @@ export interface SessionScreenProps {
   initialFeedItems?: StreamFeedItem[];
   byokConfig?: BYOKConfig | null;
   onOpenSettings?: () => void;
+  isLoadingSession?: boolean;
 }
 
 export const SessionScreen: React.FC<SessionScreenProps> = ({
@@ -35,11 +32,14 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
   initialFeedItems = [],
   byokConfig = null,
   onOpenSettings,
+  isLoadingSession = false,
 }) => {
   const [feedItems, setFeedItems] = useState<StreamFeedItem[]>(initialFeedItems);
   const [activeApproval, setActiveApproval] = useState<ApprovalRequest | null>(null);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  const [isHydrating, setIsHydrating] = useState<boolean>(isLoadingSession);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const [reconnectToast, setReconnectToast] = useState<string | null>(null);
 
   const currentDisplayModel = byokConfig?.model || "0x-alpha";
 
@@ -49,6 +49,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
         setIsStreaming(true);
         if (payload.type === "done") {
           setIsStreaming(false);
+          feedbackService.triggerTurnComplete();
         }
 
         setFeedItems((prev) => {
@@ -82,9 +83,14 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
       },
 
       onSessionConnected: (payload: SessionConnected) => {
+        setIsHydrating(false);
         if (payload.status === "disconnected") {
           setIsStreaming(false);
           setErrorBanner("Workstation host has disconnected.");
+          feedbackService.triggerError();
+        } else if (payload.status === "connected") {
+          setReconnectToast("Connection restored. Replaying missed chunks...");
+          setTimeout(() => setReconnectToast(null), 2500);
         }
       },
 
@@ -93,6 +99,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
       },
 
       onStreamBatch: (payload: StreamBatch) => {
+        setIsHydrating(false);
         setFeedItems((prev) => {
           const existingSeqs = new Set(prev.map((i) => i.seqId).filter((s) => s > 0));
           const newItems: StreamFeedItem[] = [];
@@ -115,12 +122,14 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
 
       onError: (payload: StandardError) => {
         setErrorBanner(`Error [${payload.code}]: ${payload.message}`);
+        feedbackService.triggerError();
         setTimeout(() => setErrorBanner(null), 6000);
       },
 
       onDisconnect: (reason: string) => {
         setIsStreaming(false);
         setErrorBanner(`Disconnected from relay: ${reason}`);
+        feedbackService.triggerError();
       },
     });
 
@@ -132,6 +141,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
   const handleSendPrompt = (promptText: string) => {
     setErrorBanner(null);
     setIsStreaming(true);
+    feedbackService.triggerSelection("medium");
 
     const userPromptItem: StreamFeedItem = {
       id: `prompt_${Date.now()}`,
@@ -149,6 +159,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
       setIsStreaming(false);
       const errMsg = err instanceof Error ? err.message : String(err);
       setErrorBanner(`Failed to send prompt: ${errMsg}`);
+      feedbackService.triggerError();
     }
   };
 
@@ -194,11 +205,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
         </View>
 
         <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.modelChip}
-            onPress={onOpenSettings}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.modelChip} onPress={onOpenSettings} activeOpacity={0.7}>
             <Text style={styles.modelChipText}>{currentDisplayModel}</Text>
           </TouchableOpacity>
 
@@ -212,6 +219,12 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
         </View>
       </View>
 
+      {reconnectToast && (
+        <View style={styles.reconnectToastBanner}>
+          <Text style={styles.reconnectToastText}>{reconnectToast}</Text>
+        </View>
+      )}
+
       {errorBanner && (
         <View style={styles.sessionErrorBanner}>
           <Text style={styles.sessionErrorText}>{errorBanner}</Text>
@@ -219,13 +232,19 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
       )}
 
       <View style={styles.feedContainer}>
-        <TerminalFeed items={feedItems} isStreaming={isStreaming} />
+        {isHydrating ? (
+          <TerminalFeedSkeleton />
+        ) : (
+          <TerminalFeed items={feedItems} isStreaming={isStreaming} />
+        )}
       </View>
 
       <PromptInputBar
         onSubmit={handleSendPrompt}
         disabled={isStreaming}
-        placeholder={isStreaming ? "Agent is working..." : "Ask agent to build, refactor, or fix..."}
+        placeholder={
+          isStreaming ? "Agent is working..." : "Ask agent to build, refactor, or fix..."
+        }
       />
 
       <ApprovalDrawer
@@ -310,6 +329,20 @@ const styles = StyleSheet.create({
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
     fontSize: 10,
     fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
+  },
+  reconnectToastBanner: {
+    backgroundColor: THEME_COLORS.primaryAccentBg,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME_COLORS.primaryAccent,
+    paddingHorizontal: THEME_SPACING.md,
+    paddingVertical: 6,
+  },
+  reconnectToastText: {
+    color: THEME_COLORS.primaryAccent,
+    fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
+    fontSize: 11,
+    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
+    textAlign: "center",
   },
   sessionErrorBanner: {
     backgroundColor: THEME_COLORS.dangerBg,

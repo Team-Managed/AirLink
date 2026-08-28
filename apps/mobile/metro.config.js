@@ -9,10 +9,7 @@ const config = getDefaultConfig(projectRoot);
 
 // 1. Watch all files within the monorepo, including the pnpm virtual store
 //    so Metro can follow symlinks from apps/mobile/node_modules → .pnpm/**
-config.watchFolders = [
-  monorepoRoot,
-  path.resolve(monorepoRoot, "node_modules/.pnpm"),
-];
+config.watchFolders = [monorepoRoot, path.resolve(monorepoRoot, "node_modules/.pnpm")];
 
 // 2. Let Metro know where to resolve packages and in what order
 config.resolver.nodeModulesPaths = [

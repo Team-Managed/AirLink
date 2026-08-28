@@ -621,8 +621,7 @@ export class LLMRunner {
    * Simulated stream fallback when network is offline or no API key is available.
    */
   private async *_streamSimulated(messages: ChatMessageParam[]): AsyncIterable<StreamEventChunk> {
-    const rawUserMessage =
-      messages.filter((m) => m.role === "user").pop()?.content || "Directive";
+    const rawUserMessage = messages.filter((m) => m.role === "user").pop()?.content || "Directive";
 
     // Extract the clean user request from Layer 5 prompt envelope if present
     const match = rawUserMessage.match(
@@ -637,7 +636,7 @@ export class LLMRunner {
 
     yield {
       type: "token",
-      text: `[Agent Harness Offline Mode]\nProcessed request: "${cleanPrompt}"\n\n⚠️ Notice: Network dropped or LLM provider endpoint is unreachable. To enable live frontier AI inference, check your connection or configure an API key in the BYOK Settings.`,
+      text: `[Agent Harness Offline Mode]\nProcessed request: "${cleanPrompt}"\n\n[Notice]: Network dropped or LLM provider endpoint is unreachable. To enable live frontier AI inference, check your connection or configure an API key in the BYOK Settings.`,
     };
   }
 }

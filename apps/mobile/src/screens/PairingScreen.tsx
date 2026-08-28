@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_SPACING, THEME_RADII } from "../theme";
-import { hapticsService } from "../services/haptics";
+import { feedbackService } from "../services/feedback";
+import { SkeletonLoader } from "../components/SkeletonLoader";
 
 export interface PairingScreenProps {
   onConnect: (pin: string, relayUrl: string) => void;
@@ -41,17 +42,17 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
     const sanitized = text.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6);
     setPin(sanitized);
 
-    hapticsService.triggerSelection();
+    feedbackService.triggerSelection("light");
 
     if (sanitized.length === 6 && !isConnecting) {
-      hapticsService.triggerImpact("medium");
+      feedbackService.triggerSelection("medium");
       onConnect(sanitized, relayUrl);
     }
   };
 
   const handleManualConnect = () => {
     if (pin.length === 6 && !isConnecting) {
-      hapticsService.triggerImpact("medium");
+      feedbackService.triggerSelection("medium");
       onConnect(pin, relayUrl);
     }
   };
@@ -62,7 +63,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
     <View style={styles.container}>
       <View style={styles.topBar}>
         <View style={styles.brandRow}>
-          <View style={styles.statusDot} />
+          <View style={[styles.statusDot, isConnecting && styles.statusDotConnecting]} />
           <Text style={styles.brandText}>AGENT REMOTE</Text>
         </View>
 
@@ -92,19 +93,26 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
         )}
 
         <View style={styles.pinContainer}>
-          <TextInput
-            ref={inputRef}
-            style={styles.pinInput}
-            value={pin}
-            onChangeText={handlePinChange}
-            placeholder="------"
-            placeholderTextColor={THEME_COLORS.textDim}
-            maxLength={6}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            keyboardType="default"
-            textAlign="center"
-          />
+          {isConnecting ? (
+            <View style={styles.connectingPlaceholder}>
+              <SkeletonLoader width="80%" height={36} borderRadius={8} />
+              <Text style={styles.connectingStatusText}>Verifying room PIN with Relay...</Text>
+            </View>
+          ) : (
+            <TextInput
+              ref={inputRef}
+              style={styles.pinInput}
+              value={pin}
+              onChangeText={handlePinChange}
+              placeholder="------"
+              placeholderTextColor={THEME_COLORS.textDim}
+              maxLength={6}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              keyboardType="default"
+              textAlign="center"
+            />
+          )}
         </View>
 
         <TouchableOpacity
@@ -188,6 +196,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: THEME_COLORS.primaryAccent,
   },
+  statusDotConnecting: {
+    backgroundColor: THEME_COLORS.warning,
+  },
   brandText: {
     color: THEME_COLORS.textPrimary,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
@@ -259,6 +270,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: THEME_SPACING.md,
     marginBottom: THEME_SPACING.xl,
     alignItems: "center",
+    minHeight: 88,
+    justifyContent: "center",
+  },
+  connectingPlaceholder: {
+    alignItems: "center",
+    width: "100%",
+    gap: 8,
+  },
+  connectingStatusText: {
+    color: THEME_COLORS.textMuted,
+    fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
+    fontSize: 11,
   },
   pinInput: {
     color: THEME_COLORS.primaryAccent,

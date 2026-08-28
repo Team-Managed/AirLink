@@ -131,11 +131,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
         await vaultService.clearApiKey(selectedProvider);
       }
 
-      await vaultService.saveActiveSelection(
-        selectedProvider,
-        modelName.trim(),
-        finalBaseUrl,
-      );
+      await vaultService.saveActiveSelection(selectedProvider, modelName.trim(), finalBaseUrl);
 
       const savedConfig = await vaultService.getActiveConfig();
       if (onConfigSaved) {
@@ -143,12 +139,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
       }
 
       hapticsService.triggerSuccess();
-      setStatusMessage("✔ Configuration saved to secure keychain.");
+      setStatusMessage("[OK] Configuration saved to secure keychain.");
       setTimeout(() => setStatusMessage(null), 3000);
     } catch (err) {
       hapticsService.triggerError();
       const errMsg = err instanceof Error ? err.message : String(err);
-      setStatusMessage(`Failed to save: ${errMsg}`);
+      setStatusMessage(`[ERROR] Failed to save: ${errMsg}`);
     }
   };
 
@@ -160,7 +156,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
     if (onConfigSaved) {
       onConfigSaved(savedConfig);
     }
-    setStatusMessage("✔ API key cleared for " + selectedProvider);
+    setStatusMessage("[OK] API key cleared for " + selectedProvider);
     setTimeout(() => setStatusMessage(null), 3000);
   };
 
@@ -304,11 +300,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
 
         {/* 5. Action Buttons */}
         <View style={styles.actionButtonsRow}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSave}
-            activeOpacity={0.8}
-          >
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.8}>
             <Text style={styles.saveButtonText}>Save Configuration</Text>
           </TouchableOpacity>
 
