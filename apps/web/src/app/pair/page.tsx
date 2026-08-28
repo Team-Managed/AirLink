@@ -13,7 +13,8 @@ import { WebSettingsModal } from "../../components/pair/WebSettingsModal";
 function WebPairClient() {
   const searchParams = useSearchParams();
   const initialPin = searchParams.get("pin") || "";
-  const initialRelay = searchParams.get("relay") || "http://localhost:3001";
+  const initialRelay =
+    searchParams.get("relay") || process.env.NEXT_PUBLIC_RELAY_URL || "http://localhost:3001";
 
   const [showSettings, setShowSettings] = useState<boolean>(false);
 

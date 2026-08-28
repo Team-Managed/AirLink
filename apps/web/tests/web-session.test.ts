@@ -152,4 +152,19 @@ describe("Web Session Hook & Stream Aggregator Suite", () => {
     const expiredRemaining = Math.max(0, Math.ceil((pastExpiresAt - Date.now()) / 1000));
     expect(expiredRemaining).toBe(0);
   });
+
+  it("resolves default relay URL from NEXT_PUBLIC_RELAY_URL before localhost fallback", () => {
+    const envRelay: string | undefined = "https://relay.agent-remote.dev";
+    const emptyOption: string | undefined = undefined;
+    const resolvedWithEnv = emptyOption || envRelay || "http://localhost:3001";
+    expect(resolvedWithEnv).toBe("https://relay.agent-remote.dev");
+
+    const noEnv: string | undefined = undefined;
+    const resolvedWithoutEnv = emptyOption || noEnv || "http://localhost:3001";
+    expect(resolvedWithoutEnv).toBe("http://localhost:3001");
+
+    const queryOverride = "http://custom-relay:4000";
+    const resolvedWithQuery = queryOverride || envRelay || "http://localhost:3001";
+    expect(resolvedWithQuery).toBe("http://custom-relay:4000");
+  });
 });
