@@ -37,12 +37,14 @@ export const ApprovalDrawer: React.FC<ApprovalDrawerProps> = ({
     if (!activeApproval) {
       setSecondsRemaining(totalSeconds);
       progressAnim.setValue(1);
+      slideAnim.setValue(300);
       return;
     }
 
     feedbackService.triggerApprovalAlert();
 
-    // Spring physics slide up
+    // Reset slideAnim to offscreen before animating up for every new approval
+    slideAnim.setValue(300);
     Animated.spring(slideAnim, {
       toValue: 0,
       damping: 18,
@@ -96,6 +98,7 @@ export const ApprovalDrawer: React.FC<ApprovalDrawerProps> = ({
       clearInterval(timer);
       progressAnim.stopAnimation();
       if (glowLoop) glowLoop.stop();
+      slideAnim.setValue(300);
     };
   }, [activeApproval?.approvalId]);
 
@@ -108,23 +111,23 @@ export const ApprovalDrawer: React.FC<ApprovalDrawerProps> = ({
     activeApproval.toolName === "edit_file" ||
     activeApproval.toolName === "patch_file" ||
     activeApproval.commandOrDiff.includes("@@") ||
-    activeApproval.commandOrDiff.includes("diff --git");
+    activeApproval.commandOrDiff.startsWith("diff --git");
 
-  const riskLevel: RiskLevel = activeApproval.riskLevel || "medium";
+  const riskLevel: RiskLevel = activeApproval.riskLevel ?? "medium";
+
+  const formatTime = (secs: number): string => {
+    const mins = Math.floor(secs / 60);
+    const remainingSecs = secs % 60;
+    return `${mins}:${remainingSecs < 10 ? "0" : ""}${remainingSecs}`;
+  };
 
   const progressPercent = (secondsRemaining / totalSeconds) * 100;
 
-  // Continuous 3-band color transition: Emerald (180s-60s) -> Amber (60s-20s) -> Crimson Red (20s-0s)
+  // 3-band countdown color
   const getProgressColor = (): string => {
     if (secondsRemaining > 60) return THEME_COLORS.success;
     if (secondsRemaining > 20) return THEME_COLORS.warning;
     return THEME_COLORS.danger;
-  };
-
-  const formatTime = (secs: number): string => {
-    const mins = Math.floor(secs / 60);
-    const remSecs = secs % 60;
-    return `${mins}:${remSecs < 10 ? "0" : ""}${remSecs}`;
   };
 
   const handleApprove = () => {
@@ -139,13 +142,20 @@ export const ApprovalDrawer: React.FC<ApprovalDrawerProps> = ({
   };
 
   return (
-    <Modal visible={isVisible} transparent={true} animationType="slide" onRequestClose={() => {}}>
+    <Modal visible={isVisible} transparent={true} animationType="none" onRequestClose={() => {}}>
       <View style={styles.modalOverlay}>
         <Animated.View
           style={[
             styles.drawerContainer,
             {
               transform: [{ translateY: slideAnim }],
+              borderColor:
+                riskLevel === "high"
+                  ? glowAnim.interpolate({
+                      inputRange: [0.5, 1],
+                      outputRange: ["rgba(239, 68, 68, 0.4)", "rgba(239, 68, 68, 1)"],
+                    })
+                  : THEME_COLORS.border,
             },
           ]}
         >
@@ -223,19 +233,23 @@ export const ApprovalDrawer: React.FC<ApprovalDrawerProps> = ({
             </View>
           </View>
 
-          <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.denyButton} onPress={handleDeny} activeOpacity={0.8}>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={styles.denyButton}
+              onPress={handleDeny}
+              accessibilityLabel="Deny Action"
+              accessibilityRole="button"
+              activeOpacity={0.8}
+            >
               <Text style={styles.denyButtonText}>Deny</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[
-                styles.approveButton,
-                secondsRemaining <= 0 && styles.buttonDisabled,
-                riskLevel === "high" && styles.approveButtonHighRisk,
-              ]}
+              style={[styles.approveButton, secondsRemaining <= 0 && styles.approveButtonDisabled]}
               onPress={handleApprove}
               disabled={secondsRemaining <= 0}
+              accessibilityLabel="Approve Action"
+              accessibilityRole="button"
               activeOpacity={0.8}
             >
               <Text style={styles.approveButtonText}>Approve</Text>
@@ -259,9 +273,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: THEME_RADII.xl,
     borderWidth: 1,
     borderColor: THEME_COLORS.border,
+    borderBottomWidth: 0,
     paddingHorizontal: THEME_SPACING.lg,
     paddingTop: THEME_SPACING.sm,
-    paddingBottom: THEME_SPACING.xxl,
+    paddingBottom: THEME_SPACING.xl,
     maxHeight: "85%",
   },
   dragHandle: {
@@ -270,35 +285,35 @@ const styles = StyleSheet.create({
     backgroundColor: THEME_COLORS.drawerHandle,
     borderRadius: THEME_RADII.full,
     alignSelf: "center",
-    marginBottom: THEME_SPACING.sm,
+    marginBottom: THEME_SPACING.md,
+    opacity: 0.6,
   },
   headerRow: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: THEME_SPACING.xs,
-    marginBottom: THEME_SPACING.xs,
+    alignItems: "center",
+    marginBottom: THEME_SPACING.md,
   },
   titleGroup: {
     flexDirection: "row",
     alignItems: "center",
+    gap: THEME_SPACING.sm,
   },
   warningIndicator: {
     width: 8,
     height: 8,
     borderRadius: THEME_RADII.full,
     backgroundColor: THEME_COLORS.warning,
-    marginRight: THEME_SPACING.sm,
   },
   headerTitle: {
-    color: THEME_COLORS.textPrimary,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.md,
     fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
+    fontSize: THEME_TYPOGRAPHY.fontSize.md,
+    color: THEME_COLORS.textPrimary,
   },
   riskBadge: {
     paddingHorizontal: THEME_SPACING.sm,
-    paddingVertical: 3,
+    paddingVertical: 2,
     borderRadius: THEME_RADII.sm,
     borderWidth: 1,
   },
@@ -311,13 +326,14 @@ const styles = StyleSheet.create({
     borderColor: THEME_COLORS.warning,
   },
   riskBadgeLow: {
-    backgroundColor: THEME_COLORS.successBg,
-    borderColor: THEME_COLORS.success,
+    backgroundColor: THEME_COLORS.primaryAccentBg,
+    borderColor: THEME_COLORS.primaryAccent,
   },
   riskBadgeText: {
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: 10,
+    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
     fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
+    letterSpacing: 0.5,
   },
   riskTextHigh: {
     color: THEME_COLORS.danger,
@@ -326,92 +342,89 @@ const styles = StyleSheet.create({
     color: THEME_COLORS.warning,
   },
   riskTextLow: {
-    color: THEME_COLORS.success,
+    color: THEME_COLORS.primaryAccent,
   },
   toolRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: THEME_SPACING.sm,
     marginBottom: THEME_SPACING.sm,
   },
   toolLabel: {
-    color: THEME_COLORS.textMuted,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    marginRight: THEME_SPACING.xs,
+    fontSize: THEME_TYPOGRAPHY.fontSize.sm,
+    color: THEME_COLORS.textDim,
   },
   toolBadge: {
-    backgroundColor: THEME_COLORS.primaryAccentBg,
-    borderColor: THEME_COLORS.primaryAccent,
-    borderWidth: 1,
-    borderRadius: THEME_RADII.sm,
+    backgroundColor: THEME_COLORS.cardSurfaceHover,
     paddingHorizontal: THEME_SPACING.sm,
     paddingVertical: 2,
+    borderRadius: THEME_RADII.sm,
+    borderWidth: 1,
+    borderColor: THEME_COLORS.border,
   },
   toolBadgeText: {
-    color: THEME_COLORS.primaryAccent,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
+    fontSize: THEME_TYPOGRAPHY.fontSize.sm,
+    color: THEME_COLORS.primaryAccent,
   },
   descriptionBox: {
-    backgroundColor: THEME_COLORS.cardSurfaceHover,
-    borderRadius: THEME_RADII.sm,
+    backgroundColor: THEME_COLORS.backgroundBase,
     padding: THEME_SPACING.sm,
+    borderRadius: THEME_RADII.sm,
     marginBottom: THEME_SPACING.sm,
-    borderLeftWidth: 3,
-    borderLeftColor: THEME_COLORS.warning,
+    borderWidth: 1,
+    borderColor: THEME_COLORS.border,
   },
   descriptionText: {
-    color: THEME_COLORS.textSecondary,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    lineHeight: 18,
+    fontSize: THEME_TYPOGRAPHY.fontSize.sm,
+    color: THEME_COLORS.textMuted,
   },
   contentScrollView: {
-    maxHeight: 260,
+    maxHeight: 280,
     marginBottom: THEME_SPACING.md,
   },
   commandContainer: {
-    backgroundColor: THEME_COLORS.codeBg,
+    backgroundColor: THEME_COLORS.backgroundBase,
+    padding: THEME_SPACING.md,
     borderRadius: THEME_RADII.md,
     borderWidth: 1,
     borderColor: THEME_COLORS.border,
-    padding: THEME_SPACING.md,
   },
   commandLabel: {
-    color: THEME_COLORS.textMuted,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
     fontSize: THEME_TYPOGRAPHY.fontSize.xs,
+    color: THEME_COLORS.textDim,
     marginBottom: THEME_SPACING.xs,
   },
   commandText: {
-    color: THEME_COLORS.textPrimary,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    lineHeight: 20,
+    fontSize: THEME_TYPOGRAPHY.fontSize.sm,
+    color: THEME_COLORS.textPrimary,
   },
   timerSection: {
-    marginBottom: THEME_SPACING.md,
+    marginBottom: THEME_SPACING.lg,
   },
   timerLabelRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: THEME_SPACING.xs,
   },
   timerLabelText: {
-    color: THEME_COLORS.textMuted,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
     fontSize: THEME_TYPOGRAPHY.fontSize.xs,
+    color: THEME_COLORS.textDim,
   },
   timerCountdownText: {
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
     fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
+    fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
   },
   progressBarTrack: {
     height: 4,
-    backgroundColor: THEME_COLORS.border,
+    backgroundColor: THEME_COLORS.cardSurfaceHover,
     borderRadius: THEME_RADII.full,
     overflow: "hidden",
   },
@@ -419,25 +432,25 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: THEME_RADII.full,
   },
-  actionRow: {
+  buttonRow: {
     flexDirection: "row",
     gap: THEME_SPACING.md,
   },
   denyButton: {
     flex: 1,
-    backgroundColor: THEME_COLORS.dangerBg,
-    borderColor: THEME_COLORS.danger,
+    backgroundColor: THEME_COLORS.cardSurfaceHover,
     borderWidth: 1,
+    borderColor: THEME_COLORS.danger,
     paddingVertical: THEME_SPACING.md,
     borderRadius: THEME_RADII.md,
     alignItems: "center",
     justifyContent: "center",
   },
   denyButtonText: {
-    color: THEME_COLORS.danger,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.md,
     fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
+    fontSize: THEME_TYPOGRAPHY.fontSize.md,
+    color: THEME_COLORS.danger,
   },
   approveButton: {
     flex: 2,
@@ -447,21 +460,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  approveButtonHighRisk: {
-    backgroundColor: THEME_COLORS.warning,
-    shadowColor: THEME_COLORS.warning,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-    elevation: 6,
+  approveButtonDisabled: {
+    opacity: 0.4,
+    backgroundColor: THEME_COLORS.cardSurfaceHover,
   },
   approveButtonText: {
-    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.md,
     fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
+    fontSize: THEME_TYPOGRAPHY.fontSize.md,
+    color: THEME_COLORS.backgroundBase,
   },
 });

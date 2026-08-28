@@ -23,6 +23,7 @@ export interface SessionScreenProps {
   initialFeedItems?: StreamFeedItem[];
   byokConfig?: BYOKConfig | null;
   onOpenSettings?: () => void;
+  isLoadingSession?: boolean;
 }
 
 export const SessionScreen: React.FC<SessionScreenProps> = ({
@@ -31,10 +32,12 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
   initialFeedItems = [],
   byokConfig = null,
   onOpenSettings,
+  isLoadingSession = false,
 }) => {
   const [feedItems, setFeedItems] = useState<StreamFeedItem[]>(initialFeedItems);
   const [activeApproval, setActiveApproval] = useState<ApprovalRequest | null>(null);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  const [isHydrating, setIsHydrating] = useState<boolean>(isLoadingSession);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [reconnectToast, setReconnectToast] = useState<string | null>(null);
 
@@ -80,6 +83,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
       },
 
       onSessionConnected: (payload: SessionConnected) => {
+        setIsHydrating(false);
         if (payload.status === "disconnected") {
           setIsStreaming(false);
           setErrorBanner("Workstation host has disconnected.");
@@ -95,6 +99,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
       },
 
       onStreamBatch: (payload: StreamBatch) => {
+        setIsHydrating(false);
         setFeedItems((prev) => {
           const existingSeqs = new Set(prev.map((i) => i.seqId).filter((s) => s > 0));
           const newItems: StreamFeedItem[] = [];
@@ -227,7 +232,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
       )}
 
       <View style={styles.feedContainer}>
-        {feedItems.length === 0 && !isStreaming ? (
+        {isHydrating ? (
           <TerminalFeedSkeleton />
         ) : (
           <TerminalFeed items={feedItems} isStreaming={isStreaming} />
