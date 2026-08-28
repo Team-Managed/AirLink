@@ -1,0 +1,134 @@
+import { describe, it, expect } from "vitest";
+import { aggregateFeedItem, mergeBatchEvents } from "../src/hooks/useWebSession";
+import type { WebFeedItem } from "../src/types";
+
+describe("Web Session Hook & Stream Aggregator Suite", () => {
+  it("appends distinct non-token events directly to the feed", () => {
+    const prev: WebFeedItem[] = [
+      {
+        id: "thought_1",
+        seqId: 1,
+        type: "thought",
+        content: "Thinking about refactoring...",
+        role: "agent",
+        timestamp: 1000,
+      },
+    ];
+
+    const incoming: WebFeedItem = {
+      id: "tool_1",
+      seqId: 2,
+      type: "tool_call",
+      content: "read_file package.json",
+      role: "agent",
+      metadata: { name: "read_file", args: { path: "package.json" } },
+      timestamp: 1005,
+    };
+
+    const result = aggregateFeedItem(prev, incoming);
+    expect(result.length).toBe(2);
+    expect(result[1].type).toBe("tool_call");
+    expect(result[1].content).toBe("read_file package.json");
+  });
+
+  it("aggregates consecutive streaming token chunks into a single message box", () => {
+    const prev: WebFeedItem[] = [
+      {
+        id: "token_1",
+        seqId: 10,
+        type: "token",
+        content: "Hello",
+        role: "agent",
+        timestamp: 1000,
+      },
+    ];
+
+    const incoming: WebFeedItem = {
+      id: "token_2",
+      seqId: 11,
+      type: "token",
+      content: " world!",
+      role: "agent",
+      timestamp: 1050,
+    };
+
+    const result = aggregateFeedItem(prev, incoming);
+    expect(result.length).toBe(1);
+    expect(result[0].content).toBe("Hello world!");
+    expect(result[0].timestamp).toBe(1050);
+  });
+
+  it("keeps user prompts separate from agent token streams", () => {
+    const prev: WebFeedItem[] = [
+      {
+        id: "prompt_1",
+        seqId: 0,
+        type: "token",
+        content: "> run tests",
+        role: "user",
+        timestamp: 1000,
+      },
+    ];
+
+    const incoming: WebFeedItem = {
+      id: "token_1",
+      seqId: 1,
+      type: "token",
+      content: "Running test suite...",
+      role: "agent",
+      timestamp: 1010,
+    };
+
+    const result = aggregateFeedItem(prev, incoming);
+    expect(result.length).toBe(2);
+    expect(result[0].role).toBe("user");
+    expect(result[1].role).toBe("agent");
+  });
+
+  it("merges replayed batch events while deduplicating existing sequence IDs", () => {
+    const prev: WebFeedItem[] = [
+      {
+        id: "stream_1",
+        seqId: 1,
+        type: "thought",
+        content: "Step 1",
+        role: "agent",
+        timestamp: 1000,
+      },
+      {
+        id: "stream_2",
+        seqId: 2,
+        type: "token",
+        content: "Step 2",
+        role: "agent",
+        timestamp: 1005,
+      },
+    ];
+
+    const batchEvents = [
+      {
+        seqId: 2, // Duplicate, should be skipped
+        type: "token" as const,
+        content: "Step 2",
+        timestamp: 1005,
+      },
+      {
+        seqId: 3, // New event
+        type: "tool_call" as const,
+        content: "run_command",
+        metadata: { name: "run_command", args: {} },
+        timestamp: 1010,
+      },
+      {
+        seqId: 4, // New event
+        type: "done" as const,
+        content: "Complete",
+        timestamp: 1020,
+      },
+    ];
+
+    const result = mergeBatchEvents(prev, batchEvents);
+    expect(result.length).toBe(4);
+    expect(result.map((i) => i.seqId)).toEqual([1, 2, 3, 4]);
+  });
+});
