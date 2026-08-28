@@ -123,22 +123,10 @@ export function activate(context: vscode.ExtensionContext): void {
   const chatProvider = new AgentChatViewProvider(context.extensionUri);
 
   // ── Workspace guard ──────────────────────────────────────────────────────
-  //
-  // Every action that touches the local filesystem calls requireWorkspace().
-  // It returns the resolved path on success, or posts a user-friendly message
-  // to the chat panel and returns null on failure — so the caller just does:
-  //
-  //   const wp = requireWorkspace();
-  //   if (!wp) return;
-  //   ... use wp ...
-  //
-  // Adding this to a NEW feature: call requireWorkspace() at the top of any
-  // handler that needs the project root. No other boilerplate needed.
-  //
   function requireWorkspace(): string | null {
     if (!workspacePath) {
       chatProvider.addSystemMessage(
-        "⚠️ No workspace folder open.\n\n" +
+        "[WARN] No workspace folder open.\n\n" +
           "Agent Remote needs an open project folder to run workspace commands.\n" +
           "Go to File → Open Folder, select your project root, then try again.",
       );
@@ -160,8 +148,6 @@ export function activate(context: vscode.ExtensionContext): void {
       activeBridge.disconnect();
     }
 
-    // SocketBridge and TrueForgeSession accept an empty string for
-    // relay-only mode (no local filesystem operations).
     const resolvedPath = workspacePath ?? "";
 
     activeBridge = new SocketBridge({
@@ -179,7 +165,6 @@ export function activate(context: vscode.ExtensionContext): void {
       approvalManager: activeBridge.approvalManager,
     });
 
-    // Persist active session for cross-tool synchronization (CLI, VS Code, Mobile)
     saveActiveSession({
       pin: rawPin,
       sessionId: rawPin,
@@ -202,12 +187,10 @@ export function activate(context: vscode.ExtensionContext): void {
       statusBarItem.tooltip = `Agent Remote active (PIN: ${formatPin(rawPin)}). Click to copy pairing link.`;
     }
 
-    // Remote prompt → local turn
     activeBridge.onPrompt((clientPrompt) => {
       void dispatchTurn(clientPrompt.prompt, "remote", clientPrompt.byokConfig);
     });
 
-    // Mobile reconnect → replay buffered events
     activeBridge.onSync((sync) => {
       if (activeSession && activeBridge) {
         const missed = activeSession.ringBuffer.getEventsSince(sync.lastSeenSeq);
@@ -215,14 +198,12 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     });
 
-    // Peer connection
     activeBridge.onSessionConnected((conn) => {
       chatProvider.addSystemMessage(
-        `📱 Mobile client paired (${conn.deviceName || "Remote"}). PIN: ${formatPin(rawPin)}`,
+        `[Remote] Client paired (${conn.deviceName || "Remote"}). PIN: ${formatPin(rawPin)}`,
       );
     });
 
-    // Host approval modal
     activeBridge.onHostApprovalPrompt(async (request) => {
       const toolLabel = request.toolName;
       const details = request.commandOrDiff || request.description || "";
@@ -247,14 +228,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   initializeBridge(currentPin);
 
-  // Webview panel (sidebar)
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(AgentChatViewProvider.viewType, chatProvider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
   );
 
-  // Status bar item
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   statusBarItem.command = "agentRemote.copyPIN";
   statusBarItem.text = `$(radio-tower) Remote: ${formatPin(currentPin)}`;
@@ -271,9 +250,15 @@ export function activate(context: vscode.ExtensionContext): void {
     origin: "local" | "remote",
     byokConfig?: import("@agent-remote/protocol").BYOKConfig,
   ): Promise<void> {
+    if (!activeSession || !activeBridge) {
+      initializeBridge(currentPin);
+    }
     if (!activeSession || !activeBridge) return;
+
     if (isExecuting) {
-      void vscode.window.showWarningMessage("Agent Remote: a turn is already running.");
+      const msg = "Agent turn is already running. Please wait for it to finish.";
+      void vscode.window.showWarningMessage(msg);
+      chatProvider.addSystemMessage(`[WARN] ${msg}`);
       return;
     }
 
@@ -292,58 +277,45 @@ export function activate(context: vscode.ExtensionContext): void {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown execution failure";
       void vscode.window.showErrorMessage(`Agent Remote turn failed: ${msg}`);
-      chatProvider.addSystemMessage(`❌ Turn failed: ${msg}`);
+      chatProvider.addSystemMessage(`[ERROR] Turn failed: ${msg}`);
     } finally {
       isExecuting = false;
     }
   }
-
-  // ── Webview action handlers ──────────────────────────────────────────────
-  //
-  // Convention for new features:
-  //   - Workspace-dependent actions   → call requireWorkspace() at the top.
-  //   - Relay/session-only actions    → no guard needed.
-  //   - AI prompt actions             → call dispatchTurn(); no guard needed
-  //     (the session runs in relay-only mode when no workspace is open).
 
   chatProvider.onPrompt((text) => {
     void dispatchTurn(text, "local");
   });
 
   chatProvider.onAction(async (action, arg) => {
-    // ── Workspace-dependent actions ──────────────────────────────────────
     if (action === "diff") {
       const wp = requireWorkspace();
       if (!wp) return;
-      chatProvider.addSystemMessage("🔍 Reading git diff...");
+      chatProvider.addSystemMessage("Reading git diff...");
       const diff = await getGitDiff(wp);
-      chatProvider.addSystemMessage(`🔍 Current Git Diff:\n\n${diff || "(no changes)"}`);
+      chatProvider.addSystemMessage(`Current Git Diff:\n\n${diff || "(no changes)"}`);
     } else if (action === "test") {
       const wp = requireWorkspace();
       if (!wp) return;
-      chatProvider.addSystemMessage(
-        `🧪 Running workspace tests${arg ? ` (filter: ${arg})` : ""}...`,
-      );
+      chatProvider.addSystemMessage(`Running workspace tests${arg ? ` (filter: ${arg})` : ""}...`);
       const result = await runWorkspaceTests(wp, arg);
       chatProvider.addSystemMessage(
-        `${result.success ? "✔ Tests Passed" : "❌ Tests Failed"} (${result.durationMs}ms):\n\n${result.output}`,
+        `${result.success ? "[OK] Tests Passed" : "[ERROR] Tests Failed"} (${result.durationMs}ms):\n\n${result.output}`,
       );
     } else if (action === "lint") {
       const wp = requireWorkspace();
       if (!wp) return;
-      chatProvider.addSystemMessage("🧹 Running workspace typecheck...");
+      chatProvider.addSystemMessage("Running workspace typecheck...");
       const result = await runWorkspaceLint(wp);
       chatProvider.addSystemMessage(
-        `${result.success ? "✔ Typecheck Passed" : "❌ Typecheck Failed"} (${result.durationMs}ms):\n\n${result.output}`,
+        `${result.success ? "[OK] Typecheck Passed" : "[ERROR] Typecheck Failed"} (${result.durationMs}ms):\n\n${result.output}`,
       );
-    }
-    // ── Session/relay actions (no workspace needed) ───────────────────────
-    else if (action === "stats") {
+    } else if (action === "stats") {
       if (activeSession) {
         const stats = activeSession.getStats();
         const wpDisplay = workspacePath ?? "(no workspace)";
         chatProvider.addSystemMessage(
-          `📊 Session Metrics:\n` +
+          `Session Metrics:\n` +
             `- PIN:              ${formatPin(stats.sessionId)}\n` +
             `- Turns:            ${stats.turnCount}\n` +
             `- Buffered Events:  ${stats.bufferedEvents}\n` +
@@ -367,29 +339,25 @@ export function activate(context: vscode.ExtensionContext): void {
         const cleaned = input.replace(/\D/g, "");
         initializeBridge(cleaned);
         chatProvider.addSystemMessage(
-          `✔ Session PIN updated to ${formatPin(cleaned)}. Relay room active.`,
+          `[OK] Session PIN updated to ${formatPin(cleaned)}. Relay room active.`,
         );
         void vscode.window.showInformationMessage(`Agent Remote PIN set to ${formatPin(cleaned)}`);
       }
     } else if (action === "copyPin") {
       const pairUrl = `https://agent-remote.dev/pair?pin=${currentPin}`;
       await vscode.env.clipboard.writeText(pairUrl);
-      chatProvider.addSystemMessage(`✔ Copied pairing URL to clipboard:\n${pairUrl}`);
+      chatProvider.addSystemMessage(`[OK] Copied pairing URL to clipboard:\n${pairUrl}`);
       void vscode.window.showInformationMessage(`Copied pairing URL: ${pairUrl}`);
     } else if (action === "clear") {
       if (activeSession) {
         activeSession.clearHistory();
         chatProvider.clearMessages();
         clearActiveSession(workspacePath ?? undefined);
-        chatProvider.addSystemMessage("✔ Conversation history and in-memory ring buffer reset.");
+        chatProvider.addSystemMessage("[OK] Conversation history and in-memory ring buffer reset.");
       }
     }
-    // ── Future actions: add new else-if blocks here.
-    // Workspace-dependent → add requireWorkspace() at the top of the block.
-    // Relay/session-only  → no guard needed.
   });
 
-  // Approval responses from the webview
   chatProvider.onApprovalResponse((approvalId, approved) => {
     if (activeBridge) {
       activeBridge.approvalManager.resolveApproval(
@@ -401,17 +369,12 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   });
 
-  // ── VS Code command palette / keyboard commands ──────────────────────────
-  //
-  // Same convention: workspace-dependent commands call requireWorkspace().
-
   context.subscriptions.push(
-    // PIN / relay (no workspace needed)
     vscode.commands.registerCommand("agentRemote.copyPIN", async () => {
       const pairUrl = `https://agent-remote.dev/pair?pin=${currentPin}`;
       await vscode.env.clipboard.writeText(pairUrl);
       void vscode.window.showInformationMessage(
-        `✔ Copied pairing URL: ${pairUrl} (PIN: ${formatPin(currentPin)})`,
+        `[OK] Copied pairing URL: ${pairUrl} (PIN: ${formatPin(currentPin)})`,
       );
     }),
 
@@ -445,13 +408,12 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     }),
 
-    // Workspace-dependent commands
     vscode.commands.registerCommand("agentRemote.showDiff", async () => {
       const wp = requireWorkspace();
       if (!wp) return;
-      chatProvider.addSystemMessage("🔍 Reading git diff...");
+      chatProvider.addSystemMessage("Reading git diff...");
       const diff = await getGitDiff(wp);
-      chatProvider.addSystemMessage(`🔍 Current Git Diff:\n\n${diff || "(no changes)"}`);
+      chatProvider.addSystemMessage(`Current Git Diff:\n\n${diff || "(no changes)"}`);
     }),
 
     vscode.commands.registerCommand("agentRemote.clearSession", () => {
@@ -459,7 +421,7 @@ export function activate(context: vscode.ExtensionContext): void {
         activeSession.clearHistory();
         chatProvider.clearMessages();
         clearActiveSession(workspacePath ?? undefined);
-        chatProvider.addSystemMessage("✔ Conversation history and in-memory ring buffer reset.");
+        chatProvider.addSystemMessage("[OK] Conversation history and in-memory ring buffer reset.");
       }
     }),
 

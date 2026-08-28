@@ -40,9 +40,9 @@ describe("VS Code Extension Suite", () => {
       expect(html).toContain('id="messages"');
       expect(html).toContain('id="quick-actions"');
       expect(html).toContain('id="prompt-input"');
-      expect(html).toContain("🐙 Create PR");
-      expect(html).toContain("🧪 Run Tests");
-      expect(html).toContain("🔍 Git Diff");
+      expect(html).toContain("Create PR");
+      expect(html).toContain("Run Tests");
+      expect(html).toContain("Git Diff");
     });
 
     it("registers prompt and approval response callbacks", () => {

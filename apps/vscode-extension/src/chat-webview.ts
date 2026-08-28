@@ -407,20 +407,20 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
     </div>
     <div style="display:flex; gap:6px; align-items:center;">
       <span class="pin-badge" id="pin-label" data-action="setPin" title="Click to set or pair custom PIN">PIN: ---</span>
-      <button class="pill-btn" id="copy-pin-btn" style="padding:2px 6px; font-size:10px;" title="Copy pairing URL">📋</button>
+      <button class="pill-btn" id="copy-pin-btn" style="padding:2px 6px; font-size:10px;" title="Copy pairing URL">Copy</button>
     </div>
   </div>
 
   <div id="messages"></div>
 
   <div id="quick-actions">
-    <button class="pill-btn" data-action="diff">🔍 Git Diff</button>
-    <button class="pill-btn" data-action="test">🧪 Run Tests</button>
-    <button class="pill-btn" data-action="lint">🧹 Typecheck</button>
-    <button class="pill-btn" data-action="stats">📊 Stats</button>
-    <button class="pill-btn" data-action="setPin">✏ Set PIN</button>
-    <button class="pill-btn" data-action="clear">🗑 Clear</button>
-    <button class="pill-btn" data-prompt="Create a pull request with all session changes and test results.">🐙 Create PR</button>
+    <button class="pill-btn" data-action="diff">Git Diff</button>
+    <button class="pill-btn" data-action="test">Run Tests</button>
+    <button class="pill-btn" data-action="lint">Typecheck</button>
+    <button class="pill-btn" data-action="stats">Stats</button>
+    <button class="pill-btn" data-action="setPin">Set PIN</button>
+    <button class="pill-btn" data-action="clear">Clear</button>
+    <button class="pill-btn" data-prompt="Create a pull request with all session changes and test results.">Create PR</button>
   </div>
 
   <div id="input-area">
@@ -495,26 +495,33 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
       });
 
       // Approval button clicks — event delegation on messages container
-      messagesEl.addEventListener('click', function(e) {
-        const approveBtn = e.target.closest('[data-approve]');
-        const denyBtn    = e.target.closest('[data-deny]');
-        if (approveBtn) {
-          respondApproval(approveBtn.dataset.approve, true);
-        } else if (denyBtn) {
-          respondApproval(denyBtn.dataset.deny, false);
-        }
-      });
+      // Delegate approval clicks
+      if (messagesEl) {
+        messagesEl.addEventListener('click', function(e) {
+          const approveBtn = e.target.closest('[data-approve]');
+          const denyBtn    = e.target.closest('[data-deny]');
+          if (approveBtn) {
+            respondApproval(approveBtn.dataset.approve, true);
+          } else if (denyBtn) {
+            respondApproval(denyBtn.dataset.deny, false);
+          }
+        });
+      }
 
-      // ── Inbound messages from extension host ──────────────────────────────
+      // Handle messages from the extension host
       window.addEventListener('message', function(event) {
         const msg = event.data;
+        if (!msg) return;
+
         switch (msg.command) {
           case 'updateSession':
-            pinLabel.textContent = msg.pin ? 'PIN: ' + msg.pin : 'PIN: ---';
-            modelLabel.textContent = (msg.provider || 'Free Tier') + ': ' + (msg.model || 'llama-3.3-70b-versatile');
+            const pinEl = document.getElementById('pin-label');
+            if (pinEl) pinEl.textContent = msg.pin ? 'PIN: ' + msg.pin : 'PIN: ---';
+            const modelEl = document.getElementById('model-label');
+            if (modelEl) modelEl.textContent = (msg.provider || 'Free Tier') + ': ' + (msg.model || 'llama-3.3-70b-versatile');
             break;
           case 'appendMessage':
-            appendMessageCard(msg.message);
+            appendMessage(msg.message);
             break;
           case 'streamChunk':
             handleStreamChunk(msg.chunk);
@@ -532,32 +539,22 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
         }
       });
 
-      // Send ready handshake — extension host will replay buffered messages
-      vscode.postMessage({ command: 'ready' });
-
-      // ── Render helpers ─────────────────────────────────────────────────────
-      function appendMessageCard(m) {
+      function appendMessage(m) {
+        currentTokenBlock = null;
         const card = document.createElement('div');
-        card.className = 'message-card ' + (
-          m.sender === 'user_local'  ? 'msg-user-local'  :
-          m.sender === 'user_remote' ? 'msg-user-remote' :
-          m.sender === 'system'      ? 'msg-system'      : ''
-        );
-
+        card.className = 'message-card';
         if (m.sender !== 'system') {
           const badge = document.createElement('span');
           badge.className = 'badge-tag';
           badge.textContent =
-            m.sender === 'user_local'  ? '💻 Local (VS Code)' :
-            m.sender === 'user_remote' ? '📱 Remote (Phone)'  : '⚡ Agent';
+            m.sender === 'user_local'  ? '[Local]' :
+            m.sender === 'user_remote' ? '[Remote]' : '[Agent]';
           card.appendChild(badge);
         }
-
         const content = document.createElement('div');
         content.style.whiteSpace = 'pre-wrap';
         content.textContent = m.content;
         card.appendChild(content);
-
         messagesEl.appendChild(card);
         messagesEl.scrollTop = messagesEl.scrollHeight;
       }
@@ -569,7 +566,7 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
             currentTokenBlock.className = 'message-card';
             const badge = document.createElement('span');
             badge.className = 'badge-tag';
-            badge.textContent = '⚡ Agent';
+            badge.textContent = '[Agent]';
             currentTokenBlock.appendChild(badge);
             messagesEl.appendChild(currentTokenBlock);
           }
@@ -579,22 +576,21 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
         } else if (chunk.type === 'thought') {
           const thought = document.createElement('div');
           thought.className = 'thought-block';
-          thought.textContent = '💭 ' + chunk.content;
+          thought.textContent = '[Thought] ' + chunk.content;
           messagesEl.appendChild(thought);
         } else if (chunk.type === 'tool_call') {
           currentTokenBlock = null;
           const tool = document.createElement('div');
           tool.className = 'tool-block';
           const meta = chunk.metadata || {};
-          tool.textContent = '⚡ Tool Call: ' + (meta.name || 'tool') + ' ' +
-            (meta.args ? JSON.stringify(meta.args) : '');
+          tool.textContent = '[Tool Call]: ' + (meta.name || 'tool') + ' ' + (meta.args ? JSON.stringify(meta.args) : '');
           messagesEl.appendChild(tool);
         } else if (chunk.type === 'tool_result') {
           currentTokenBlock = null;
           const res = document.createElement('div');
           res.className = 'tool-block';
           res.style.borderColor = 'var(--accent-green)';
-          res.textContent = '✔ Result: ' + chunk.content;
+          res.textContent = '[Result]: ' + chunk.content;
           messagesEl.appendChild(res);
         } else if (chunk.type === 'done') {
           currentTokenBlock = null;
@@ -606,39 +602,30 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
         const card = document.createElement('div');
         card.id = 'approval-' + req.approvalId;
         card.className = 'approval-box';
-
         const title = document.createElement('div');
         title.className = 'approval-title';
-        title.textContent = '⚠️ Action Approval Required (' + req.riskLevel.toUpperCase() + ')';
+        title.textContent = '[ACTION APPROVAL REQUIRED] (' + req.riskLevel.toUpperCase() + ')';
         card.appendChild(title);
-
         const toolLine = document.createElement('div');
         toolLine.innerHTML = '<strong>Tool:</strong> ' + req.toolName;
         card.appendChild(toolLine);
-
         const codeBlock = document.createElement('div');
         codeBlock.className = 'tool-block';
         codeBlock.textContent = req.commandOrDiff || '';
         card.appendChild(codeBlock);
-
         const actions = document.createElement('div');
         actions.className = 'approval-actions';
-
-        // Use data-approve / data-deny so the delegated listener above picks them up
         const approveBtn = document.createElement('button');
         approveBtn.className = 'btn btn-approve';
         approveBtn.textContent = 'Approve';
         approveBtn.dataset.approve = req.approvalId;
-
         const denyBtn = document.createElement('button');
         denyBtn.className = 'btn btn-deny';
         denyBtn.textContent = 'Deny';
         denyBtn.dataset.deny = req.approvalId;
-
         actions.appendChild(approveBtn);
         actions.appendChild(denyBtn);
         card.appendChild(actions);
-
         messagesEl.appendChild(card);
         messagesEl.scrollTop = messagesEl.scrollHeight;
       }
@@ -652,11 +639,10 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
         const el = document.getElementById('approval-' + approvalId);
         if (el) {
           el.style.borderColor = approved ? 'var(--accent-green)' : 'var(--accent-red)';
-          el.innerHTML = '<div style="font-weight:bold; color:' +
-            (approved ? 'var(--accent-green)' : 'var(--accent-red)') + '">' +
-            (approved ? '✔ Approved' : '✖ Denied') + '</div>';
+          el.innerHTML = '<div style="font-weight:bold; color:' + (approved ? 'var(--accent-green)' : 'var(--accent-red)') + '">' + (approved ? '[Approved]' : '[Denied]') + '</div>';
         }
       }
+      vscode.postMessage({ command: 'ready' });
     })();
   </script>
 </body>

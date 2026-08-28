@@ -51,7 +51,23 @@
   - Implemented monotonic sequence tracking and reconnect `client:sync` with `lastSeenSeq` in `MobileSocketService`.
   - Wired `RingBuffer.getEventsSince(lastSeenSeq)` in `SocketBridge` / `HostController` and batch stream hydration in `TerminalFeed`.
   - Authored comprehensive integration tests in `packages/bridge-core/tests/reconnect.test.ts`, `apps/mobile/tests/vault.test.ts`, and `apps/mobile/tests/settings-screen.test.ts`.
-  - 100% test pass rate across 29 test files and 204 unit/integration tests.
+
+- [x] **Unit 12: Web Landing Page & Demo Shell (`apps/web`):**
+  - Scaffolded Next.js App Router web application (`apps/web`) with dark developer theme tokens (`#090d16`).
+  - Implemented responsive landing page (`/`) featuring wordmark, hero value proposition, tabbed one-click installer command bar (Windows, macOS/Linux, npx), copyable install feedback, and interactive live demo simulator card with active Approve/Deny buttons and real-time execution animation.
+  - Created 4-pillar feature grid, zero-retention architecture flow visualization, multiplatform ecosystem breakdown, and footer with hackathon track alignment.
+  - Built full browser remote control client (`/pair`) with 6-digit PIN input, URL query auto-fill (`/pair?pin=834192`), Socket.io pairing, live terminal feed with streaming tokens, collapsible thoughts/tools, approval modal, quick actions, and BYOK modal.
+  - Hosted static `install.ps1` and `install.sh` scripts in `apps/web/public/`.
+  - Authored unit tests in `apps/web/tests/web-landing.test.ts` and `apps/web/tests/web-pair.test.ts`.
+
+- [x] **Unit 13: Smooth UX, Motion Design & Haptics (`apps/mobile` + `apps/web`):**
+  - Created `FeedbackService` in `apps/mobile/src/services/feedback.ts` combining tactile haptic feedback with synthesized Web Audio chimes for approval alerts, decisions, turn completions, and errors.
+  - Enhanced `ApprovalDrawer` with spring-physics slide-up animation, continuous 3-band countdown color transition (green -> amber -> red), and high-risk pulsing glow.
+  - Enhanced `TerminalFeed` with blinking cursor at trailing edge of active token streams, floating "Jump to Live" pill with unread chunk counter, and keyboard dismissal on scroll.
+  - Implemented `SkeletonLoader` and `TerminalFeedSkeleton` with animated opacity pulsing for pairing and hydration states.
+  - Added reconnection toast notification (_"Connection restored. Replaying missed chunks..."_) with auto-dismiss in `SessionScreen`.
+  - Authored unit tests in `apps/mobile/tests/feedback.test.ts` and `apps/mobile/tests/motion-ux.test.ts`.
+  - 100% test pass rate across 33 test files and 216 unit/integration tests.
 
 ### Implementation Units Index
 
@@ -66,8 +82,8 @@
 - [x] **Unit 09:** Mobile Diff Card & Approval Drawer (`apps/mobile`)
 - [x] **Unit 10:** BYOK Encrypted Vault & Model Routing (`apps/mobile` + `bridge-core`)
 - [x] **Unit 11:** Reconnect Resilience & Hydration (`apps/mobile` + `bridge-core`)
-- [ ] **Unit 12:** Web Landing Page & Demo Shell (`apps/web`)
-- [ ] **Unit 13:** Smooth UX, Motion Design & Haptics (`apps/mobile` + `apps/web`)
+- [x] **Unit 12:** Web Landing Page & Demo Shell (`apps/web`)
+- [x] **Unit 13:** Smooth UX, Motion Design & Haptics (`apps/mobile` + `apps/web`)
 - [ ] **Unit 14:** External Integrations & Webhook Alerts (`packages/bridge-core`)
 - [ ] **Unit 15:** Production Deployment & Release (`infra/` + `apps/*`)
 - [x] **Unit 16:** CI Workflows, Governance & Secret Scanning (`.github/workflows` + `scripts/`)

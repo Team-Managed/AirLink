@@ -38,7 +38,7 @@ export function formatBootBannerText(options: BootBannerOptions): string {
       : chalk.hex("#a855f7")(options.model || "0x-alpha");
 
   const lines = [
-    chalk.bold.hex("#38bdf8")("  ⚡ AGENT REMOTE — WORKSTATION HARNESS  "),
+    chalk.bold.hex("#38bdf8")("  AGENT REMOTE — WORKSTATION HARNESS  "),
     "",
     `  ${chalk.bold("Pairing PIN:")}   ${chalk.black.bgGreen.bold(`  ${pinDisplay}  `)}`,
     `  ${chalk.bold("Pairing Link:")}  ${chalk.cyan.underline(pairUrl)}`,
@@ -75,22 +75,22 @@ export function renderBootBanner(options: BootBannerOptions): void {
 export function formatStreamChunkText(chunk: AgentStream): string {
   switch (chunk.type) {
     case "thought":
-      return chalk.dim.italic(`💭 [thought] ${chunk.content}`);
+      return chalk.dim.italic(`[thought] ${chunk.content}`);
     case "token":
       return chunk.content;
     case "tool_call": {
       const toolName = chunk.metadata?.["name"] || "unknown_tool";
       const args = chunk.metadata?.["args"] ? JSON.stringify(chunk.metadata["args"]) : "";
-      return chalk.hex("#38bdf8").bold(`\n⚡ [Tool Call: ${String(toolName)}] `) + chalk.dim(args);
+      return chalk.hex("#38bdf8").bold(`\n[Tool Call: ${String(toolName)}] `) + chalk.dim(args);
     }
     case "tool_result": {
       const toolName = chunk.metadata?.["name"] || "tool";
-      return chalk.green(`\n✔ [Tool Result: ${String(toolName)}] ${chunk.content}`);
+      return chalk.green(`\n[Tool Result: ${String(toolName)}] ${chunk.content}`);
     }
     case "error":
-      return chalk.red.bold(`\n❌ [Error] ${chunk.content}`);
+      return chalk.red.bold(`\n[Error] ${chunk.content}`);
     case "done":
-      return chalk.green.bold(`\n✨ [Done] ${chunk.content}\n`);
+      return chalk.green.bold(`\n[Done] ${chunk.content}\n`);
     default:
       return chunk.content;
   }
@@ -122,7 +122,7 @@ export function formatApprovalText(request: ApprovalRequest): string {
   const timeoutSec = Math.round(request.timeoutMs / 1000);
 
   const lines = [
-    chalk.bold.yellow("⚠️  ACTION APPROVAL REQUIRED (Dual-Surface Gate)"),
+    chalk.bold.yellow("[ACTION APPROVAL REQUIRED] (Dual-Surface Gate)"),
     `Tool: ${chalk.bold.cyan(request.toolName)} | Risk Level: ${riskColor(` ${request.riskLevel.toUpperCase()} `)}`,
     `Timeout: ${chalk.dim(`${timeoutSec} seconds (auto-denies if unattended)`)}`,
     ...(request.description ? [`Description: ${chalk.dim(request.description)}`] : []),
@@ -204,7 +204,7 @@ export function formatStatsText(stats: {
   workspacePath: string;
 }): string {
   const lines = [
-    chalk.bold.hex("#38bdf8")("📊 AGENT HARNESS SESSION METRICS"),
+    chalk.bold.hex("#38bdf8")("AGENT HARNESS SESSION METRICS"),
     "",
     `  ${chalk.dim("Session PIN:")}      ${chalk.green.bold(formatPinDisplay(stats.sessionId))}`,
     `  ${chalk.dim("Turns Executed:")}   ${chalk.white.bold(stats.turnCount)}`,
@@ -232,7 +232,7 @@ export function formatHistoryText(events: AgentStream[]): string {
   }
 
   const lines = [
-    chalk.bold.hex("#38bdf8")(`📜 RECENT SESSION STREAM HISTORY (${events.length} events)`),
+    chalk.bold.hex("#38bdf8")(`RECENT SESSION STREAM HISTORY (${events.length} events)`),
     "",
   ];
 
@@ -261,7 +261,7 @@ export function formatHistoryText(events: AgentStream[]): string {
  */
 export function formatAvailableModelsList(): string {
   const lines = [
-    chalk.bold.hex("#38bdf8")("🤖 AVAILABLE ENGINE MODELS:"),
+    chalk.bold.hex("#38bdf8")("AVAILABLE ENGINE MODELS:"),
     "",
     chalk.bold.cyan("Google Gemini (via GEMINI_API_KEY in .env):"),
     `  • ${chalk.white("gemini-2.0-flash")} (Recommended)`,

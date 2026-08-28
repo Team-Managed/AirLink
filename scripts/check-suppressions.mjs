@@ -31,6 +31,8 @@ const IGNORED_DIRS = new Set([
   "dist",
   ".git",
   ".expo",
+  ".next",
+  ".agent-remote",
   ".turbo",
   "coverage",
   ".system_generated",
@@ -83,7 +85,7 @@ for (const filePath of files) {
 }
 
 if (violations.length > 0) {
-  console.error("\n❌ [SUPPRESSION CHECK FAILED] Found unapproved type/lint/test suppressions:");
+  console.error("\n[SUPPRESSION CHECK FAILED] Found unapproved type/lint/test suppressions:");
   for (const v of violations) {
     console.error(`  - ${v.file}:${v.lineNum} [${v.pattern}] -> ${v.snippet}`);
   }
@@ -91,6 +93,6 @@ if (violations.length > 0) {
   console.error("  // APPROVED-SUPPRESSION: <specific rationale>\n");
   process.exit(1);
 } else {
-  console.log("✅ [SUPPRESSION CHECK PASSED] No unapproved suppressions detected.");
+  console.log("[SUPPRESSION CHECK PASSED] No unapproved suppressions detected.");
   process.exit(0);
 }

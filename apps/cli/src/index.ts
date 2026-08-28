@@ -174,14 +174,14 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
     byokConfig?: import("@agent-remote/protocol").BYOKConfig,
   ): Promise<void> {
     if (isExecuting) {
-      console.log(chalk.yellow("\n⚠️ Agent turn already in progress. Please wait..."));
+      console.log(chalk.yellow("\n[WARN] Agent turn already in progress. Please wait..."));
       return;
     }
 
     isExecuting = true;
     try {
       if (origin === "remote") {
-        console.log(chalk.hex("#38bdf8").bold(`\n📱 [Remote @ Phone]: `) + chalk.white(promptText));
+        console.log(chalk.hex("#38bdf8").bold(`\n[Remote @ Phone]: `) + chalk.white(promptText));
       }
 
       for await (const chunk of session.executeTurn({ prompt: promptText, byokConfig })) {
@@ -198,7 +198,7 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
   // 5. Connect bridge event listeners
   bridge.onSessionConnected((conn) => {
     console.log(
-      chalk.green.bold(`\n📱 [Pairing Established] `) +
+      chalk.green.bold(`\n[Pairing Established] `) +
         chalk.white(`Remote client connected to session ${formatPinDisplay(conn.sessionId)}`),
     );
   });
@@ -279,7 +279,7 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
         }
 
         if (inputLine === "/help") {
-          console.log(chalk.bold.hex("#38bdf8")("\n⚡ AGENT REMOTE REPL COMMAND PALETTE:"));
+          console.log(chalk.bold.hex("#38bdf8")("\nAGENT REMOTE REPL COMMAND PALETTE:"));
           console.log(`  ${chalk.cyan("/diff")}             - Show current uncommitted git diff`);
           console.log(
             `  ${chalk.cyan("/clear")} / ${chalk.cyan("/reset")}   - Reset conversation context and event buffer`,
@@ -325,7 +325,9 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
 
         if (inputLine === "/clear" || inputLine === "/reset") {
           session.clearHistory();
-          console.log(chalk.green("\n✔ Conversation history and in-memory ring buffer reset.\n"));
+          console.log(
+            chalk.green("\n[OK] Conversation history and in-memory ring buffer reset.\n"),
+          );
           continue;
         }
 
@@ -338,7 +340,7 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
           }
           console.log(chalk.dim(`\nFetching GitHub issue #${issueNum}...`));
           const issue = await fetchGitHubIssue(issueNum, options.workspacePath);
-          console.log(chalk.bold.cyan(`\n📋 Loaded Issue: ${issue.title}`));
+          console.log(chalk.bold.cyan(`\n[Issue] Loaded Issue: ${issue.title}`));
           console.log(chalk.dim(issue.body));
           await dispatchTurn(
             `Fix GitHub Issue #${issueNum} ("${issue.title}"): ${issue.body}`,
@@ -373,13 +375,13 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
           ) {
             console.log(
               chalk.yellow(
-                `\n⚠️ Switched active model to ${chalk.bold(newModel)} [${currentConfig.provider}], but no API key was found in environment. Set ${currentConfig.provider.toUpperCase()}_API_KEY or pass BYOK credentials.\n`,
+                `\n[WARN] Switched active model to ${chalk.bold(newModel)} [${currentConfig.provider}], but no API key was found in environment. Set ${currentConfig.provider.toUpperCase()}_API_KEY or pass BYOK credentials.\n`,
               ),
             );
           } else {
             console.log(
               chalk.green(
-                `\n✔ Switched active model to: ${chalk.bold(newModel)} [${currentConfig.provider}]\n`,
+                `\n[OK] Switched active model to: ${chalk.bold(newModel)} [${currentConfig.provider}]\n`,
               ),
             );
           }
@@ -394,8 +396,8 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
           const result = await runWorkspaceTests(options.workspacePath, filter || undefined);
           console.log(
             result.success
-              ? chalk.green(`\n✔ Tests Passed (${result.durationMs}ms):`)
-              : chalk.red(`\n❌ Tests Failed (${result.durationMs}ms):`),
+              ? chalk.green(`\n[OK] Tests Passed (${result.durationMs}ms):`)
+              : chalk.red(`\n[ERROR] Tests Failed (${result.durationMs}ms):`),
           );
           console.log(chalk.white(result.output) + "\n");
           continue;
@@ -406,8 +408,8 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
           const result = await runWorkspaceLint(options.workspacePath);
           console.log(
             result.success
-              ? chalk.green(`\n✔ ${result.output}\n`)
-              : chalk.red(`\n❌ ${result.output}\n`),
+              ? chalk.green(`\n[OK] ${result.output}\n`)
+              : chalk.red(`\n[ERROR] ${result.output}\n`),
           );
           continue;
         }
