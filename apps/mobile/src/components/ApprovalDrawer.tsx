@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_SPACING, THEME_RADII } from "../theme";
 import { DiffCard } from "./DiffCard";
-import { hapticsService } from "../services/haptics";
+import { feedbackService } from "../services/feedback";
 import type { ApprovalRequest, RiskLevel } from "../types";
 
 export interface ApprovalDrawerProps {
@@ -30,6 +30,8 @@ export const ApprovalDrawer: React.FC<ApprovalDrawerProps> = ({
 
   const [secondsRemaining, setSecondsRemaining] = useState<number>(totalSeconds);
   const progressAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(300)).current;
+  const glowAnim = useRef(new Animated.Value(0.6)).current;
 
   useEffect(() => {
     if (!activeApproval) {
@@ -38,7 +40,35 @@ export const ApprovalDrawer: React.FC<ApprovalDrawerProps> = ({
       return;
     }
 
-    hapticsService.triggerWarning();
+    feedbackService.triggerApprovalAlert();
+
+    // Spring physics slide up
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      damping: 18,
+      stiffness: 120,
+      useNativeDriver: false,
+    }).start();
+
+    // High risk pulsing glow
+    let glowLoop: Animated.CompositeAnimation | null = null;
+    if (activeApproval.riskLevel === "high") {
+      glowLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: false,
+          }),
+          Animated.timing(glowAnim, {
+            toValue: 0.5,
+            duration: 600,
+            useNativeDriver: false,
+          }),
+        ]),
+      );
+      glowLoop.start();
+    }
 
     const createdSecAgo = Math.max(0, Math.floor((Date.now() - activeApproval.createdAt) / 1000));
     const initialSeconds = Math.max(0, totalSeconds - createdSecAgo);
@@ -65,6 +95,7 @@ export const ApprovalDrawer: React.FC<ApprovalDrawerProps> = ({
     return () => {
       clearInterval(timer);
       progressAnim.stopAnimation();
+      if (glowLoop) glowLoop.stop();
     };
   }, [activeApproval?.approvalId]);
 
@@ -82,9 +113,11 @@ export const ApprovalDrawer: React.FC<ApprovalDrawerProps> = ({
   const riskLevel: RiskLevel = activeApproval.riskLevel || "medium";
 
   const progressPercent = (secondsRemaining / totalSeconds) * 100;
+
+  // Continuous 3-band color transition: Emerald (180s-60s) -> Amber (60s-20s) -> Crimson Red (20s-0s)
   const getProgressColor = (): string => {
-    if (secondsRemaining > totalSeconds * 0.5) return THEME_COLORS.success;
-    if (secondsRemaining > totalSeconds * 0.2) return THEME_COLORS.warning;
+    if (secondsRemaining > 60) return THEME_COLORS.success;
+    if (secondsRemaining > 20) return THEME_COLORS.warning;
     return THEME_COLORS.danger;
   };
 
@@ -96,24 +129,26 @@ export const ApprovalDrawer: React.FC<ApprovalDrawerProps> = ({
 
   const handleApprove = () => {
     if (secondsRemaining <= 0) return;
-    hapticsService.triggerSuccess();
+    feedbackService.triggerDecision(true);
     onApprove(activeApproval.approvalId);
   };
 
   const handleDeny = () => {
-    hapticsService.triggerError();
+    feedbackService.triggerDecision(false);
     onDeny(activeApproval.approvalId, "Rejected by developer on mobile");
   };
 
   return (
-    <Modal
-      visible={isVisible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={() => {}}
-    >
+    <Modal visible={isVisible} transparent={true} animationType="slide" onRequestClose={() => {}}>
       <View style={styles.modalOverlay}>
-        <View style={styles.drawerContainer}>
+        <Animated.View
+          style={[
+            styles.drawerContainer,
+            {
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
           <View style={styles.dragHandle} />
 
           <View style={styles.headerRow}>
@@ -189,16 +224,16 @@ export const ApprovalDrawer: React.FC<ApprovalDrawerProps> = ({
           </View>
 
           <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={styles.denyButton}
-              onPress={handleDeny}
-              activeOpacity={0.8}
-            >
+            <TouchableOpacity style={styles.denyButton} onPress={handleDeny} activeOpacity={0.8}>
               <Text style={styles.denyButtonText}>Deny</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.approveButton, secondsRemaining <= 0 && styles.buttonDisabled]}
+              style={[
+                styles.approveButton,
+                secondsRemaining <= 0 && styles.buttonDisabled,
+                riskLevel === "high" && styles.approveButtonHighRisk,
+              ]}
               onPress={handleApprove}
               disabled={secondsRemaining <= 0}
               activeOpacity={0.8}
@@ -206,7 +241,7 @@ export const ApprovalDrawer: React.FC<ApprovalDrawerProps> = ({
               <Text style={styles.approveButtonText}>Approve</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -411,6 +446,14 @@ const styles = StyleSheet.create({
     borderRadius: THEME_RADII.md,
     alignItems: "center",
     justifyContent: "center",
+  },
+  approveButtonHighRisk: {
+    backgroundColor: THEME_COLORS.warning,
+    shadowColor: THEME_COLORS.warning,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 6,
   },
   approveButtonText: {
     color: "#ffffff",

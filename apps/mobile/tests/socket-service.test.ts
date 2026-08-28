@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MobileSocketService } from "../src/services/socket.js";
-import { SOCKET_EVENTS, type SessionConnected, type AgentStream, type ApprovalRequest } from "@agent-remote/protocol";
+import {
+  SOCKET_EVENTS,
+  type SessionConnected,
+  type AgentStream,
+  type ApprovalRequest,
+} from "@agent-remote/protocol";
 
 describe("Mobile Socket Service", () => {
   let service: MobileSocketService;

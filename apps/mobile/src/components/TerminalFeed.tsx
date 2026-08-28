@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Keyboard,
+  Animated,
 } from "react-native";
 import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_SPACING, THEME_RADII } from "../theme";
 import type { StreamFeedItem } from "../types";
@@ -20,11 +22,48 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
   const flatListRef = useRef<FlatList<StreamFeedItem>>(null);
   const [isAutoScrollLocked, setIsAutoScrollLocked] = useState<boolean>(false);
   const [collapsedItems, setCollapsedItems] = useState<Record<string, boolean>>({});
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const previousItemCountRef = useRef<number>(items.length);
 
+  const cursorAnim = useRef(new Animated.Value(0)).current;
+
+  // Blinking cursor loop for active streaming
+  useEffect(() => {
+    if (!isStreaming) return;
+
+    const blink = Animated.loop(
+      Animated.sequence([
+        Animated.timing(cursorAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(cursorAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: false,
+        }),
+      ]),
+    );
+    blink.start();
+
+    return () => {
+      blink.stop();
+    };
+  }, [isStreaming, cursorAnim]);
+
+  // Handle auto-scroll and unread counter
   useEffect(() => {
     if (!isAutoScrollLocked && items.length > 0) {
       flatListRef.current?.scrollToEnd({ animated: true });
+      setUnreadCount(0);
+    } else if (isAutoScrollLocked) {
+      const added = items.length - previousItemCountRef.current;
+      if (added > 0) {
+        setUnreadCount((prev) => prev + added);
+      }
     }
+    previousItemCountRef.current = items.length;
   }, [items, isAutoScrollLocked]);
 
   const handleContentSizeChange = () => {
@@ -34,20 +73,24 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
   };
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    Keyboard.dismiss();
+
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    const paddingToBottom = 40;
-    const isAtBottom =
-      layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+    const distanceFromBottom = contentSize.height - (layoutMeasurement.height + contentOffset.y);
+    const isAtBottom = distanceFromBottom <= 40;
+    const isScrolledUpPast200 = distanceFromBottom > 200;
 
     if (isAtBottom && isAutoScrollLocked) {
       setIsAutoScrollLocked(false);
-    } else if (!isAtBottom && !isAutoScrollLocked) {
+      setUnreadCount(0);
+    } else if (isScrolledUpPast200 && !isAutoScrollLocked) {
       setIsAutoScrollLocked(true);
     }
   };
 
   const scrollToBottom = () => {
     setIsAutoScrollLocked(false);
+    setUnreadCount(0);
     flatListRef.current?.scrollToEnd({ animated: true });
   };
 
@@ -58,8 +101,9 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
     }));
   };
 
-  const renderItem = ({ item }: { item: StreamFeedItem }) => {
+  const renderItem = ({ item, index }: { item: StreamFeedItem; index: number }) => {
     const isCollapsed = collapsedItems[item.id] ?? false;
+    const isLastItem = index === items.length - 1;
 
     switch (item.type) {
       case "thought":
@@ -70,7 +114,9 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
               onPress={() => toggleCollapse(item.id)}
               activeOpacity={0.7}
             >
-              <Text style={styles.thoughtTitle}>Thinking Process</Text>
+              <View style={styles.thoughtTitleRow}>
+                <Text style={styles.thoughtTitle}>Thinking Process</Text>
+              </View>
               <Text style={styles.collapseToggleText}>{isCollapsed ? "Expand" : "Collapse"}</Text>
             </TouchableOpacity>
             {!isCollapsed && <Text style={styles.thoughtContent}>{item.content}</Text>}
@@ -116,9 +162,7 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
                 <Text style={styles.resultTitle}>
                   {item.metadata?.name ? `${item.metadata.name} Result` : "Tool Output"}
                 </Text>
-                {duration !== undefined && (
-                  <Text style={styles.durationBadge}>{duration}ms</Text>
-                )}
+                {duration !== undefined && <Text style={styles.durationBadge}>{duration}ms</Text>}
               </View>
               <Text style={styles.collapseToggleText}>{isCollapsed ? "Expand" : "Collapse"}</Text>
             </TouchableOpacity>
@@ -144,8 +188,13 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
       case "token":
       default:
         return (
-          <View style={styles.tokenContainer}>
-            <Text style={styles.tokenContent}>{item.content}</Text>
+          <View style={[styles.tokenContainer, item.role === "user" && styles.userPromptContainer]}>
+            <Text style={[styles.tokenContent, item.role === "user" && styles.userPromptText]}>
+              {item.content}
+            </Text>
+            {isStreaming && isLastItem && item.role !== "user" && (
+              <Animated.View style={[styles.blinkingCursor, { opacity: cursorAnim }]} />
+            )}
           </View>
         );
     }
@@ -181,7 +230,9 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
           onPress={scrollToBottom}
           activeOpacity={0.8}
         >
-          <Text style={styles.scrollResumeText}>Scroll to bottom</Text>
+          <Text style={styles.scrollResumeText}>
+            Jump to Live {unreadCount > 0 ? `(${unreadCount} new)` : ""}
+          </Text>
         </TouchableOpacity>
       )}
     </View>
@@ -199,12 +250,35 @@ const styles = StyleSheet.create({
   },
   tokenContainer: {
     marginVertical: 3,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+  },
+  userPromptContainer: {
+    backgroundColor: THEME_COLORS.cardSurfaceHover,
+    borderRadius: THEME_RADII.sm,
+    paddingHorizontal: THEME_SPACING.sm,
+    paddingVertical: 6,
+    marginVertical: 6,
+    borderLeftWidth: 2,
+    borderLeftColor: THEME_COLORS.primaryAccent,
+  },
+  userPromptText: {
+    color: THEME_COLORS.primaryAccent,
+    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
   },
   tokenContent: {
     color: THEME_COLORS.textPrimary,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
     fontSize: THEME_TYPOGRAPHY.fontSize.sm,
     lineHeight: 20,
+  },
+  blinkingCursor: {
+    width: 8,
+    height: 14,
+    backgroundColor: THEME_COLORS.primaryAccent,
+    marginLeft: 3,
+    borderRadius: 1,
   },
   thoughtCard: {
     backgroundColor: THEME_COLORS.cardSurface,
@@ -218,6 +292,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  thoughtTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  thoughtIcon: {
+    fontSize: 12,
   },
   thoughtTitle: {
     color: THEME_COLORS.textMuted,
