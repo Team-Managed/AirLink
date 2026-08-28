@@ -77,10 +77,13 @@ export function mergeBatchEvents(
  * stream aggregation, human-in-the-loop approvals, and BYOK routing for the Web client.
  */
 export function useWebSession(options: UseWebSessionOptions = {}): UseWebSessionReturn {
+  const defaultRelay =
+    options.initialRelayUrl ||
+    (typeof process !== "undefined" ? process.env.NEXT_PUBLIC_RELAY_URL : undefined) ||
+    "http://localhost:3001";
+
   const [pin, setPin] = useState<string>(options.initialPin || "");
-  const [relayUrl, setRelayUrl] = useState<string>(
-    options.initialRelayUrl || "http://localhost:3001",
-  );
+  const [relayUrl, setRelayUrl] = useState<string>(defaultRelay);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
@@ -142,14 +145,33 @@ export function useWebSession(options: UseWebSessionOptions = {}): UseWebSession
         });
       });
 
+      socket.on("connect_error", (err: Error) => {
+        setIsConnecting(false);
+        setErrorBanner(`Relay connection failed: ${err.message || "Transport error"}`);
+      });
+
       socket.on("session:connected", (rawPayload: unknown) => {
         const parsed = SessionConnectedSchema.safeParse(rawPayload);
         if (parsed.success) {
+          if (parsed.data.status === "disconnected") {
+            setIsConnected(false);
+            setIsStreaming(false);
+            setSessionData(null);
+            setErrorBanner("Workstation host disconnected from session.");
+            return;
+          }
+
           setIsConnecting(false);
           setIsConnected(true);
           setSessionData(parsed.data);
           setReconnectToast("Paired with Workstation Bridge!");
           setTimeout(() => setReconnectToast(null), 2500);
+
+          // Catch up missed stream events since lastSeqId
+          socket.emit("client:sync", {
+            sessionId: parsed.data.sessionId,
+            lastSeqId: lastSeqIdRef.current,
+          });
         }
       });
 
@@ -215,7 +237,7 @@ export function useWebSession(options: UseWebSessionOptions = {}): UseWebSession
   const sendPrompt = useCallback(
     (promptText: string) => {
       const text = promptText.trim();
-      if (!text || !socketRef.current) return;
+      if (!text || isStreaming || !socketRef.current) return;
 
       setErrorBanner(null);
       setIsStreaming(true);

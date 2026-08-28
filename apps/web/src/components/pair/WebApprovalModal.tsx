@@ -1,29 +1,67 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import type { ApprovalRequest } from "@agent-remote/protocol";
 
 interface WebApprovalModalProps {
   activeApproval: ApprovalRequest;
   onApprove: (approvalId: string) => void;
-  onDeny: (approvalId: string) => void;
+  onDeny: (approvalId: string, reason?: string) => void;
 }
 
 export function WebApprovalModal({ activeApproval, onApprove, onDeny }: WebApprovalModalProps) {
+  const timeoutMs = activeApproval.timeoutMs || 180000;
+  const createdAt = activeApproval.createdAt || Date.now();
+  const expiresAt = createdAt + timeoutMs;
+
+  const calculateRemainingSeconds = () => {
+    const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+    return remaining;
+  };
+
+  const [remainingSeconds, setRemainingSeconds] = useState<number>(calculateRemainingSeconds);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const remaining = calculateRemainingSeconds();
+      setRemainingSeconds(remaining);
+      if (remaining <= 0) {
+        clearInterval(timer);
+        onDeny(activeApproval.approvalId, "Approval timed out on web client");
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [activeApproval.approvalId, expiresAt, onDeny]);
+
+  const isExpired = remainingSeconds <= 0;
+
+  // 3-band countdown color: emerald green >60s, amber 20s-60s, crimson <=20s
+  const getCountdownColor = () => {
+    if (remainingSeconds > 60) return "#22c55e";
+    if (remainingSeconds > 20) return "#f59e0b";
+    return "#ef4444";
+  };
+
   return (
     <div style={styles.approvalOverlay}>
       <div style={styles.approvalCard}>
         <div style={styles.approvalHeader}>
-          <span style={styles.warnDot} />
+          <span style={{ ...styles.warnDot, backgroundColor: getCountdownColor() }} />
           <h3 style={styles.approvalTitle}>Human-in-the-Loop Approval Required</h3>
           <span style={styles.riskBadge}>
             {(activeApproval.riskLevel || "MEDIUM").toUpperCase()} RISK
           </span>
         </div>
 
-        <div style={styles.approvalToolRow}>
-          <span style={styles.toolLabel}>Tool:</span>
-          <span style={styles.toolBadge}>{activeApproval.toolName}</span>
+        <div style={styles.approvalMetaRow}>
+          <div style={styles.approvalToolRow}>
+            <span style={styles.toolLabel}>Tool:</span>
+            <span style={styles.toolBadge}>{activeApproval.toolName}</span>
+          </div>
+          <div style={{ ...styles.countdownBadge, color: getCountdownColor() }}>
+            {isExpired ? "EXPIRED" : `Auto-denies in: ${remainingSeconds}s`}
+          </div>
         </div>
 
         <div style={styles.commandPreview}>
@@ -34,7 +72,14 @@ export function WebApprovalModal({ activeApproval, onApprove, onDeny }: WebAppro
           <button style={styles.denyBtn} onClick={() => onDeny(activeApproval.approvalId)}>
             Deny Action
           </button>
-          <button style={styles.approveBtn} onClick={() => onApprove(activeApproval.approvalId)}>
+          <button
+            style={{
+              ...styles.approveBtn,
+              ...(isExpired ? styles.approveBtnDisabled : {}),
+            }}
+            disabled={isExpired}
+            onClick={() => onApprove(activeApproval.approvalId)}
+          >
             Approve on PC
           </button>
         </div>
@@ -74,7 +119,6 @@ const styles: Record<string, React.CSSProperties> = {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#f59e0b",
   },
   approvalTitle: {
     fontSize: 16,
@@ -92,11 +136,16 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     fontFamily: "var(--font-mono)",
   },
+  approvalMetaRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   approvalToolRow: {
     display: "flex",
     alignItems: "center",
     gap: 6,
-    marginBottom: 12,
     fontSize: 12,
   },
   toolLabel: { color: "#94a3b8" },
@@ -109,6 +158,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 11,
     fontWeight: 700,
     fontFamily: "var(--font-mono)",
+  },
+  countdownBadge: {
+    fontFamily: "var(--font-mono)",
+    fontSize: 12,
+    fontWeight: 700,
   },
   commandPreview: {
     backgroundColor: "#05080f",
@@ -149,5 +203,10 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 6,
     fontWeight: 700,
     cursor: "pointer",
+  },
+  approveBtnDisabled: {
+    backgroundColor: "#1e293b",
+    color: "#64748b",
+    cursor: "not-allowed",
   },
 };

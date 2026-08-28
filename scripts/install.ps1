@@ -25,13 +25,16 @@ Write-Host "Installing @agent-remote/cli globally..." -ForegroundColor White
 
 try {
     npm install -g @agent-remote/cli --loglevel=error
+    if ($LASTEXITCODE -ne 0) {
+        throw "npm install exited with code $LASTEXITCODE"
+    }
     Write-Host "[OK] Successfully installed @agent-remote/cli!" -ForegroundColor Green
     Write-Host ""
     Write-Host "To start your agent harness in any repository, simply run:" -ForegroundColor Cyan
     Write-Host "   agent-remote" -ForegroundColor Green
     Write-Host ""
 } catch {
-    Write-Host "[WARN] Global install requires administrator permissions or custom npm prefix." -ForegroundColor Yellow
+    Write-Host "[WARN] Global install failed (exit code $LASTEXITCODE). Check permissions or npm configuration." -ForegroundColor Yellow
     Write-Host "Alternatively, you can run directly without installing:" -ForegroundColor White
     Write-Host "   npx @agent-remote/cli" -ForegroundColor Green
 }

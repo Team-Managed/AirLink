@@ -131,4 +131,25 @@ describe("Web Session Hook & Stream Aggregator Suite", () => {
     expect(result.length).toBe(4);
     expect(result.map((i) => i.seqId)).toEqual([1, 2, 3, 4]);
   });
+
+  it("sanitizes pairing PIN to exactly digits only", () => {
+    const rawInput = "834-abc-192 #$!";
+    const sanitized = rawInput.replace(/\D/g, "").slice(0, 6);
+    expect(sanitized).toBe("834192");
+    expect(sanitized.length).toBe(6);
+  });
+
+  it("computes approval expiry remaining seconds and flags expired state at 0", () => {
+    const createdAt = Date.now() - 175000; // 175 seconds ago
+    const timeoutMs = 180000; // 180 seconds total
+    const expiresAt = createdAt + timeoutMs;
+    const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+    expect(remaining).toBeLessThanOrEqual(5);
+    expect(remaining).toBeGreaterThan(0);
+
+    const pastCreatedAt = Date.now() - 190000; // 190 seconds ago
+    const pastExpiresAt = pastCreatedAt + timeoutMs;
+    const expiredRemaining = Math.max(0, Math.ceil((pastExpiresAt - Date.now()) / 1000));
+    expect(expiredRemaining).toBe(0);
+  });
 });

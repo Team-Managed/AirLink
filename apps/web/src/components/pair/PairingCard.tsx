@@ -35,7 +35,7 @@ export function PairingCard({
             style={styles.pinInput}
             value={pin}
             onChange={(e) => {
-              const sanitized = e.target.value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6);
+              const sanitized = e.target.value.replace(/\D/g, "").slice(0, 6);
               onPinChange(sanitized);
               if (sanitized.length === 6) {
                 onConnect(sanitized);

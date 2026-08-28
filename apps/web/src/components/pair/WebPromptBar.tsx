@@ -37,7 +37,11 @@ export function WebPromptBar({ isStreaming, onSendPrompt }: WebPromptBarProps) {
         {quickActions.map((qa) => (
           <button
             key={qa.label}
-            style={styles.quickActionPill}
+            style={{
+              ...styles.quickActionPill,
+              ...(isStreaming ? styles.quickActionPillDisabled : {}),
+            }}
+            disabled={isStreaming}
             onClick={() => handleSend(qa.prompt)}
           >
             {qa.label}
@@ -94,6 +98,10 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     cursor: "pointer",
     whiteSpace: "nowrap",
+  },
+  quickActionPillDisabled: {
+    opacity: 0.4,
+    cursor: "not-allowed",
   },
   inputBar: {
     display: "flex",

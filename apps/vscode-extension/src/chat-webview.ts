@@ -542,13 +542,17 @@ export class AgentChatViewProvider implements vscode.WebviewViewProvider {
       function appendMessage(m) {
         currentTokenBlock = null;
         const card = document.createElement('div');
-        card.className = 'message-card';
+        const senderClass =
+          m.sender === 'user_local' || m.sender === 'user-local' ? 'msg-user-local' :
+          m.sender === 'user_remote' || m.sender === 'user-remote' ? 'msg-user-remote' :
+          m.sender === 'system' ? 'msg-system' : '';
+        card.className = ('message-card ' + senderClass).trim();
         if (m.sender !== 'system') {
           const badge = document.createElement('span');
           badge.className = 'badge-tag';
           badge.textContent =
-            m.sender === 'user_local'  ? '[Local]' :
-            m.sender === 'user_remote' ? '[Remote]' : '[Agent]';
+            (m.sender === 'user_local' || m.sender === 'user-local') ? '[Local]' :
+            (m.sender === 'user_remote' || m.sender === 'user-remote') ? '[Remote]' : '[Agent]';
           card.appendChild(badge);
         }
         const content = document.createElement('div');
