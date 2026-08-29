@@ -1,14 +1,14 @@
 {
-  "name": "vscode-agent-remote",
-  "displayName": "Agent Remote",
-  "description": "Open-Source Coding Agent Universal Remote Control for VS Code",
+  "name": "vscode-airlink",
+  "displayName": "AirLink",
+  "description": "AirLink: Open-Source Coding Agent Universal Remote Control for VS Code",
   "version": "0.1.0",
-  "publisher": "agent-remote",
+  "publisher": "airlink",
   "main": "./dist/extension.js",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/agent-remote/agent-remote"
+    "url": "https://github.com/Team-Managed/AirLink"
   },
   "engines": {
     "vscode": "^1.90.0"
@@ -27,7 +27,7 @@
       "activitybar": [
         {
           "id": "agent-remote-sidebar",
-          "title": "Agent Remote",
+          "title": "AirLink",
           "icon": "$(radio-tower)"
         }
       ]
@@ -37,7 +37,7 @@
         {
           "type": "webview",
           "id": "agentRemote.chatView",
-          "name": "Agent Remote Chat"
+          "name": "AirLink Chat"
         }
       ]
     },
@@ -45,27 +45,27 @@
       {
         "command": "agentRemote.start",
         "title": "Start Remote Harness",
-        "category": "Agent Remote"
+        "category": "AirLink"
       },
       {
         "command": "agentRemote.stop",
         "title": "Stop Remote Harness",
-        "category": "Agent Remote"
+        "category": "AirLink"
       },
       {
         "command": "agentRemote.copyPIN",
         "title": "Copy Pairing PIN & URL",
-        "category": "Agent Remote"
+        "category": "AirLink"
       },
       {
         "command": "agentRemote.createPR",
         "title": "Create Pull Request from Session",
-        "category": "Agent Remote"
+        "category": "AirLink"
       },
       {
         "command": "agentRemote.importIssue",
         "title": "Import GitHub Issue Context",
-        "category": "Agent Remote"
+        "category": "AirLink"
       }
     ]
   },
@@ -78,8 +78,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@agent-remote/bridge-core": "workspace:*",
-    "@agent-remote/protocol": "workspace:*",
+    "@airlink/bridge-core": "workspace:*",
+    "@airlink/protocol": "workspace:*",
     "dotenv": "^16.4.5"
   },
   "devDependencies": {

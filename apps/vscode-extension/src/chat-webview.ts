@@ -1,5 +1,5 @@
 import type * as vscode from "vscode";
-import type { AgentStream, ApprovalRequest } from "@agent-remote/protocol";
+import type { AgentStream, ApprovalRequest } from "@airlink/protocol";
 
 export interface ChatMessage {
   id: string;
