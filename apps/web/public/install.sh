@@ -20,10 +20,10 @@ fi
 NODE_VERSION=$(node -v)
 echo -e "\033[1;32m[OK] Found Node.js: ${NODE_VERSION}\033[0m"
 
-# Install @agent-remote/cli globally
-echo -e "Installing @agent-remote/cli..."
-if npm install -g @agent-remote/cli --loglevel=error 2>/dev/null; then
-    echo -e "\033[1;32m[OK] Successfully installed @agent-remote/cli!\033[0m"
+# Install @airlink/cli globally
+echo -e "Installing @airlink/cli..."
+if npm install -g @airlink/cli --loglevel=error 2>/dev/null; then
+    echo -e "\033[1;32m[OK] Successfully installed @airlink/cli!\033[0m"
     echo ""
     echo -e "\033[1;36mTo start your agent harness in any repository, simply run:\033[0m"
     echo -e "   \033[1;32magent-remote\033[0m"
@@ -31,5 +31,5 @@ if npm install -g @agent-remote/cli --loglevel=error 2>/dev/null; then
 else
     echo -e "\033[1;33m[WARN] Standard npm global install requires root/sudo or configured npm prefix.\033[0m"
     echo -e "Alternatively, you can run directly without installing:"
-    echo -e "   \033[1;32mnpx @agent-remote/cli\033[0m"
+    echo -e "   \033[1;32mnpx @airlink/cli\033[0m"
 fi

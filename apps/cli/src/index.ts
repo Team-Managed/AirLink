@@ -15,7 +15,7 @@ import {
   fetchGitHubIssue,
   saveActiveSession,
   loadActiveSession,
-} from "@agent-remote/bridge-core";
+} from "@airlink/bridge-core";
 import {
   renderBootBanner,
   renderStreamChunk,
@@ -171,7 +171,7 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
   async function dispatchTurn(
     promptText: string,
     origin: "local" | "remote",
-    byokConfig?: import("@agent-remote/protocol").BYOKConfig,
+    byokConfig?: import("@airlink/protocol").BYOKConfig,
   ): Promise<void> {
     if (isExecuting) {
       console.log(chalk.yellow("\n[WARN] Agent turn already in progress. Please wait..."));

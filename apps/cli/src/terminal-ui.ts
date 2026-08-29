@@ -2,7 +2,7 @@ import chalk from "chalk";
 import boxen from "boxen";
 import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import type { AgentStream, ApprovalRequest } from "@agent-remote/protocol";
+import type { AgentStream, ApprovalRequest } from "@airlink/protocol";
 
 export interface BootBannerOptions {
   pin: string;
@@ -26,39 +26,33 @@ export function formatPinDisplay(rawPin: string): string {
 }
 
 /**
- * Builds the string content for the workstation boot banner.
+ * Builds the string content for the workstation boot banner with sleek, modern CLI aesthetics.
  */
 export function formatBootBannerText(options: BootBannerOptions): string {
   const pinDisplay = formatPinDisplay(options.pin);
   const rawPinDigits = options.pin.replace(/\D/g, "");
-  const pairUrl = `https://agent-remote.dev/pair?pin=${rawPinDigits}`;
+  const pairUrl = `https://airlink.dev/pair?pin=${rawPinDigits}`;
   const engineLabel =
     options.provider && options.provider !== "simulated"
-      ? chalk.green.bold(`${options.provider} (${options.model})`)
+      ? chalk.hex("#38bdf8")(`${options.model} (${options.provider})`)
       : chalk.hex("#a855f7")(options.model || "0x-alpha");
 
   const lines = [
-    chalk.bold.hex("#38bdf8")("  AGENT REMOTE — WORKSTATION HARNESS  "),
+    `${chalk.bold.hex("#38bdf8")("AirLink")} ${chalk.dim("·")} ${chalk.white("Workstation Remote")} ${chalk.dim(`(${options.hostName || "local"})`)}`,
     "",
-    `  ${chalk.bold("Pairing PIN:")}   ${chalk.black.bgGreen.bold(`  ${pinDisplay}  `)}`,
-    `  ${chalk.bold("Pairing Link:")}  ${chalk.cyan.underline(pairUrl)}`,
+    `  ${chalk.dim("PIN")}          ${chalk.bold.hex("#4ade80")(pinDisplay)}`,
+    `  ${chalk.dim("Pair")}         ${chalk.hex("#38bdf8").underline(pairUrl)}`,
+    `  ${chalk.dim("Workspace")}    ${chalk.white(options.workspacePath)}`,
+    `  ${chalk.dim("Model")}        ${engineLabel}`,
     "",
-    `  ${chalk.dim("Relay Server:")}   ${chalk.white(options.relayUrl)}`,
-    `  ${chalk.dim("Workspace:")}      ${chalk.white(options.workspacePath)}`,
-    `  ${chalk.dim("Engine Model:")}   ${engineLabel}`,
-    ...(options.hostName
-      ? [`  ${chalk.dim("Host Name:")}      ${chalk.white(options.hostName)}`]
-      : []),
-    "",
-    chalk.dim("  Type prompts below or type /help to view all built-in commands.  "),
+    chalk.dim("Ready. Type a prompt below or /help for commands."),
   ];
 
   return boxen(lines.join("\n"), {
-    padding: 1,
-    margin: 1,
+    padding: { top: 0, bottom: 0, left: 1, right: 2 },
+    margin: { top: 1, bottom: 1, left: 0, right: 0 },
     borderStyle: "round",
-    borderColor: "cyan",
-    textAlignment: "left",
+    borderColor: "gray",
   });
 }
 
@@ -70,27 +64,82 @@ export function renderBootBanner(options: BootBannerOptions): void {
 }
 
 /**
- * Formats an incoming stream chunk into a colorized string representation.
+ * Helper to parse unified diff content into formatted TUI code lines.
+ */
+function formatInlineDiffLines(diffText: string): string {
+  const lines = diffText.split("\n").filter((l) => l.trim().length > 0);
+  const formatted: string[] = [];
+  let lineCounter = 33;
+
+  for (const line of lines.slice(0, 8)) {
+    if (line.startsWith("+++") || line.startsWith("---") || line.startsWith("@@")) {
+      continue;
+    }
+    const numStr = chalk.dim(String(lineCounter).padStart(4, " "));
+    lineCounter++;
+
+    if (line.startsWith("+")) {
+      formatted.push(`    ${numStr} ${chalk.green("+")}  ${chalk.green(line.slice(1))}`);
+    } else if (line.startsWith("-")) {
+      formatted.push(`    ${numStr} ${chalk.red("-")}  ${chalk.red(line.slice(1))}`);
+    } else {
+      formatted.push(`    ${numStr}    ${chalk.dim(line.startsWith(" ") ? line.slice(1) : line)}`);
+    }
+  }
+
+  return formatted.length > 0 ? "\n" + formatted.join("\n") : "";
+}
+
+/**
+ * Formats an incoming stream chunk into a colorized string representation matching the authentic developer TUI.
  */
 export function formatStreamChunkText(chunk: AgentStream): string {
   switch (chunk.type) {
     case "thought":
-      return chalk.dim.italic(`[thought] ${chunk.content}`);
+      return chalk.hex("#8b949e").italic(chunk.content);
+
     case "token":
       return chunk.content;
+
     case "tool_call": {
-      const toolName = chunk.metadata?.["name"] || "unknown_tool";
-      const args = chunk.metadata?.["args"] ? JSON.stringify(chunk.metadata["args"]) : "";
-      return chalk.hex("#38bdf8").bold(`\n[Tool Call: ${String(toolName)}] `) + chalk.dim(args);
+      const toolName = String(chunk.metadata?.["name"] || "execute_tool");
+      const args = (chunk.metadata?.["args"] || {}) as Record<string, unknown>;
+
+      if (toolName === "write_file" || toolName === "edit_file" || toolName === "patch_file") {
+        const filePath = String(args["path"] || args["filePath"] || "file");
+        const diffPreview = typeof args["content"] === "string" ? formatInlineDiffLines(args["content"]) : "";
+        return `\n${chalk.white("•")} ${chalk.bold.white("Edited")} ${chalk.cyan(filePath)}${diffPreview}`;
+      }
+
+      if (toolName === "execute_bash" || toolName === "run_tests" || toolName === "run_lint") {
+        const command = String(args["command"] || chunk.content || toolName);
+        return `\n${chalk.white("•")} ${chalk.bold.white("Ran")} ${chalk.hex("#7ee787")(command)}`;
+      }
+
+      if (toolName === "get_git_diff") {
+        return `\n${chalk.white("•")} ${chalk.bold.white("Ran")} ${chalk.hex("#7ee787")("git diff")}`;
+      }
+
+      if (toolName === "list_directory") {
+        const p = String(args["path"] || ".");
+        return `\n${chalk.white("•")} ${chalk.bold.white("Ran")} ${chalk.hex("#7ee787")(`ls ${p}`)}`;
+      }
+
+      const argsStr = chunk.metadata?.["args"] ? ` ${JSON.stringify(chunk.metadata["args"])}` : "";
+      return `\n${chalk.white("•")} ${chalk.bold.white("Ran")} ${chalk.cyan(toolName)}${chalk.dim(argsStr)}`;
     }
+
     case "tool_result": {
-      const toolName = chunk.metadata?.["name"] || "tool";
-      return chalk.green(`\n[Tool Result: ${String(toolName)}] ${chunk.content}`);
+      const toolName = chunk.metadata?.["name"] ? `Tool Result: ${String(chunk.metadata["name"])}` : "Result";
+      return chalk.dim(`  [${toolName}] ${chunk.content}`);
     }
+
     case "error":
-      return chalk.red.bold(`\n[Error] ${chunk.content}`);
+      return chalk.red.bold(`\n✖ [Error] ${chunk.content}`);
+
     case "done":
-      return chalk.green.bold(`\n[Done] ${chunk.content}\n`);
+      return `\n\n${chalk.dim("Potential next step: Tap [Review] on phone or commit to git.")}\n`;
+
     default:
       return chunk.content;
   }
@@ -160,10 +209,10 @@ export async function promptTerminalApproval(
 }
 
 /**
- * Prompts for interactive local user input.
+ * Prompts for interactive local user input matching the professional developer TUI.
  */
 export async function promptLocalInput(rl: readline.Interface): Promise<string> {
-  const promptSymbol = chalk.hex("#38bdf8").bold("agent-remote > ");
+  const promptSymbol = chalk.hex("#38bdf8").bold("airlink > ");
   const answer = await rl.question(promptSymbol);
   return answer.trim();
 }
@@ -204,7 +253,7 @@ export function formatStatsText(stats: {
   workspacePath: string;
 }): string {
   const lines = [
-    chalk.bold.hex("#38bdf8")("AGENT HARNESS SESSION METRICS"),
+    chalk.bold.hex("#38bdf8")("AIRLINK SESSION METRICS"),
     "",
     `  ${chalk.dim("Session PIN:")}      ${chalk.green.bold(formatPinDisplay(stats.sessionId))}`,
     `  ${chalk.dim("Turns Executed:")}   ${chalk.white.bold(stats.turnCount)}`,
