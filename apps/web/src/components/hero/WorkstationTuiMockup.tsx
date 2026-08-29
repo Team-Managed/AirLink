@@ -71,7 +71,7 @@ const FEATURE_DATA: Record<number, FeatureData> = {
       ],
     },
     commands: [
-      "pnpm --filter @agent-remote/web test",
+      "pnpm --filter @airlink/web test",
       "git status -sb",
     ],
     streamingSummary:
@@ -112,7 +112,7 @@ const FEATURE_DATA: Record<number, FeatureData> = {
       ],
     },
     commands: [
-      "pnpm --filter @agent-remote/web test",
+      "pnpm --filter @airlink/web test",
       "git status -sb",
     ],
     streamingSummary:
@@ -264,20 +264,6 @@ export function WorkstationTuiMockup({
               : current.prompt}
           </span>
           <span style={styles.blinkingBlockCursor}>█</span>
-        </div>
-      </div>
-
-      {/* Terminal Bottom Status Bar with Shortcut Keys & Token Telemetry */}
-      <div style={styles.tuiFooter}>
-        <div style={styles.footerShortcuts}>
-          <span><kbd style={styles.kbd}>↵</kbd> send</span>
-          <span><kbd style={styles.kbd}>⇧↵</kbd> newline</span>
-          <span><kbd style={styles.kbd}>^T</kbd> transcript</span>
-          <span><kbd style={styles.kbd}>^C</kbd> quit</span>
-        </div>
-        <div style={styles.footerTelemetry}>
-          <span style={styles.tokensUsed}>44.9K tokens</span>
-          <span style={styles.contextLeft}>98% context left</span>
         </div>
       </div>
     </div>

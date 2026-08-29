@@ -5,6 +5,7 @@ import { LandingNavbar } from "../components/landing/LandingNavbar";
 import { PanoramicLandscapeHero } from "../components/hero/PanoramicLandscapeHero";
 import { ScrollFeaturePhoneShowcase } from "../components/hero/ScrollFeaturePhoneShowcase";
 import { FeatureGrid } from "../components/landing/FeatureGrid";
+import { ArchitectureDiagram } from "../components/landing/ArchitectureDiagram";
 import { HowItWorksSection } from "../components/landing/HowItWorksSection";
 import { FaqSection } from "../components/landing/FaqSection";
 import { SupportSection } from "../components/landing/SupportSection";
@@ -19,19 +20,22 @@ export default function LandingPage() {
         {/* 1. Hero Section */}
         <PanoramicLandscapeHero />
 
-        {/* 2. Clear Black Phone Mockup Scroll-Driven Feature Showcase (4-5 Screens) */}
+        {/* 2. Clear Black Phone Mockup Scroll-Driven Feature Showcase */}
         <ScrollFeaturePhoneShowcase />
 
         {/* 3. Features Section */}
         <FeatureGrid />
 
-        {/* 3. How It Works Section */}
+        {/* 4. Architecture Pipeline Diagram (Target of #architecture links) */}
+        <ArchitectureDiagram />
+
+        {/* 5. How It Works Section */}
         <HowItWorksSection />
 
-        {/* 4. FAQs Section */}
+        {/* 6. FAQs Section */}
         <FaqSection />
 
-        {/* 5. Customer Support Section */}
+        {/* 7. Customer Support Section */}
         <SupportSection />
 
         {/* 6. Bottom High-Conversion CTA Section */}

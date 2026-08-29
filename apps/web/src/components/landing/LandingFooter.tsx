@@ -6,14 +6,38 @@ import { AirLinkAgentLogo } from "../ui/AirLinkAgentLogo";
 
 export function LandingFooter() {
   const [email, setEmail] = useState("");
+  const [isSubscribing, setIsSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [subscribeError, setSubscribeError] = useState<string | null>(null);
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
-      setSubscribed(true);
-      setTimeout(() => setSubscribed(false), 3000);
-      setEmail("");
+    if (!email.trim()) return;
+
+    setIsSubscribing(true);
+    setSubscribeError(null);
+
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setSubscribed(true);
+        setEmail("");
+        setTimeout(() => setSubscribed(false), 5000);
+      } else {
+        setSubscribeError(data.error || "Failed to subscribe");
+        setTimeout(() => setSubscribeError(null), 4000);
+      }
+    } catch {
+      setSubscribeError("Network error. Please try again.");
+      setTimeout(() => setSubscribeError(null), 4000);
+    } finally {
+      setIsSubscribing(false);
     }
   };
 
@@ -117,18 +141,26 @@ export function LandingFooter() {
             </div>
 
             {/* Email / PIN Subscribe Pill */}
-            <form onSubmit={handleSubscribe} style={styles.subscribePill}>
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={styles.subscribeInput}
-              />
-              <button type="submit" style={styles.subscribeBtn}>
-                {subscribed ? "Subscribed!" : "Subscribe"}
-              </button>
-            </form>
+            <div>
+              <form onSubmit={handleSubscribe} style={styles.subscribePill}>
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  disabled={isSubscribing}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={styles.subscribeInput}
+                />
+                <button type="submit" disabled={isSubscribing} style={styles.subscribeBtn}>
+                  {isSubscribing ? "..." : subscribed ? "Subscribed!" : "Subscribe"}
+                </button>
+              </form>
+              {subscribeError && (
+                <span style={{ fontSize: 11.5, color: "#dc2626", marginTop: 4, display: "block" }}>
+                  {subscribeError}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

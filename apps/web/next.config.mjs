@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@agent-remote/protocol"],
+  transpilePackages: ["@airlink/protocol"],
 };
 
 export default nextConfig;

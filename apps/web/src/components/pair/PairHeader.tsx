@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import type { SessionConnected } from "@agent-remote/protocol";
+import type { SessionConnected } from "@airlink/protocol";
 import { AirLinkAgentLogo } from "../ui/AirLinkAgentLogo";
 
 interface PairHeaderProps {

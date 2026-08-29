@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 const QUESTIONS = [
   {
     q: "Authorize bash tool execution on PC?",
-    cmd: "pnpm --filter @agent-remote/relay test",
+    cmd: "pnpm --filter @airlink/relay test",
     risk: "Medium Risk",
     options: ["Approve & Run", "Review Diff First", "Deny Command"],
   },

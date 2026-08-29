@@ -3,7 +3,7 @@ import {
   JoinSessionSchema,
   ClientPromptSchema,
   ApprovalResponseSchema,
-} from "@agent-remote/protocol";
+} from "@airlink/protocol";
 
 describe("Web Remote Client Protocol Validation Suite", () => {
   it("validates client:join payloads from web clients", () => {

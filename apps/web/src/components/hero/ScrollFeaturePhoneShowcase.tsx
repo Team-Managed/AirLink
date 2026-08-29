@@ -160,9 +160,17 @@ export function ScrollFeaturePhoneShowcase() {
               if (!isVisible) return null;
 
               return (
-                <div
+                <button
                   key={feature.id}
+                  type="button"
                   onClick={() => setActiveIndex(idx)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setActiveIndex(idx);
+                    }
+                  }}
+                  aria-pressed={isActive}
                   style={{
                     ...styles.ladderItem,
                     ...(isActive
@@ -199,7 +207,7 @@ export function ScrollFeaturePhoneShowcase() {
                       <p style={styles.ladderDescription}>{feature.description}</p>
                     </div>
                   )}
-                </div>
+                </button>
               );
             })}
 
@@ -825,6 +833,13 @@ const styles: Record<string, React.CSSProperties> = {
     transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
     display: "flex",
     flexDirection: "column",
+    textAlign: "left",
+    backgroundColor: "transparent",
+    border: "none",
+    padding: 0,
+    outline: "none",
+    font: "inherit",
+    width: "100%",
   },
   ladderItemActive: {
     opacity: 1,

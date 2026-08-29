@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import type { ApprovalRequest } from "@agent-remote/protocol";
+import type { ApprovalRequest } from "@airlink/protocol";
 
 interface WebApprovalModalProps {
   activeApproval: ApprovalRequest;

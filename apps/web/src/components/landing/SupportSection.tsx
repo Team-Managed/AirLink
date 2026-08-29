@@ -9,16 +9,35 @@ export function SupportSection() {
     subject: "General Inquiry",
     message: "",
   });
-  const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedTicket, setSubmittedTicket] = useState<{ id: string; email: string } | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name && formData.email && formData.message) {
-      setSubmitted(true);
-      setTimeout(() => {
-        setSubmitted(false);
+    if (!formData.name || !formData.email || !formData.message) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const res = await fetch("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setSubmittedTicket({ id: data.ticketId, email: formData.email });
         setFormData({ name: "", email: "", subject: "General Inquiry", message: "" });
-      }, 4000);
+      } else {
+        setSubmitError(data.error || "Failed to submit support request. Please try again.");
+      }
+    } catch {
+      setSubmitError("Network error while submitting support ticket. Please check your connection.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -39,16 +58,28 @@ export function SupportSection() {
             Our engineering team typically responds within 2 hours during active hackathon hours.
           </p>
 
-          {submitted ? (
+          {submittedTicket ? (
             <div style={styles.successBox}>
               <div style={styles.successIcon}>✓</div>
-              <h4 style={styles.successTitle}>Support Request Received!</h4>
+              <h4 style={styles.successTitle}>Support Request Logged!</h4>
               <p style={styles.successDesc}>
-                Thank you for reaching out. We have logged your ticket and an engineer will reply to {formData.email} shortly.
+                Ticket <strong>{submittedTicket.id}</strong> has been created. An engineer will reply to {submittedTicket.email} shortly.
               </p>
+              <button
+                type="button"
+                onClick={() => setSubmittedTicket(null)}
+                style={{ ...styles.submitBtn, marginTop: 12, padding: "8px 18px", fontSize: 13 }}
+              >
+                Submit Another Request
+              </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} style={styles.form}>
+              {submitError && (
+                <div style={{ padding: "10px 14px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, color: "#dc2626", fontSize: 13 }}>
+                  {submitError}
+                </div>
+              )}
               <div style={styles.inputRow}>
                 <div style={styles.fieldCol}>
                   <label style={styles.label}>Your Name</label>
@@ -101,8 +132,8 @@ export function SupportSection() {
                 />
               </div>
 
-              <button type="submit" style={styles.submitBtn}>
-                <span>Submit Ticket</span>
+              <button type="submit" disabled={isSubmitting} style={styles.submitBtn}>
+                <span>{isSubmitting ? "Submitting Ticket..." : "Submit Ticket"}</span>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>

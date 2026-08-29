@@ -11,7 +11,7 @@ import {
   type SessionConnected,
   type ApprovalRequest,
   type BYOKConfig,
-} from "@agent-remote/protocol";
+} from "@airlink/protocol";
 import type { WebFeedItem, UseWebSessionOptions, UseWebSessionReturn } from "../types";
 
 /**
@@ -102,6 +102,7 @@ export function useWebSession(options: UseWebSessionOptions = {}): UseWebSession
 
   const socketRef = useRef<Socket | null>(null);
   const lastSeqIdRef = useRef<number>(0);
+  const activeSessionPinRef = useRef<string | null>(null);
 
   const clearError = useCallback(() => {
     setErrorBanner(null);
@@ -117,12 +118,22 @@ export function useWebSession(options: UseWebSessionOptions = {}): UseWebSession
     setIsStreaming(false);
     setSessionData(null);
     setActiveApproval(null);
+    setFeedItems([]);
+    lastSeqIdRef.current = 0;
+    activeSessionPinRef.current = null;
   }, []);
 
   const connect = useCallback(
     (pinToUse?: string) => {
       const targetPin = (pinToUse || pin).trim();
       if (targetPin.length !== 6) return;
+
+      // If pairing with a different PIN or starting fresh, reset feed and sequence cursor
+      if (activeSessionPinRef.current !== targetPin) {
+        setFeedItems([]);
+        lastSeqIdRef.current = 0;
+        activeSessionPinRef.current = targetPin;
+      }
 
       setIsConnecting(true);
       setErrorBanner(null);

@@ -11,14 +11,22 @@ export function DitheredBackground() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    let animationFrameId: number;
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    let animationFrameId: number | null = null;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
+    let isRunning = true;
+    let lastRenderTime = 0;
+    const FRAME_INTERVAL = 45; // ~22 FPS cap to preserve CPU/GPU & mobile battery
 
     const handleResize = () => {
       if (!canvas) return;
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
+      if (prefersReducedMotion) renderSingleFrame();
     };
 
     window.addEventListener("resize", handleResize);
@@ -36,15 +44,26 @@ export function DitheredBackground() {
 
     window.addEventListener("mousemove", handleMouseMove);
 
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isRunning = false;
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      } else {
+        if (!isRunning && !prefersReducedMotion) {
+          isRunning = true;
+          lastRenderTime = performance.now();
+          animationFrameId = requestAnimationFrame(render);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     // Animated gradient orbs
     let time = 0;
-    const render = () => {
-      time += 0.008;
 
-      // Smooth mouse lerp
-      mouseX += (targetMouseX - mouseX) * 0.05;
-      mouseY += (targetMouseY - mouseY) * 0.05;
-
+    const renderSingleFrame = () => {
+      if (!ctx) return;
       ctx.clearRect(0, 0, width, height);
 
       // Deep base layer
@@ -66,7 +85,7 @@ export function DitheredBackground() {
       ctx.fillStyle = mouseGrad;
       ctx.fillRect(0, 0, width, height);
 
-      // 2. Floating Cyan Orb (Top-Right / Center)
+      // 2. Floating Cyan Orb
       const orb1X = width * 0.65 + Math.sin(time * 0.7) * 120;
       const orb1Y = height * 0.25 + Math.cos(time * 0.5) * 80;
       const orb1Grad = ctx.createRadialGradient(orb1X, orb1Y, 0, orb1X, orb1Y, width * 0.4);
@@ -76,7 +95,7 @@ export function DitheredBackground() {
       ctx.fillStyle = orb1Grad;
       ctx.fillRect(0, 0, width, height);
 
-      // 3. Floating Violet Orb (Bottom-Left)
+      // 3. Floating Violet Orb
       const orb2X = width * 0.25 + Math.cos(time * 0.6) * 100;
       const orb2Y = height * 0.65 + Math.sin(time * 0.8) * 90;
       const orb2Grad = ctx.createRadialGradient(orb2X, orb2Y, 0, orb2X, orb2Y, width * 0.35);
@@ -86,7 +105,7 @@ export function DitheredBackground() {
       ctx.fillStyle = orb2Grad;
       ctx.fillRect(0, 0, width, height);
 
-      // 4. Emerald Accent Orb (Center-Bottom)
+      // 4. Emerald Accent Orb
       const orb3X = width * 0.5 + Math.sin(time * 0.4) * 80;
       const orb3Y = height * 0.85 + Math.cos(time * 0.6) * 60;
       const orb3Grad = ctx.createRadialGradient(orb3X, orb3Y, 0, orb3X, orb3Y, width * 0.3);
@@ -96,15 +115,12 @@ export function DitheredBackground() {
       ctx.fillStyle = orb3Grad;
       ctx.fillRect(0, 0, width, height);
 
-      // 5. High-Performance Procedural Dither Dot Matrix (Retro-Modern SaaS Style)
-      const dotSpacing = 28;
-      const startX = 0;
-      const startY = 0;
+      // 5. Procedural Dither Dot Matrix
+      const dotSpacing = 32;
       ctx.fillStyle = "rgba(255, 255, 255, 0.035)";
 
-      for (let x = startX; x < width; x += dotSpacing) {
-        for (let y = startY; y < height; y += dotSpacing) {
-          // Dynamic wave dither calculation
+      for (let x = 0; x < width; x += dotSpacing) {
+        for (let y = 0; y < height; y += dotSpacing) {
           const distToMouse = Math.hypot(x - mouseX, y - mouseY);
           const mouseFactor = Math.max(0, 1 - distToMouse / 350);
           const wave = Math.sin(x * 0.01 + y * 0.01 + time * 1.5);
@@ -121,16 +137,37 @@ export function DitheredBackground() {
           ctx.fill();
         }
       }
+    };
+
+    const render = (now: number) => {
+      if (!isRunning) return;
+
+      if (now - lastRenderTime >= FRAME_INTERVAL) {
+        lastRenderTime = now;
+        time += 0.015;
+
+        // Smooth mouse lerp
+        mouseX += (targetMouseX - mouseX) * 0.08;
+        mouseY += (targetMouseY - mouseY) * 0.08;
+
+        renderSingleFrame();
+      }
 
       animationFrameId = requestAnimationFrame(render);
     };
 
-    render();
+    if (prefersReducedMotion) {
+      renderSingleFrame();
+    } else {
+      animationFrameId = requestAnimationFrame(render);
+    }
 
     return () => {
+      isRunning = false;
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
-      cancelAnimationFrame(animationFrameId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
