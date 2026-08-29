@@ -16,7 +16,7 @@
     "dev:web": "pnpm --filter @agent-remote/web dev"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.3.0",
     "eslint": "^9.0.0",
     "prettier": "^3.3.0",
     "typescript": "^5.5.4",
