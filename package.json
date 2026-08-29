@@ -1,9 +1,9 @@
 {
-  "name": "agent-remote-monorepo",
+  "name": "airlink-monorepo",
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "description": "Open-Source Coding Agent Universal Remote Control",
+  "description": "AirLink: Open-Source Coding Agent Universal Remote Control",
   "scripts": {
     "build": "pnpm -r run build",
     "typecheck": "pnpm build && pnpm -r run typecheck",
@@ -13,10 +13,10 @@
     "test": "pnpm build && vitest run",
     "test:coverage": "pnpm build && vitest run --coverage",
     "check:suppressions": "node scripts/check-suppressions.mjs",
-    "dev:relay": "pnpm --filter @agent-remote/relay dev",
-    "dev:cli": "pnpm --filter @agent-remote/cli dev",
-    "dev:mobile": "pnpm --filter @agent-remote/mobile start",
-    "dev:web": "pnpm --filter @agent-remote/web dev"
+    "dev:relay": "pnpm --filter @airlink/relay dev",
+    "dev:cli": "pnpm --filter @airlink/cli dev",
+    "dev:mobile": "pnpm --filter @airlink/mobile start",
+    "dev:web": "pnpm --filter @airlink/web dev"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

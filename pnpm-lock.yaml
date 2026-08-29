@@ -29,10 +29,10 @@ importers:
 
   apps/cli:
     dependencies:
-      '@agent-remote/bridge-core':
+      '@airlink/bridge-core':
         specifier: workspace:*
         version: link:../../packages/bridge-core
-      '@agent-remote/protocol':
+      '@airlink/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
       boxen:
@@ -57,7 +57,7 @@ importers:
 
   apps/mobile:
     dependencies:
-      '@agent-remote/protocol':
+      '@airlink/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
       '@expo/metro-runtime':
@@ -103,7 +103,7 @@ importers:
 
   apps/relay:
     dependencies:
-      '@agent-remote/protocol':
+      '@airlink/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
       dotenv:
@@ -128,10 +128,10 @@ importers:
 
   apps/vscode-extension:
     dependencies:
-      '@agent-remote/bridge-core':
+      '@airlink/bridge-core':
         specifier: workspace:*
         version: link:../../packages/bridge-core
-      '@agent-remote/protocol':
+      '@airlink/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
       dotenv:
@@ -159,7 +159,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@agent-remote/protocol':
+      '@airlink/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
       gsap:
@@ -196,7 +196,7 @@ importers:
 
   packages/bridge-core:
     dependencies:
-      '@agent-remote/protocol':
+      '@airlink/protocol':
         specifier: workspace:*
         version: link:../protocol
       '@truefoundry/trueforge-sdk':

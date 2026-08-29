@@ -109,7 +109,19 @@
   - **Dual-Directional GSAP Clouds:** Multi-layered cross-drifting cloud streams from both left and right edges with 2.5D interactive mouse parallax and enhanced artwork contrast.
   - **Pure White Background System:** Configured all body sections (`FeatureGrid`, `HowItWorksSection`, `FaqSection`, `SupportSection`, `InstallCommandBar`, `LandingFooter`, and `PairingCard`) with clean `#ffffff` canvas, `#e2e8f0` hairline borders, `#0f172a` primary text, `#475569` secondary text, and `#f8fafc` subtle hover states.
   - **Synchronized UI Context Tokens (`context/ui-context.md` & `globals.css`):** Synchronized `--bg-canvas` (`#ffffff`), `--bg-subtle` (`#f8fafc`), `--surface-card` (`#ffffff`), `--surface-inset` (`#f1f5f9`), `--sky-azure` (`#0284c7`), `--sky-light` (`#e0f2fe`), `--ocean-deep` (`#0f172a`), `--signal-sunset` (`#ea580c`), and `--signal-seafoam` (`#0d9488`).
-  - **Verification:** 100% test pass rate across all test suites with 0 TypeScript/lint errors.
+  - **AirLink Brand Rename & Monorepo Package Alignment:** Renamed monorepo workspace from `@agent-remote/*` to `@airlink/*` across all packages (`@airlink/protocol`, `@airlink/bridge-core`, `@airlink/cli`, `@airlink/relay`, `@airlink/web`, `@airlink/mobile`, `vscode-airlink`).
+  - **Remediation of Qodo Code Review (6/6 Bugs Fixed):**
+    - Corrected install command tab to copy `npx @airlink/cli`.
+    - Implemented real `/api/support` endpoint with payload validation and ticket ID generation (`AIR-XXXX-YYY`).
+    - Implemented real `/api/subscribe` newsletter endpoint with email validation and error feedback.
+    - Mounted `<ArchitectureDiagram />` with `id="architecture"` for valid hash navigation.
+    - Throttled `DitheredBackground` frame loop (~22 FPS), added `prefers-reduced-motion` check, and visibility change pausing.
+    - Refactored feature ladder entries into accessible semantic `<button>` elements with keyboard handlers (`Enter` / `Space`).
+  - **CLI & TUI Polish**:
+    - Refined CLI TUI boot banner: removed internal `Relay Server` clutter, established clean `AIRLINK — WORKSTATION HARNESS` branding, `airlink >` prompt, and `https://airlink.dev/pair` link.
+    - Removed shortcut helper footer and token telemetry strip from CLI prompt and landing page mockup.
+    - Replaced static model fallback with active `gemini-2.0-flash` configuration.
+  - **Verification:** 100% test pass rate across all test suites (34 test files, 227 tests) with 0 TypeScript/lint errors.
 
 ### Implementation Units Index
 
