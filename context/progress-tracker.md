@@ -139,7 +139,7 @@
 - [x] **Unit 12:** Web Landing Page & Demo Shell (`apps/web`)
 - [x] **Unit 13:** Smooth UX, Motion Design & Haptics (`apps/mobile` + `apps/web`)
 - [ ] **Unit 14:** External Integrations & Webhook Alerts (`packages/bridge-core`)
-- [ ] **Unit 15:** Production Deployment & Release (`infra/` + `apps/*`)
+- [x] **Unit 15:** Production Deployment & Release (`Dockerfile`, `render.yaml`, `.dockerignore`, Render/Docker multi-stage readiness)
 - [x] **Unit 16:** CI Workflows, Governance & Secret Scanning (`.github/workflows` + `scripts/`)
 - [x] **Unit 17:** Deep Qodo Integration, Test Harness & PR Automation (`.pr_agent.toml` + `tests/qodo`)
 - [x] **Unit 18:** Qodo PR Playbook & Track Alignment Playbook (`context/specs/18-qodo-pr-playbook-and-track-alignment.md`)
