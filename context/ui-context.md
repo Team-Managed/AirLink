@@ -1,52 +1,58 @@
-# UI Context: Mobile, Web, Terminal & VS Code Design System
+# AirLink Brand Identity & Design System (Clean Minimalist SaaS & Panoramic Sky)
 
-## 1. Design Aesthetics & Visual Tone
-
-- **Theme:** Sleek, high-contrast dark mode tailored for developers (`#090d16`).
-- **Color Palette:**
-  - **Background Base:** `#090d16` (Deep obsidian navy)
-  - **Card / Surface:** `#0f172a` (Slate 900)
-  - **Border & Dividers:** `#1e293b` (Slate 800)
-  - **Primary Accent / Tokens:** `#38bdf8` (Electric Sky Blue)
-  - **Success / Added Lines:** `#22c55e` (Emerald Green)
-  - **Danger / Removed Lines:** `#ef4444` (Crimson Red)
-  - **Warning / Approvals:** `#f59e0b` (Amber Yellow)
-  - **Text Primary:** `#f8fafc` (Slate 50)
-  - **Text Muted:** `#94a3b8` (Slate 400)
-- **Typography:**
-  - UI Labels & Headers: Inter / Outfit / Sans-serif.
-  - Code, Diffs & Terminal Logs: Fira Code / JetBrains Mono / Monospace.
+## 1. Brand Identity Overview
+- **Name:** AirLink
+- **Tagline:** Universal Over-The-Air Teleoperation & HITL Safety Gate for Local Coding Agents
+- **Aesthetic Direction:** *Clean Modern Developer SaaS with Panoramic Sky Hero & Crisp Pure White Canvas* — High-precision developer interface combining an impressionist high-altitude sky hero backdrop, clean `#ffffff` body canvas, crisp `1px` `#e2e8f0` hairline borders, deep obsidian `#0f172a` primary elements, and vibrant sky/sunset signal accents.
 
 ---
 
-## 2. Interface Component Conventions
+## 2. Color Palette & Design Tokens
 
-### A. Web Landing Page & Demo Shell (`apps/web`)
+### Core Background Shades & Surfaces
+- `--bg-canvas`: `#ffffff` — Pure white base canvas for all body sections (Features, How It Works, FAQs, Support, Footer).
+- `--bg-subtle`: `#f8fafc` — Ultra-light slate tint for alternate sections, status pills, and backdrop containers.
+- `--surface-card`: `#ffffff` — Clean white card panels with hairline `#e2e8f0` borders and soft ambient elevation.
+- `--surface-card-subtle`: `#f8fafc` — Secondary card surface for inset modules and tab bars.
+- `--surface-card-glass`: `rgba(255, 255, 255, 0.92)` — 16px blurred frosted white glass for navigation and sticky headers.
+- `--surface-terminal`: `#0f172a` — High-contrast deep obsidian slate terminal well for live token streams and code execution.
+- `--surface-inset`: `#f1f5f9` — Clean slate inset wells for inputs, code blocks, and badge backgrounds.
+- `--surface-hover`: `#f8fafc` — Subtle interactive card hover state.
 
-- **Hero Showcase:** Large headline, live interactive terminal emulator, and `Launch Web Client` primary action button.
-- **Architecture Section:** Clean SVG/Mermaid flowcards detailing the zero-port-forwarding relay tunnel.
-- **Web Pairing Client (`/pair`):** Clean 6-digit numeric input with auto-focus and instant live connection stream.
+### Clean Hairline Borders
+- `--border-hairline`: `#e2e8f0` — Standard 1px structural separator.
+- `--border-subtle`: `#f1f5f9` — Soft internal dividers and row separators.
+- `--border-focus`: `#0f172a` — High-contrast active input focus ring.
+- `--border-card`: `#e2e8f0` — Crisp 1px geometric border paired with `box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05)`.
 
-### B. Mobile Client (`apps/mobile` - Expo React Native)
+### Harmonized Sky & Signal Accents
+- `--powder-dust-blue`: `linear-gradient(135deg, #a3c9ee 0%, #87b2db 100%)` — Soft powder dust blue for all primary interactive buttons and action capsules.
+- `--powder-blue-light`: `#e0f2fe` — Soft azure wash for active pills and secondary badges.
+- `--sky-azure`: `#0284c7` — High-altitude azure sky accent (matching the hero sky backdrop).
+- `--ocean-deep`: `#0f172a` — Deep obsidian slate for typography, branding, and input labels.
+- `--ocean-mid`: `#1e293b` — Midnight slate for secondary framing and code headers.
+- `--signal-sunset`: `#ea580c` — Sunset ember / coral for 6-digit PIN highlights and warning badges.
+- `--signal-gold`: `#d97706` — Warm golden amber for HITL 180s countdown countdown gates.
+- `--signal-seafoam`: `#0d9488` — Seafoam emerald for active tunnel connectivity and approved actions.
+- `--signal-berry`: `#dc2626` — Sunset berry crimson for destructive command alerts and rejection.
 
-- **Pairing Screen:** Centered 6-digit PIN input with wide letter spacing (`letterSpacing: 8`) and instant auto-submit on 6th digit.
-- **Live Terminal Feed:** Virtualized `FlatList` with auto-scroll lock, streaming markdown chunks, and collapsible thought blocks.
-- **Approval Drawer:** Slide-animated modal bottom sheet (`Modal animationType="slide"`) with amber warning header, countdown progress bar (smooth color morph from green $\to$ amber $\to$ red), and large thumb-friendly touch targets.
-- **Settings & BYOK Vault Modal:** Page-sheet slide modal (`presentationStyle="pageSheet"`) accessible from the PairingScreen header and SessionScreen active model badge. Features AI provider selector pills (`OpenRouter`, `Gemini`, `Anthropic`, `OpenAI`, `Groq`, `Custom`), model suggestion chips, masked password API key entry with show/hide toggle, custom endpoint base URL input, and `[Save Configuration]` / `[Clear Key]` actions with tactile haptics.
+### Typography Hierarchy
+- **Display Font:** `Manrope` (wght 600..900) — Bold geometric headlines in deep obsidian `#0f172a`.
+- **Body Font:** `Inter` (wght 400..600) — High-legibility UI text in crisp slate `#334155` and `#475569`.
+- **Mono Font:** `Fira Code` / `JetBrains Mono` — Code blocks, AST diffs, and session PINs.
+- `--text-primary`: `#0f172a` (Obsidian slate - high contrast titles)
+- `--text-secondary`: `#334155` (Slate - body and descriptions)
+- `--text-muted`: `#64748b` (Slate gray - metadata and subheadings)
+- `--text-dim`: `#94a3b8` (Light slate - placeholders and inactive states)
 
-### C. Motion Design & Haptics
+---
 
-- **Haptics (`expo-haptics`):** Warning haptic pulse on approval drawer open; medium impact pulse on button taps.
-- **Micro-Animations:** Blinking terminal cursor, shimmer skeleton loaders during hydration, and smooth accordion drawer expansions.
+## 3. UI Component Principles
+- **Hero Landscape Transition:** Full-bleed panoramic sky artwork (`/screenshot-hero.png`) seamlessly feathering into the pure white `#ffffff` canvas via ambient linear gradient overlay.
+- **Strict Geometric Elevation:** Crisp radii (`6px`, `8px`, `10px`, `12px`, `14px`, `16px`, `9999px`) with soft atmospheric box shadows (`0 4px 20px -2px rgba(15, 23, 42, 0.05)`).
+- **High-Legibility Contrast:** Dark obsidian interactive typography against crisp white/slate surfaces for maximum scannability.
+- **Button Standards:**
+  - Primary: Powder Dust Blue (`.btn-primary`, `linear-gradient(135deg, #a3c9ee 0%, #87b2db 100%)`, text `#0f172a`, border `rgba(255, 255, 255, 0.7)`).
+  - Secondary: Frosted slate (`.btn-secondary`, `#f8fafc`, border `#e2e8f0`, text `#0f172a`).
+  - Capsule Pill: Centered glowing glass capsule (`rgba(255, 255, 255, 0.5)` glass blur + dark inner pill).
 
-### D. Terminal CLI Host (`apps/cli`)
-
-- **Boot Banner:** Compact boxen double-border with bold green PIN highlight (`PIN: 834-192`) and clickable pairing URL (`https://agent-remote.dev/pair?pin=<PIN>`).
-- **Interactive REPL Prompt:** Clean prompt prefix `agent-remote > ` with live syntax-colored token/thought stream.
-- **Readline Approval:** Highlighted prompt `Approve on PC [y/N]? `.
-
-### E. VS Code Extension Host (`apps/vscode-extension`)
-
-- **Status Bar Item:** `$(radio-tower) Remote: 834-192` with tooltip and click-to-copy.
-- **Chat Webview View:** High-density dark chat feed adhering to VS Code theme CSS variables.
-- **Native Warning Modal:** `vscode.window.showWarningMessage` with actions `[Approve]` and `[Deny]`.
