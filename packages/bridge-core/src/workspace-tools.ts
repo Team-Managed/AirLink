@@ -38,21 +38,31 @@ export function resolveSafeWorkspacePath(
     );
   }
 
-  // 2. Symlink escape check: if path or any existing ancestor is a symlink, verify realpath
-  if (fsSync.existsSync(targetFile)) {
-    try {
-      const realTarget = fsSync.realpathSync(targetFile);
-      const realWorkspace = fsSync.realpathSync(normalizedWorkspace);
-      const realRelative = path.relative(realWorkspace, realTarget);
-      if (realRelative.startsWith("..") || path.isAbsolute(realRelative)) {
-        throw new Error(
-          `Security violation: Symlink target "${realTarget}" resolves outside workspace boundary "${realWorkspace}"`,
-        );
+  // 2. Symlink escape check: verify realpath for target and every existing ancestor within workspace
+  try {
+    const realWorkspace = fsSync.existsSync(normalizedWorkspace)
+      ? fsSync.realpathSync(normalizedWorkspace)
+      : normalizedWorkspace;
+
+    let checkPath = targetFile;
+    while (checkPath.length >= normalizedWorkspace.length) {
+      if (fsSync.existsSync(checkPath)) {
+        const realCurrent = fsSync.realpathSync(checkPath);
+        const realRelative = path.relative(realWorkspace, realCurrent);
+        if (realRelative.startsWith("..") || path.isAbsolute(realRelative)) {
+          throw new Error(
+            `Security violation: Target or ancestor path "${checkPath}" resolves outside workspace boundary "${realWorkspace}"`,
+          );
+        }
       }
-    } catch (err) {
-      if (err instanceof Error && err.message.includes("Security violation")) {
-        throw err;
-      }
+      if (checkPath === normalizedWorkspace) break;
+      const parent = path.dirname(checkPath);
+      if (parent === checkPath) break;
+      checkPath = parent;
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("Security violation")) {
+      throw err;
     }
   }
 
@@ -106,8 +116,11 @@ export async function writeWorkspaceFile(
   const startTime = Date.now();
   try {
     const targetFile = resolveSafeWorkspacePath(workspacePath, relativeFilePath);
-    await fs.mkdir(path.dirname(targetFile), { recursive: true });
-    await fs.writeFile(targetFile, content, "utf-8");
+    const parentDir = path.dirname(targetFile);
+    await fs.mkdir(parentDir, { recursive: true });
+    // Re-verify safe resolution after creating parent directory to prevent symlink substitution
+    const verifiedTarget = resolveSafeWorkspacePath(workspacePath, relativeFilePath);
+    await fs.writeFile(verifiedTarget, content, "utf-8");
     return {
       success: true,
       output: `Successfully wrote ${Buffer.byteLength(content, "utf-8")} bytes to ${relativeFilePath}`,

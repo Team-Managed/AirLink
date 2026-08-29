@@ -1,4 +1,4 @@
-import type { BYOKConfig } from "@agent-remote/protocol";
+import type { BYOKConfig } from "@airlink/protocol";
 
 export type FreeProvider =
   | "groq"

@@ -8,6 +8,7 @@ export interface ActiveSessionRecord {
   relayUrl: string;
   model: string;
   workspacePath: string;
+  hostSecret?: string | undefined;
   createdAt: number;
   updatedAt: number;
 }

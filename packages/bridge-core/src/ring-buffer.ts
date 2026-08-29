@@ -1,4 +1,4 @@
-import type { AgentStream } from "@agent-remote/protocol";
+import type { AgentStream } from "@airlink/protocol";
 
 /**
  * RingBuffer

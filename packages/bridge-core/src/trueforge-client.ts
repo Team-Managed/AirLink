@@ -1,5 +1,5 @@
 import { TrueForge as TrueForgeSDK } from "@truefoundry/trueforge-sdk";
-import type { BYOKConfig, AgentStream } from "@agent-remote/protocol";
+import type { BYOKConfig, AgentStream } from "@airlink/protocol";
 import { RingBuffer } from "./ring-buffer.js";
 import { LLMRunner, type ChatMessageParam, type ProviderConfig } from "./llm-runner.js";
 import { PromptBuilder } from "./prompt-builder.js";
