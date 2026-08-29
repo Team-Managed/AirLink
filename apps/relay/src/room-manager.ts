@@ -4,6 +4,7 @@ export interface RoomSession {
   hostSocketIds: string[];
   hostName: string;
   workspacePath: string;
+  hostSecret?: string | undefined;
   clientSocketId?: string | undefined;
   clientName?: string | undefined;
   createdAt: number;
@@ -33,7 +34,7 @@ export class RoomManager {
   /**
    * Registers a host socket to a room session keyed by PIN.
    * If the room already exists (e.g. CLI started first, then VS Code connects with same PIN),
-   * synchronizes the new host socket into the active room without evicting connected clients.
+   * synchronizes the new host socket into the active room if authenticated with matching hostSecret.
    */
   createRoom(
     pin: string,
@@ -41,7 +42,8 @@ export class RoomManager {
     hostName: string,
     workspacePath: string,
     ttlMs?: number,
-  ): RoomSession {
+    hostSecret?: string,
+  ): RoomSession | null {
     // 1. If this host socket previously created another PIN room, unmap it
     const existingPinForHost = this._hostSocketToPin.get(hostSocketId);
     if (existingPinForHost && existingPinForHost !== pin) {
@@ -58,6 +60,11 @@ export class RoomManager {
         // Room has expired: clean it up completely to prevent resurrection of stale client sockets
         this.removeRoom(pin);
       } else {
+        // Host authentication: If the room was created with a hostSecret, verify matching hostSecret
+        if (existingRoom.hostSecret && existingRoom.hostSecret !== hostSecret) {
+          return null;
+        }
+
         existingRoom.expiresAt = now + duration;
         if (!existingRoom.hostSocketIds.includes(hostSocketId)) {
           existingRoom.hostSocketIds.push(hostSocketId);
@@ -81,13 +88,13 @@ export class RoomManager {
       hostSocketIds: [hostSocketId],
       hostName,
       workspacePath,
+      hostSecret: hostSecret ?? undefined,
       createdAt: now,
       expiresAt: now + duration,
     };
 
     this._rooms.set(pin, session);
     this._hostSocketToPin.set(hostSocketId, pin);
-
     return session;
   }
 
