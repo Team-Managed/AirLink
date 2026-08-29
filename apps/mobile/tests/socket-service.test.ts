@@ -5,7 +5,7 @@ import {
   type SessionConnected,
   type AgentStream,
   type ApprovalRequest,
-} from "@agent-remote/protocol";
+} from "@airlink/protocol";
 
 describe("Mobile Socket Service", () => {
   let service: MobileSocketService;

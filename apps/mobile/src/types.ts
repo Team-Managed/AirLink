@@ -8,7 +8,7 @@ import type {
   StreamBatch,
   StreamEventType,
   ToolMetadata,
-} from "@agent-remote/protocol";
+} from "@airlink/protocol";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "paired" | "reconnecting";
 
