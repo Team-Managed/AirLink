@@ -2,7 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import type { SessionConnected } from "@agent-remote/protocol";
+import type { SessionConnected } from "@airlink/protocol";
+import { AirLinkAgentLogo } from "../ui/AirLinkAgentLogo";
 
 interface PairHeaderProps {
   isConnected: boolean;
@@ -23,10 +24,21 @@ export function PairHeader({
     <header style={styles.header}>
       <div style={styles.headerLeft}>
         <Link href="/" style={styles.backLink}>
-          [Home]
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+          >
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+          <span>Home</span>
         </Link>
         <div style={styles.brandGroup}>
-          <span style={styles.brandTitle}>AGENT REMOTE WEB</span>
+          <AirLinkAgentLogo size={26} />
+          <span style={styles.brandTitle}>AIRLINK WEB REMOTE</span>
         </div>
         {isConnected && (
           <span style={styles.connectedBadge}>
@@ -52,12 +64,16 @@ export function PairHeader({
 
 const styles: Record<string, React.CSSProperties> = {
   header: {
-    backgroundColor: "#0f172a",
-    borderBottom: "1px solid #1e293b",
+    backgroundColor: "rgba(186, 203, 217, 0.82)",
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    borderBottom: "1px solid rgba(24, 32, 48, 0.12)",
     padding: "12px 24px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+    position: "relative",
+    zIndex: 20,
   },
   headerLeft: {
     display: "flex",
@@ -65,50 +81,75 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 16,
   },
   backLink: {
-    color: "#94a3b8",
-    fontSize: 13,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    color: "#182030",
+    fontSize: 12,
     fontWeight: 600,
+    padding: "5px 10px",
+    borderRadius: 6,
+    backgroundColor: "#ebe3d9",
+    border: "1px solid rgba(24, 32, 48, 0.15)",
   },
   brandGroup: {
     display: "flex",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
+  },
+  logoIcon: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: "rgba(224, 138, 91, 0.14)",
+    border: "1px solid rgba(224, 138, 91, 0.3)",
   },
   brandTitle: {
     fontFamily: "var(--font-mono)",
     fontWeight: 800,
-    fontSize: 14,
-    letterSpacing: 1,
+    fontSize: 13.5,
+    letterSpacing: 0.8,
+    color: "#182030",
   },
   connectedBadge: {
-    color: "#22c55e",
-    fontSize: 12,
+    color: "#228a7a",
+    fontSize: 11.5,
     fontFamily: "var(--font-mono)",
-    backgroundColor: "rgba(34, 197, 94, 0.1)",
-    padding: "2px 8px",
-    borderRadius: 12,
+    backgroundColor: "rgba(34, 138, 122, 0.12)",
+    border: "1px solid rgba(34, 138, 122, 0.3)",
+    padding: "3px 10px",
+    borderRadius: 9999,
+    fontWeight: 700,
   },
   headerRight: {
     display: "flex",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
   settingsBtn: {
-    backgroundColor: "#1e293b",
-    border: "1px solid #334155",
-    color: "#cbd5e1",
-    padding: "6px 12px",
+    backgroundColor: "#f6efe9",
+    border: "1px solid rgba(24, 32, 48, 0.16)",
+    color: "#182030",
+    padding: "6px 14px",
     borderRadius: 6,
     fontSize: 12,
+    fontWeight: 600,
     cursor: "pointer",
+    boxShadow: "0 1px 3px rgba(24, 32, 48, 0.06)",
+    transition: "all 0.15s ease",
   },
   disconnectBtn: {
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
-    border: "1px solid #ef4444",
-    color: "#ef4444",
-    padding: "6px 12px",
+    backgroundColor: "rgba(199, 68, 68, 0.12)",
+    border: "1px solid rgba(199, 68, 68, 0.3)",
+    color: "#c74444",
+    padding: "6px 14px",
     borderRadius: 6,
     fontSize: 12,
+    fontWeight: 600,
     cursor: "pointer",
+    transition: "all 0.15s ease",
   },
 };

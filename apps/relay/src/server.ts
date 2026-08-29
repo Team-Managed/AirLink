@@ -14,7 +14,7 @@ import {
   StreamBatchSchema,
   StandardError,
   StandardErrorSchema,
-} from "@agent-remote/protocol";
+} from "@airlink/protocol";
 import { IPRateLimiter, RateLimiterOptions } from "./rate-limiter.js";
 import { RoomManager, RoomManagerOptions } from "./room-manager.js";
 
@@ -40,8 +40,12 @@ function getClientIp(socket: Socket, trustProxy: boolean = false): string {
   if (trustProxy) {
     const forwarded = socket.handshake.headers["x-forwarded-for"];
     if (typeof forwarded === "string") {
-      const first = forwarded.split(",")[0]?.trim();
-      if (first) return first;
+      // Split hops and parse client address
+      const ips = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
+      if (ips.length > 0) {
+        // When behind trusted reverse proxies, the leftmost non-empty IP is the client IP
+        return ips[0] ?? socket.handshake.address ?? "127.0.0.1";
+      }
     }
   }
   return socket.handshake.address || "127.0.0.1";
@@ -52,7 +56,8 @@ function getClientIp(socket: Socket, trustProxy: boolean = false): string {
  */
 export function createRelayServer(options: RelayServerOptions = {}): RelayServerInstance {
   const port = options.port ?? Number(process.env.PORT || 3001);
-  const trustProxy = options.trustProxy ?? false;
+  const trustProxy =
+    options.trustProxy ?? (process.env.TRUST_PROXY === "true" || process.env.TRUST_PROXY === "1");
   const cleanupIntervalMs = options.cleanupIntervalMs ?? 60_000; // 1 minute
 
   const roomManager = new RoomManager(options.roomOptions);
@@ -93,6 +98,24 @@ export function createRelayServer(options: RelayServerOptions = {}): RelayServer
       return;
     }
 
+    if (req.method === "GET" && (req.url === "/" || req.url === "/api")) {
+      const body = JSON.stringify({
+        name: "AirLink WebSocket Relay",
+        status: "ok",
+        version: "0.1.0",
+        activeRooms: roomManager.getActiveRoomCount(),
+        health: "/health",
+        timestamp: Date.now(),
+      });
+
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+      });
+      res.end(body);
+      return;
+    }
+
     res.writeHead(404, { "Content-Type": "text/plain" });
     res.end("Not Found");
   });
@@ -121,8 +144,17 @@ export function createRelayServer(options: RelayServerOptions = {}): RelayServer
         return;
       }
 
-      const { pin, hostName, workspacePath } = parsed.data;
-      roomManager.createRoom(pin, socket.id, hostName, workspacePath);
+      const { pin, hostName, workspacePath, hostSecret } = parsed.data;
+      const room = roomManager.createRoom(pin, socket.id, hostName, workspacePath, undefined, hostSecret);
+      if (!room) {
+        const err: StandardError = {
+          code: "UNAUTHORIZED_HOST",
+          message: "Invalid host credentials for existing room.",
+        };
+        socket.emit(SOCKET_EVENTS.ERROR, StandardErrorSchema.parse(err));
+        return;
+      }
+
       socket.join(pin);
       console.log(
         `[Relay] [Host] Connected & registered room PIN: ${pin.slice(0, 3)}-${pin.slice(3)} (Host: ${hostName})`,

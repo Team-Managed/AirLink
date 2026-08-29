@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ApprovalManager } from "../src/approval-handler.js";
-import { APPROVAL_TIMEOUT_MS, ApprovalRequest, ApprovalResponse } from "@agent-remote/protocol";
+import { APPROVAL_TIMEOUT_MS, ApprovalRequest, ApprovalResponse } from "@airlink/protocol";
 
 describe("ApprovalManager", () => {
   let manager: ApprovalManager;

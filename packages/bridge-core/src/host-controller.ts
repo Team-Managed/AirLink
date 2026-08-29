@@ -1,10 +1,11 @@
 import * as os from "node:os";
+import * as crypto from "node:crypto";
 import type {
   AgentStream,
   ApprovalRequest,
   SessionConnected,
   BYOKConfig,
-} from "@agent-remote/protocol";
+} from "@airlink/protocol";
 import { TrueForgeClient, type TrueForgeSession } from "./trueforge-client.js";
 import { SocketBridge } from "./socket-bridge.js";
 import { saveActiveSession, loadActiveSession, clearActiveSession } from "./session-persistence.js";
@@ -162,11 +163,18 @@ export class AgentHostController {
       workspacePath: this._workspacePath,
     });
 
+    const existingSession = loadActiveSession(this._workspacePath);
+    const hostSecret =
+      existingSession && existingSession.pin === this._pin && existingSession.hostSecret
+        ? existingSession.hostSecret
+        : crypto.randomUUID();
+
     this._bridge = new SocketBridge({
       relayUrl: this._relayUrl,
       pin: this._pin,
       hostName: this._hostName,
       workspacePath: this._workspacePath,
+      hostSecret,
       autoConnect: this._autoConnect,
     });
 
@@ -177,6 +185,7 @@ export class AgentHostController {
       relayUrl: this._relayUrl,
       model: this._session.defaultModel,
       workspacePath: this._workspacePath,
+      hostSecret,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });

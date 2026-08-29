@@ -1,7 +1,7 @@
 {
-  "name": "@agent-remote/mobile",
+  "name": "@airlink/mobile",
   "version": "0.1.0",
-  "description": "Cross-platform React Native Expo mobile control client for Agent Remote with pairing, live streaming, diff card, and approval drawer",
+  "description": "Cross-platform React Native Expo mobile control client for AirLink with pairing, live streaming, diff card, and approval drawer",
   "main": "index.ts",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -18,7 +18,7 @@
     "start": "expo start"
   },
   "dependencies": {
-    "@agent-remote/protocol": "workspace:*",
+    "@airlink/protocol": "workspace:*",
     "@expo/metro-runtime": "^6.1.2",
     "expo": "~54.0.27",
     "expo-secure-store": "~14.0.1",

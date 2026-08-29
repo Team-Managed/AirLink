@@ -1,7 +1,7 @@
 {
-  "name": "@agent-remote/web",
+  "name": "@airlink/web",
   "version": "0.1.0",
-  "description": "Next.js Web Landing Page, Interactive Demo Simulator, and Browser-Based Remote Control Client for Agent Remote",
+  "description": "Next.js Web Landing Page, Interactive Demo Simulator, and Browser-Based Remote Control Client for AirLink",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,7 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@agent-remote/protocol": "workspace:*",
+    "@airlink/protocol": "workspace:*",
+    "gsap": "^3.15.0",
     "next": "^15.1.0",
     "react": "19.1.0",
     "react-dom": "^19.1.0",

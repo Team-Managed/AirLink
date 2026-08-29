@@ -13,7 +13,7 @@ import {
   ClientSync,
   StreamBatch,
   StandardError,
-} from "@agent-remote/protocol";
+} from "@airlink/protocol";
 
 function waitForConnect(socket: ClientSocket): Promise<void> {
   if (socket.connected) return Promise.resolve();
@@ -46,6 +46,15 @@ describe("Relay Server Integration", () => {
     expect(json.status).toBe("ok");
     expect(typeof json.activeRooms).toBe("number");
     expect(typeof json.timestamp).toBe("number");
+  });
+
+  it("exposes GET / endpoint returning friendly JSON greeting and health route info", async () => {
+    const res = await fetch(`${serverUrl}/`);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { name: string; status: string; version: string; health: string };
+    expect(json.name).toBe("AirLink WebSocket Relay");
+    expect(json.status).toBe("ok");
+    expect(json.health).toBe("/health");
   });
 
   it("handles host registration, client pairing, and bidirectional message routing", async () => {

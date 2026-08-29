@@ -12,7 +12,7 @@ import {
   type SessionConnected,
   type StandardError,
   type StreamBatch,
-} from "@agent-remote/protocol";
+} from "@airlink/protocol";
 
 export type SocketEventHandler<T> = (payload: T) => void;
 

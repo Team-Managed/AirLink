@@ -1,5 +1,5 @@
 {
-  "name": "@agent-remote/protocol",
+  "name": "@airlink/protocol",
   "version": "0.1.0",
   "description": "Single-source-of-truth Zod schemas and TypeScript protocol contracts for Agent Remote",
   "type": "module",

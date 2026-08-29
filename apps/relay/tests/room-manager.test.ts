@@ -66,17 +66,32 @@ describe("RoomManager", () => {
   });
 
   it("synchronizes multiple hosts registered with the same PIN without evicting existing clients", () => {
-    manager.createRoom("PIN_SAME", "host_old", "Old Host", "/old");
+    manager.createRoom("PIN_SAME", "host_old", "Old Host", "/old", undefined, "secret-token-123");
     manager.pairClient("PIN_SAME", "client_old", "Old Client");
 
-    // Second host (e.g. VS Code) registers with the same PIN
-    const syncRoom = manager.createRoom("PIN_SAME", "host_new", "New Host", "/new");
+    // Second host (e.g. VS Code) registers with the same PIN and matching secret
+    const syncRoom = manager.createRoom("PIN_SAME", "host_new", "New Host", "/new", undefined, "secret-token-123");
 
+    expect(syncRoom).toBeDefined();
     expect(manager.getRoomByHostSocketId("host_old")?.pin).toBe("PIN_SAME");
     expect(manager.getRoomByHostSocketId("host_new")?.pin).toBe("PIN_SAME");
     expect(manager.getRoomByClientSocketId("client_old")?.pin).toBe("PIN_SAME");
-    expect(syncRoom.hostSocketIds).toContain("host_old");
-    expect(syncRoom.hostSocketIds).toContain("host_new");
+    expect(syncRoom?.hostSocketIds).toContain("host_old");
+    expect(syncRoom?.hostSocketIds).toContain("host_new");
+  });
+
+  it("rejects unauthorized host registration when hostSecret does not match", () => {
+    const room = manager.createRoom("PIN_SEC", "host_1", "Host 1", "/p1", undefined, "secret-12345");
+    expect(room).toBeDefined();
+
+    // Wrong secret
+    const badJoin = manager.createRoom("PIN_SEC", "host_2", "Host 2", "/p2", undefined, "wrong-secret");
+    expect(badJoin).toBeNull();
+
+    // Matching secret
+    const goodJoin = manager.createRoom("PIN_SEC", "host_3", "Host 3", "/p3", undefined, "secret-12345");
+    expect(goodJoin).toBeDefined();
+    expect(goodJoin?.hostSocketIds).toContain("host_3");
   });
 
   it("revokes displaced client authorization when a new client pairs", () => {

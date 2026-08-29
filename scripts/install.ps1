@@ -20,15 +20,15 @@ if (-not $NodePath) {
 $NodeVersion = node -v
 Write-Host "[OK] Found Node.js: $NodeVersion" -ForegroundColor Green
 
-# Install @agent-remote/cli globally via npm
-Write-Host "Installing @agent-remote/cli globally..." -ForegroundColor White
+# Install @airlink/cli globally via npm
+Write-Host "Installing @airlink/cli globally..." -ForegroundColor White
 
 try {
-    npm install -g @agent-remote/cli --loglevel=error
+    npm install -g @airlink/cli --loglevel=error
     if ($LASTEXITCODE -ne 0) {
         throw "npm install exited with code $LASTEXITCODE"
     }
-    Write-Host "[OK] Successfully installed @agent-remote/cli!" -ForegroundColor Green
+    Write-Host "[OK] Successfully installed @airlink/cli!" -ForegroundColor Green
     Write-Host ""
     Write-Host "To start your agent harness in any repository, simply run:" -ForegroundColor Cyan
     Write-Host "   agent-remote" -ForegroundColor Green
@@ -36,5 +36,5 @@ try {
 } catch {
     Write-Host "[WARN] Global install failed (exit code $LASTEXITCODE). Check permissions or npm configuration." -ForegroundColor Yellow
     Write-Host "Alternatively, you can run directly without installing:" -ForegroundColor White
-    Write-Host "   npx @agent-remote/cli" -ForegroundColor Green
+    Write-Host "   npx @airlink/cli" -ForegroundColor Green
 }

@@ -1,4 +1,4 @@
-import type { BYOKConfig, LLMProvider } from "@agent-remote/protocol";
+import type { BYOKConfig, LLMProvider } from "@airlink/protocol";
 
 const KEY_PREFIX = "agent_remote_byok_";
 const ACTIVE_PROVIDER_KEY = "agent_remote_active_provider";
@@ -79,9 +79,14 @@ export class SecureVaultService {
         });
         return;
       } catch (err) {
-        // Fall back to web/memory if secure store fails
+        // Fall back to memory if secure store fails
         console.warn(`[Vault] SecureStore set failed for ${key}:`, err);
       }
+    }
+
+    // Security check: NEVER write sensitive API keys to unencrypted browser localStorage
+    if (key.startsWith(KEY_PREFIX)) {
+      return;
     }
 
     if (typeof localStorage !== "undefined") {
@@ -100,11 +105,12 @@ export class SecureVaultService {
         const nativeVal = await secureStore.getItemAsync(key);
         if (nativeVal !== null) return nativeVal;
       } catch {
-        // Fall back to web/memory
+        // Fall back to memory
       }
     }
 
-    if (typeof localStorage !== "undefined") {
+    // Security check: NEVER read sensitive API keys from unencrypted localStorage
+    if (!key.startsWith(KEY_PREFIX) && typeof localStorage !== "undefined") {
       try {
         const val = localStorage.getItem(key);
         if (val !== null) return val;
@@ -123,7 +129,7 @@ export class SecureVaultService {
       try {
         await secureStore.deleteItemAsync(key);
       } catch {
-        // Fallback to web/memory
+        // Fallback to memory
       }
     }
 
@@ -134,6 +140,14 @@ export class SecureVaultService {
         // Fallback to in-memory store
       }
     }
+  }
+
+  /**
+   * Returns true if hardware-backed encrypted storage (Keychain/Keystore) is active.
+   */
+  public async isHardwareSecured(): Promise<boolean> {
+    const store = await this.getSecureStore();
+    return store !== null;
   }
 
   /**

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { ApprovalRequest } from "@agent-remote/protocol";
+import type { ApprovalRequest } from "@airlink/protocol";
 
 describe("Approval Drawer Logic & Invariants", () => {
   const sampleApproval: ApprovalRequest = {

@@ -6,28 +6,91 @@ import Link from "next/link";
 export function HeroSection() {
   return (
     <section style={styles.heroSection}>
-      <div style={styles.heroTagContainer}>
-        <span style={styles.heroTag}>OPEN-SOURCE CODING AGENT REMOTE HARNESS</span>
+      {/* Dynamic Pill Badge */}
+      <div style={styles.badgeWrapper}>
+        <div style={styles.pillBadge} className="gradient-badge">
+          <span style={styles.livePulseDot} />
+          <span style={styles.badgeText}>
+            AIRLINK v0.1.0 &bull; OVER-THE-AIR AGENT TELEOPERATION
+          </span>
+        </div>
       </div>
 
+      {/* Main Hero Headline */}
       <h1 style={styles.heroTitle}>
-        Control Your Local Coding Agent <br />
-        <span style={styles.heroGradient}>From Anywhere</span>
+        Pilot Your Local Coding Agent <br />
+        <span className="gradient-text">From Your Pocket</span>
       </h1>
 
+      {/* Subtitle */}
       <p style={styles.heroSubtitle}>
-        Zero port-forwarding remote harness for TrueForge, DeepSeek R1, 0x Alpha, and Claude. Stream
-        tokens in real time, review unified Git diffs, and approve sensitive bash commands directly
-        from your phone or browser.
+        Zero-configuration, zero-port-forwarding wireless harness for{" "}
+        <strong style={{ color: "#f8fafc" }}>TrueForge</strong>,{" "}
+        <strong style={{ color: "#f8fafc" }}>DeepSeek R1</strong>,{" "}
+        <strong style={{ color: "#f8fafc" }}>0x Alpha</strong>, and{" "}
+        <strong style={{ color: "#f8fafc" }}>Claude</strong>. Stream live tokens, review unified
+        Git diffs, and approve or reject sensitive terminal actions with a 180s Human-in-the-Loop
+        gate.
       </p>
 
-      <div style={styles.heroCtaRow}>
-        <Link href="/pair" style={styles.primaryCta}>
-          Launch Web Remote
+      {/* Action Buttons */}
+      <div style={styles.ctaRow}>
+        <Link href="/pair" className="primary-glowing-btn" style={styles.primaryCta}>
+          <span>Launch Web Remote</span>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M5 12h14" />
+            <path d="m12 5 7 7-7 7" />
+          </svg>
         </Link>
-        <a href="#install" style={styles.secondaryCta}>
-          Install Local CLI
+        <a href="#install" className="secondary-glowing-btn" style={styles.secondaryCta}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ opacity: 0.8 }}
+          >
+            <polyline points="4 17 10 11 4 5" />
+            <line x1="12" y1="19" x2="20" y2="19" />
+          </svg>
+          <span>Install Local CLI</span>
         </a>
+      </div>
+
+      {/* Trust & Metric Highlights Bar */}
+      <div style={styles.metricsBar} className="glass-panel">
+        <div style={styles.metricItem}>
+          <span style={styles.metricValue}>0ms</span>
+          <span style={styles.metricLabel}>Port Forwarding</span>
+        </div>
+        <div style={styles.metricDivider} />
+        <div style={styles.metricItem}>
+          <span style={styles.metricValue}>100%</span>
+          <span style={styles.metricLabel}>Local Execution</span>
+        </div>
+        <div style={styles.metricDivider} />
+        <div style={styles.metricItem}>
+          <span style={styles.metricValue}>180s</span>
+          <span style={styles.metricLabel}>HITL Safety Gate</span>
+        </div>
+        <div style={styles.metricDivider} />
+        <div style={styles.metricItem}>
+          <span style={styles.metricValue}>500 Ev</span>
+          <span style={styles.metricLabel}>Offline Ring Buffer</span>
+        </div>
       </div>
     </section>
   );
@@ -35,67 +98,113 @@ export function HeroSection() {
 
 const styles: Record<string, React.CSSProperties> = {
   heroSection: {
-    maxWidth: 900,
+    maxWidth: 960,
     margin: "0 auto",
-    padding: "80px 24px 40px",
+    padding: "90px 24px 40px",
     textAlign: "center",
+    position: "relative",
+    zIndex: 10,
   },
-  heroTagContainer: {
-    marginBottom: 20,
+  badgeWrapper: {
+    display: "flex",
+    justifyContent: "center",
+    marginBottom: 24,
   },
-  heroTag: {
-    display: "inline-block",
-    backgroundColor: "rgba(56, 189, 248, 0.1)",
-    border: "1px solid rgba(56, 189, 248, 0.3)",
-    color: "#38bdf8",
-    padding: "6px 14px",
-    borderRadius: 20,
+  pillBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "6px 16px",
+    borderRadius: 9999,
+  },
+  livePulseDot: {
+    width: 7,
+    height: 7,
+    borderRadius: "50%",
+    backgroundColor: "#38bdf8",
+    boxShadow: "0 0 10px #38bdf8",
+    animation: "blinkCursor 1.5s infinite",
+  },
+  badgeText: {
     fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: 1,
+    fontWeight: 800,
+    letterSpacing: 1.2,
     fontFamily: "var(--font-mono)",
   },
   heroTitle: {
-    fontSize: "clamp(32px, 5vw, 56px)",
+    fontSize: "clamp(36px, 5.5vw, 64px)",
     fontWeight: 900,
-    lineHeight: 1.1,
-    letterSpacing: -1,
+    lineHeight: 1.08,
+    letterSpacing: -1.5,
     color: "#f8fafc",
     marginBottom: 24,
   },
-  heroGradient: {
-    background: "linear-gradient(135deg, #38bdf8 0%, #a855f7 100%)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-  },
   heroSubtitle: {
     fontSize: "clamp(15px, 2vw, 18px)",
-    lineHeight: 1.6,
+    lineHeight: 1.65,
     color: "#94a3b8",
-    maxWidth: 720,
-    margin: "0 auto 36px",
+    maxWidth: 740,
+    margin: "0 auto 38px",
   },
-  heroCtaRow: {
+  ctaRow: {
     display: "flex",
     justifyContent: "center",
     gap: 16,
     flexWrap: "wrap",
+    marginBottom: 50,
   },
   primaryCta: {
-    backgroundColor: "#38bdf8",
-    color: "#090d16",
-    padding: "12px 28px",
-    borderRadius: 8,
-    fontWeight: 800,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "14px 32px",
+    borderRadius: 10,
     fontSize: 15,
+    cursor: "pointer",
   },
   secondaryCta: {
-    backgroundColor: "#1e293b",
-    border: "1px solid #334155",
-    color: "#f8fafc",
-    padding: "12px 28px",
-    borderRadius: 8,
-    fontWeight: 700,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "14px 28px",
+    borderRadius: 10,
     fontSize: 15,
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  metricsBar: {
+    display: "flex",
+    justifyContent: "space-around",
+    alignItems: "center",
+    maxWidth: 780,
+    margin: "0 auto",
+    padding: "16px 24px",
+    borderRadius: 14,
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  metricItem: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 2,
+  },
+  metricValue: {
+    fontSize: 16,
+    fontWeight: 800,
+    color: "#f8fafc",
+    fontFamily: "var(--font-mono)",
+  },
+  metricLabel: {
+    fontSize: 11,
+    color: "#64748b",
+    fontWeight: 600,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+  metricDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
   },
 };

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { SocketBridge } from "../src/socket-bridge.js";
 import { ApprovalManager } from "../src/approval-handler.js";
-import { ApprovalRequest } from "@agent-remote/protocol";
+import { ApprovalRequest } from "@airlink/protocol";
 
 describe("SocketBridge", () => {
   let bridge: SocketBridge;

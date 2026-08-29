@@ -13,7 +13,7 @@ import {
   saveActiveSession,
   loadActiveSession,
   clearActiveSession,
-} from "@agent-remote/bridge-core";
+} from "@airlink/bridge-core";
 import { AgentChatViewProvider } from "./chat-webview.js";
 
 // ── Module-level bridge state ────────────────────────────────────────────────
@@ -248,7 +248,7 @@ export function activate(context: vscode.ExtensionContext): void {
   async function dispatchTurn(
     promptText: string,
     origin: "local" | "remote",
-    byokConfig?: import("@agent-remote/protocol").BYOKConfig,
+    byokConfig?: import("@airlink/protocol").BYOKConfig,
   ): Promise<void> {
     if (!activeSession || !activeBridge) {
       initializeBridge(currentPin);

@@ -3,6 +3,7 @@
 import React, { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useWebSession } from "../../hooks/useWebSession";
+import { DitheredBackground } from "../../components/landing/DitheredBackground";
 import { PairHeader } from "../../components/pair/PairHeader";
 import { PairingCard } from "../../components/pair/PairingCard";
 import { WebTerminalFeed } from "../../components/pair/WebTerminalFeed";
@@ -51,62 +52,66 @@ function WebPairClient() {
 
   return (
     <div style={styles.webContainer}>
-      {/* Top Bar */}
-      <PairHeader
-        isConnected={isConnected}
-        sessionData={sessionData}
-        showSettings={showSettings}
-        onToggleSettings={() => setShowSettings(!showSettings)}
-        onDisconnect={disconnect}
-      />
+      <DitheredBackground />
 
-      {/* Notifications */}
-      {reconnectToast && (
-        <div style={styles.toastBanner}>
-          <span>{reconnectToast}</span>
-        </div>
-      )}
-      {errorBanner && (
-        <div style={styles.errorBanner}>
-          <span>{errorBanner}</span>
-        </div>
-      )}
-
-      {/* Settings Modal */}
-      {showSettings && (
-        <WebSettingsModal
-          provider={provider}
-          model={model}
-          apiKey={apiKey}
-          showApiKey={showApiKey}
-          onProviderChange={setProvider}
-          onModelChange={setModel}
-          onApiKeyChange={setApiKey}
-          onToggleShowApiKey={() => setShowApiKey(!showApiKey)}
-          onClose={() => setShowSettings(false)}
+      <div style={styles.relativeContent}>
+        {/* Top Bar */}
+        <PairHeader
+          isConnected={isConnected}
+          sessionData={sessionData}
+          showSettings={showSettings}
+          onToggleSettings={() => setShowSettings(!showSettings)}
+          onDisconnect={disconnect}
         />
-      )}
 
-      {/* Main Content: Pairing View vs Live Session View */}
-      {!isConnected ? (
-        <PairingCard
-          pin={pin}
-          relayUrl={relayUrl}
-          isConnecting={isConnecting}
-          onPinChange={setPin}
-          onRelayUrlChange={setRelayUrl}
-          onConnect={connect}
-        />
-      ) : (
-        <div style={styles.sessionContainer}>
-          <WebTerminalFeed feedItems={feedItems} isStreaming={isStreaming} />
-          <WebPromptBar isStreaming={isStreaming} onSendPrompt={sendPrompt} />
+        {/* Notifications */}
+        {reconnectToast && (
+          <div style={styles.toastBanner}>
+            <span>{reconnectToast}</span>
+          </div>
+        )}
+        {errorBanner && (
+          <div style={styles.errorBanner}>
+            <span>{errorBanner}</span>
+          </div>
+        )}
 
-          {activeApproval && (
-            <WebApprovalModal activeApproval={activeApproval} onApprove={approve} onDeny={deny} />
-          )}
-        </div>
-      )}
+        {/* Settings Modal */}
+        {showSettings && (
+          <WebSettingsModal
+            provider={provider}
+            model={model}
+            apiKey={apiKey}
+            showApiKey={showApiKey}
+            onProviderChange={setProvider}
+            onModelChange={setModel}
+            onApiKeyChange={setApiKey}
+            onToggleShowApiKey={() => setShowApiKey(!showApiKey)}
+            onClose={() => setShowSettings(false)}
+          />
+        )}
+
+        {/* Main Content: Pairing View vs Live Session View */}
+        {!isConnected ? (
+          <PairingCard
+            pin={pin}
+            relayUrl={relayUrl}
+            isConnecting={isConnecting}
+            onPinChange={setPin}
+            onRelayUrlChange={setRelayUrl}
+            onConnect={connect}
+          />
+        ) : (
+          <div style={styles.sessionContainer}>
+            <WebTerminalFeed feedItems={feedItems} isStreaming={isStreaming} />
+            <WebPromptBar isStreaming={isStreaming} onSendPrompt={sendPrompt} />
+
+            {activeApproval && (
+              <WebApprovalModal activeApproval={activeApproval} onApprove={approve} onDeny={deny} />
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -114,7 +119,7 @@ function WebPairClient() {
 export default function WebPairPage() {
   return (
     <Suspense
-      fallback={<div style={{ padding: 40, color: "#94a3b8" }}>Loading Web Remote Shell...</div>}
+      fallback={<div style={{ padding: 40, color: "#94a3b8" }}>Loading AirLink Web Remote...</div>}
     >
       <WebPairClient />
     </Suspense>
@@ -123,34 +128,43 @@ export default function WebPairPage() {
 
 const styles: Record<string, React.CSSProperties> = {
   webContainer: {
-    backgroundColor: "#090d16",
-    color: "#f8fafc",
+    backgroundColor: "#f8fafc",
+    color: "#0f172a",
     minHeight: "100vh",
+    position: "relative",
+    overflowX: "hidden",
+  },
+  relativeContent: {
+    position: "relative",
+    zIndex: 1,
     display: "flex",
     flexDirection: "column",
+    minHeight: "100vh",
   },
   toastBanner: {
-    backgroundColor: "rgba(56, 189, 248, 0.1)",
-    borderBottom: "1px solid #38bdf8",
+    backgroundColor: "rgba(34, 138, 122, 0.15)",
+    borderBottom: "1px solid #228a7a",
     padding: "6px 16px",
-    color: "#38bdf8",
+    color: "#228a7a",
     fontSize: 12,
     textAlign: "center",
     fontFamily: "var(--font-mono)",
+    fontWeight: 700,
   },
   errorBanner: {
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
-    borderBottom: "1px solid #ef4444",
+    backgroundColor: "rgba(199, 68, 68, 0.15)",
+    borderBottom: "1px solid #c74444",
     padding: "6px 16px",
-    color: "#ef4444",
+    color: "#c74444",
     fontSize: 12,
     textAlign: "center",
+    fontWeight: 700,
   },
   sessionContainer: {
     flex: 1,
     display: "flex",
     flexDirection: "column",
-    maxWidth: 1000,
+    maxWidth: 1040,
     margin: "0 auto",
     width: "100%",
     padding: "16px 20px",

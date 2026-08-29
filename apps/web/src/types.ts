@@ -3,7 +3,7 @@ import type {
   ApprovalRequest,
   ToolMetadata,
   StreamEventType,
-} from "@agent-remote/protocol";
+} from "@airlink/protocol";
 
 export type InstallTab = "windows" | "posix" | "npx";
 

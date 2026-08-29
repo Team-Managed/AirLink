@@ -30,7 +30,7 @@ describe("Structured Tool Calling Suite", () => {
       { path: "package.json" },
       process.cwd(),
     );
-    expect(fileResult).toMatch(/@agent-remote|agent-remote-monorepo/);
+    expect(fileResult).toMatch(/@airlink|airlink-monorepo|@agent-remote/);
   });
 
   it("handles structured mock tool actions and emits tool_call and tool_result events", async () => {

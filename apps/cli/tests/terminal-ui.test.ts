@@ -9,7 +9,7 @@ import {
   formatHistoryText,
   formatAvailableModelsList,
 } from "../src/terminal-ui.js";
-import type { AgentStream, ApprovalRequest } from "@agent-remote/protocol";
+import type { AgentStream, ApprovalRequest } from "@airlink/protocol";
 
 describe("Terminal UI Component Suite", () => {
   describe("formatPinDisplay", () => {
@@ -40,17 +40,16 @@ describe("Terminal UI Component Suite", () => {
       });
 
       expect(banner).toContain("834-192");
-      expect(banner).toContain("https://agent-remote.dev/pair?pin=834192");
-      expect(banner).toContain("http://localhost:3001");
+      expect(banner).toContain("https://airlink.dev/pair?pin=834192");
       expect(banner).toContain("/workspace/project");
       expect(banner).toContain("0x-alpha");
       expect(banner).toContain("dev-laptop");
-      expect(banner).toContain("AGENT REMOTE");
+      expect(banner).toMatch(/airlink/i);
     });
   });
 
   describe("formatStreamChunkText", () => {
-    it("formats thought chunks with italic styling and prefix", () => {
+    it("formats thought chunks with italic styling and content", () => {
       const chunk: AgentStream = {
         sessionId: "834192",
         turnId: "turn_1",
@@ -60,7 +59,6 @@ describe("Terminal UI Component Suite", () => {
         timestamp: Date.now(),
       };
       const text = formatStreamChunkText(chunk);
-      expect(text).toContain("[thought]");
       expect(text).toContain("Refactoring database connection logic");
     });
 
@@ -91,11 +89,11 @@ describe("Terminal UI Component Suite", () => {
         timestamp: Date.now(),
       };
       const text = formatStreamChunkText(chunk);
-      expect(text).toContain("Tool Call: execute_bash");
+      expect(text).toContain("Ran");
       expect(text).toContain("npm test");
     });
 
-    it("formats tool_result chunks with success prefix", () => {
+    it("formats tool_result chunks with result label", () => {
       const chunk: AgentStream = {
         sessionId: "834192",
         turnId: "turn_1",
@@ -134,8 +132,7 @@ describe("Terminal UI Component Suite", () => {
         timestamp: Date.now(),
       };
       const text = formatStreamChunkText(chunk);
-      expect(text).toContain("[Done]");
-      expect(text).toContain("Turn completed successfully.");
+      expect(text).toContain("Potential next step");
     });
   });
 

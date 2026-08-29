@@ -4,7 +4,7 @@ import {
   ApprovalRequestSchema,
   RiskLevel,
   APPROVAL_TIMEOUT_MS,
-} from "@agent-remote/protocol";
+} from "@airlink/protocol";
 
 export interface PendingApproval {
   request: ApprovalRequest;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { EventRingBuffer } from "../src/ring-buffer.js";
-import type { AgentStream, StreamBatch } from "@agent-remote/protocol";
+import type { AgentStream, StreamBatch } from "@airlink/protocol";
 
 describe("Reconnect Resilience & Stream Hydration (The Elevator Problem)", () => {
   it("replays strictly missed sequence IDs upon client:sync after disconnection", () => {

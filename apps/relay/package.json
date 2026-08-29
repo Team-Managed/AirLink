@@ -1,5 +1,5 @@
 {
-  "name": "@agent-remote/relay",
+  "name": "@airlink/relay",
   "version": "0.1.0",
   "description": "Stateless Socket.io cloud relay message bridge for remote coding agent control",
   "type": "module",
@@ -20,7 +20,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@agent-remote/protocol": "workspace:*",
+    "@airlink/protocol": "workspace:*",
     "dotenv": "^16.4.5",
     "socket.io": "^4.7.5"
   },

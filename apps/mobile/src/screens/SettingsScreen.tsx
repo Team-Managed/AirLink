@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_SPACING, THEME_RADII } from "../theme";
 import { vaultService } from "../services/vault";
 import { hapticsService } from "../services/haptics";
-import type { LLMProvider, BYOKConfig } from "@agent-remote/protocol";
+import type { LLMProvider, BYOKConfig } from "@airlink/protocol";
 
 export interface SettingsScreenProps {
   onClose: () => void;
@@ -43,16 +43,18 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
   const [baseUrl, setBaseUrl] = useState<string>("");
   const [isMasked, setIsMasked] = useState<boolean>(true);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [isLoadingProvider, setIsLoadingProvider] = useState<boolean>(false);
+  const providerLoadGenRef = useRef<number>(0);
 
-  // 1. On mount: load active configuration and set active provider
+  // 1. Initial mount load
   useEffect(() => {
-    void (async () => {
-      const activeConfig = await vaultService.getActiveConfig();
-      if (activeConfig) {
-        setSelectedProvider(activeConfig.provider);
-        setModelName(activeConfig.model);
-        setBaseUrl(activeConfig.baseUrl || "");
-        const storedKey = await vaultService.getApiKey(activeConfig.provider);
+    (async () => {
+      const active = await vaultService.getActiveConfig();
+      if (active) {
+        setSelectedProvider(active.provider);
+        setModelName(active.model);
+        setBaseUrl(active.baseUrl || "");
+        const storedKey = await vaultService.getApiKey(active.provider);
         setApiKey(storedKey || "");
       } else {
         const defaultProv: LLMProvider = "openrouter";
@@ -70,19 +72,34 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
     hapticsService.triggerSelection();
     setSelectedProvider(provider);
     setStatusMessage(null);
+    setIsLoadingProvider(true);
 
-    const storedKey = await vaultService.getApiKey(provider);
-    setApiKey(storedKey || "");
+    const loadId = ++providerLoadGenRef.current;
 
-    const activeConfig = await vaultService.getActiveConfig();
-    if (activeConfig && activeConfig.provider === provider) {
-      setModelName(activeConfig.model);
-      setBaseUrl(activeConfig.baseUrl || "");
-    } else {
-      setModelName(vaultService.getDefaultModel(provider));
-      // Clear custom base URL when switching to standard cloud providers
-      if (provider !== "custom" && provider !== "openrouter") {
-        setBaseUrl("");
+    try {
+      const storedKey = await vaultService.getApiKey(provider);
+      const activeConfig = await vaultService.getActiveConfig();
+
+      // Guard against out-of-order asynchronous completions
+      if (providerLoadGenRef.current !== loadId) {
+        return;
+      }
+
+      setApiKey(storedKey || "");
+
+      if (activeConfig && activeConfig.provider === provider) {
+        setModelName(activeConfig.model);
+        setBaseUrl(activeConfig.baseUrl || "");
+      } else {
+        setModelName(vaultService.getDefaultModel(provider));
+        // Clear custom base URL when switching to standard cloud providers
+        if (provider !== "custom" && provider !== "openrouter") {
+          setBaseUrl("");
+        }
+      }
+    } finally {
+      if (providerLoadGenRef.current === loadId) {
+        setIsLoadingProvider(false);
       }
     }
   };
@@ -94,6 +111,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
 
   const handleSave = async () => {
     hapticsService.triggerImpact("medium");
+    if (isLoadingProvider) {
+      setStatusMessage("Please wait, loading provider configuration...");
+      return;
+    }
+
     if (!modelName.trim()) {
       setStatusMessage("Error: Model name cannot be empty.");
       return;
@@ -138,8 +160,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
         onConfigSaved(savedConfig);
       }
 
+      const isHardwareSecured = await vaultService.isHardwareSecured();
+      const successNotice = isHardwareSecured
+        ? "[OK] Configuration saved to encrypted device keychain."
+        : "[OK] Configuration saved to in-memory session (Web).";
+
       hapticsService.triggerSuccess();
-      setStatusMessage("[OK] Configuration saved to secure keychain.");
+      setStatusMessage(successNotice);
       setTimeout(() => setStatusMessage(null), 3000);
     } catch (err) {
       hapticsService.triggerError();

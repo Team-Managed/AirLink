@@ -1,9 +1,10 @@
 {
-  "name": "@agent-remote/cli",
+  "name": "@airlink/cli",
   "version": "0.1.0",
-  "description": "Standalone interactive terminal CLI host and client for remote coding agent control",
+  "description": "AirLink interactive terminal CLI host and client for remote coding agent control",
   "type": "module",
   "bin": {
+    "airlink": "./dist/bin.js",
     "agent-remote": "./dist/bin.js"
   },
   "main": "./dist/index.js",
@@ -22,8 +23,8 @@
     "dev": "node dist/bin.js"
   },
   "dependencies": {
-    "@agent-remote/bridge-core": "workspace:*",
-    "@agent-remote/protocol": "workspace:*",
+    "@airlink/bridge-core": "workspace:*",
+    "@airlink/protocol": "workspace:*",
     "boxen": "^7.1.1",
     "chalk": "^5.3.0",
     "dotenv": "^16.4.5"
