@@ -50,7 +50,7 @@ import {
   MAX_RING_BUFFER_SIZE,
 } from "../src/index.js";
 
-describe("Protocol Contracts Suite (@agent-remote/protocol)", () => {
+describe("Protocol Contracts Suite (@airlink/protocol)", () => {
   describe("1. LLMProviderSchema & BYOKConfigSchema", () => {
     it("parses valid LLM providers", () => {
       expect(LLMProviderSchema.parse("openrouter")).toBe("openrouter");
