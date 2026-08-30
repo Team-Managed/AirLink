@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect } from "react";
+import { LoadingState } from "../ui/LoadingState";
 import type { WebFeedItem } from "../../types";
 
 interface WebTerminalFeedProps {
@@ -57,10 +58,8 @@ export function WebTerminalFeed({ feedItems, isStreaming }: WebTerminalFeedProps
       ))}
 
       {isStreaming && (
-        <div style={styles.streamingIndicator}>
-          <span style={styles.streamDot} />
-          <span>Agent is working...</span>
-          <span className="blinking-cursor" />
+        <div style={{ display: "flex", justifyContent: "flex-start", padding: "4px 0" }}>
+          <LoadingState label="Agent working..." variant="Drive" />
         </div>
       )}
       <div ref={feedEndRef} />
@@ -71,8 +70,8 @@ export function WebTerminalFeed({ feedItems, isStreaming }: WebTerminalFeedProps
 const styles: Record<string, React.CSSProperties> = {
   feedScroll: {
     flex: 1,
-    backgroundColor: "#161e2e",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
+    backgroundColor: "#0c1322",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
     borderRadius: 12,
     padding: 18,
     overflowY: "auto",
@@ -81,15 +80,15 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     gap: 12,
-    boxShadow: "0 10px 30px -5px rgba(24, 32, 48, 0.35)",
+    boxShadow: "0 10px 30px -5px rgba(0, 0, 0, 0.5)",
   },
   feedRow: {
     fontSize: 13,
     lineHeight: 1.6,
   },
   userRow: {
-    backgroundColor: "#1e293b",
-    borderLeft: "3px solid #e08a5b",
+    backgroundColor: "rgba(255, 255, 255, 0.07)",
+    borderLeft: "3px solid #38bdf8",
     padding: "8px 12px",
     borderRadius: "0 6px 6px 0",
     color: "#f8fafc",
@@ -101,8 +100,8 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: "pre-wrap",
   },
   thoughtCard: {
-    backgroundColor: "#1a2336",
-    border: "1px solid #2a374f",
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
     padding: 10,
     borderRadius: 6,
     color: "#94a3b8",
@@ -110,7 +109,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
   },
   thoughtTitle: {
-    color: "#e5b771",
+    color: "#38bdf8",
     fontWeight: 600,
     marginRight: 6,
   },
@@ -119,14 +118,15 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#1a2336",
+    backgroundColor: "#030712",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
     padding: "6px 10px",
     borderRadius: 6,
   },
   toolBadge: {
-    backgroundColor: "rgba(224, 138, 91, 0.14)",
-    border: "1px solid rgba(224, 138, 91, 0.3)",
-    color: "#e08a5b",
+    backgroundColor: "rgba(56, 189, 248, 0.14)",
+    border: "1px solid rgba(56, 189, 248, 0.3)",
+    color: "#38bdf8",
     padding: "2px 6px",
     borderRadius: 4,
     fontSize: 11,
@@ -139,19 +139,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "var(--font-mono)",
   },
   toolResultCard: {
-    backgroundColor: "#111824",
-    border: "1px solid #2a374f",
+    backgroundColor: "#030712",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
     borderRadius: 6,
     padding: 10,
   },
   toolResultTitle: {
-    color: "#687a94",
+    color: "#94a3b8",
     fontSize: 11,
     display: "block",
     marginBottom: 4,
   },
   toolResultCode: {
-    color: "#94a3b8",
+    color: "#cbd5e1",
     fontSize: 11,
     fontFamily: "var(--font-mono)",
     margin: 0,
@@ -161,7 +161,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: 6,
-    color: "#e08a5b",
+    color: "#34d399",
     fontSize: 12,
     fontFamily: "var(--font-mono)",
   },
@@ -169,6 +169,6 @@ const styles: Record<string, React.CSSProperties> = {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#e08a5b",
+    backgroundColor: "#34d399",
   },
 };
