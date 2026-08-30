@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { AirLinkAgentLogo } from "../ui/AirLinkAgentLogo";
 
 export function LandingFooter() {
@@ -67,9 +66,14 @@ export function LandingFooter() {
             <a href="#install" style={styles.footerLink}>
               Install Guide
             </a>
-            <Link href="/pair" style={styles.footerLink}>
-              Web Remote
-            </Link>
+            <a
+              href="https://expo.dev/accounts/tyraaa19/projects/airlink-monorepo/builds/6f4f8f2a-a760-469c-93e0-4f32bedf3e61"
+              target="_blank"
+              rel="noreferrer"
+              style={styles.footerLink}
+            >
+              Download Android App (.APK)
+            </a>
           </div>
 
           {/* RESOURCES */}

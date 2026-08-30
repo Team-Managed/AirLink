@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 
 export function HeroSection() {
   return (
@@ -35,11 +34,17 @@ export function HeroSection() {
 
       {/* Action Buttons */}
       <div style={styles.ctaRow}>
-        <Link href="/pair" className="primary-glowing-btn" style={styles.primaryCta}>
-          <span>Launch Web Remote</span>
+        <a
+          href="https://expo.dev/accounts/tyraaa19/projects/airlink-monorepo/builds/6f4f8f2a-a760-469c-93e0-4f32bedf3e61"
+          target="_blank"
+          rel="noreferrer"
+          className="primary-glowing-btn"
+          style={styles.primaryCta}
+        >
+          <span>Download Android App (.APK)</span>
           <svg
-            width="16"
-            height="16"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -47,10 +52,9 @@ export function HeroSection() {
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M5 12h14" />
-            <path d="m12 5 7 7-7 7" />
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
           </svg>
-        </Link>
+        </a>
         <a href="#install" className="secondary-glowing-btn" style={styles.secondaryCta}>
           <svg
             width="16"
