@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_SPACING, THEME_RADII } from "../theme";
 import { feedbackService } from "../services/feedback";
+import PAIRING_BG from "../../assets/pairing_bg.png";
 
 export interface PairingScreenProps {
   onConnect: (pin: string, relayUrl: string) => void;
@@ -73,7 +74,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
 
   return (
     <ImageBackground
-      source={require("../../assets/pairing_bg.png")}
+      source={PAIRING_BG}
       style={styles.backgroundImage}
       resizeMode="cover"
     >

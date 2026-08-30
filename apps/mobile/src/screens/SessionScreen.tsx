@@ -8,6 +8,7 @@ import { ApprovalDrawer } from "../components/ApprovalDrawer";
 import { TerminalFeedSkeleton } from "../components/SkeletonLoader";
 import { mobileSocketService } from "../services/socket";
 import { feedbackService } from "../services/feedback";
+import PAIRING_BG from "../../assets/pairing_bg.png";
 import type {
   StreamFeedItem,
   ApprovalRequest,
@@ -198,7 +199,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
 
   return (
     <ImageBackground
-      source={require("../../assets/pairing_bg.png")}
+      source={PAIRING_BG}
       style={styles.backgroundImage}
       resizeMode="cover"
     >
