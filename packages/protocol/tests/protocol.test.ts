@@ -2,19 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   LLMProviderSchema,
   BYOKConfigSchema,
-  RegisterHostSchema,
-  JoinSessionSchema,
-  SessionConnectedSchema,
-  ClientPromptSchema,
   StreamEventTypeSchema,
-  ToolMetadataSchema,
-  AgentStreamSchema,
-  RiskLevelSchema,
-  ApprovalRequestSchema,
-  ApprovalResponseSchema,
-  ClientSyncSchema,
-  StreamBatchSchema,
-  StandardErrorSchema,
+  JoinSessionSchema,
   SOCKET_EVENTS,
   validatePayload,
   safeValidatePayload,
@@ -46,7 +35,6 @@ import {
   isStandardError,
   parseSocketEvent,
   createSafeEvent,
-  APPROVAL_TIMEOUT_MS,
   MAX_RING_BUFFER_SIZE,
 } from "../src/index.js";
 
@@ -124,11 +112,13 @@ describe("Protocol Contracts Suite (@airlink/protocol)", () => {
         pin: "834192",
         hostName: "MacBook Pro - Tyra",
         workspacePath: "/Users/tyra/projects/agent-harness",
+        hostSecret: "host_secret_12345",
       };
       const parsed = parseRegisterHost(valid);
       expect(parsed.pin).toBe("834192");
       expect(parsed.hostName).toBe("MacBook Pro - Tyra");
       expect(parsed.workspacePath).toBe("/Users/tyra/projects/agent-harness");
+      expect(parsed.hostSecret).toBe("host_secret_12345");
       expect(isRegisterHost(valid)).toBe(true);
     });
 
@@ -138,6 +128,7 @@ describe("Protocol Contracts Suite (@airlink/protocol)", () => {
           pin: "12345",
           hostName: "Host",
           workspacePath: "/app",
+          hostSecret: "host_secret_12345",
         }),
       ).toThrow();
       expect(() =>
@@ -145,6 +136,7 @@ describe("Protocol Contracts Suite (@airlink/protocol)", () => {
           pin: "1234567",
           hostName: "Host",
           workspacePath: "/app",
+          hostSecret: "host_secret_12345",
         }),
       ).toThrow();
       expect(() =>
@@ -152,9 +144,28 @@ describe("Protocol Contracts Suite (@airlink/protocol)", () => {
           pin: "",
           hostName: "Host",
           workspacePath: "/app",
+          hostSecret: "host_secret_12345",
         }),
       ).toThrow();
       expect(isRegisterHost({ pin: "123" })).toBe(false);
+    });
+
+    it("rejects missing or short hostSecret (< 8 characters)", () => {
+      expect(() =>
+        parseRegisterHost({
+          pin: "123456",
+          hostName: "Host",
+          workspacePath: "/app",
+        }),
+      ).toThrow();
+      expect(() =>
+        parseRegisterHost({
+          pin: "123456",
+          hostName: "Host",
+          workspacePath: "/app",
+          hostSecret: "short",
+        }),
+      ).toThrow();
     });
 
     it("rejects missing hostName while allowing empty workspacePath for relay-only mode", () => {
@@ -163,6 +174,7 @@ describe("Protocol Contracts Suite (@airlink/protocol)", () => {
           pin: "123456",
           hostName: "",
           workspacePath: "/app",
+          hostSecret: "host_secret_12345",
         }),
       ).toThrow();
 
@@ -170,9 +182,11 @@ describe("Protocol Contracts Suite (@airlink/protocol)", () => {
         pin: "123456",
         hostName: "Host",
         workspacePath: "",
+        hostSecret: "host_secret_12345",
       });
       expect(relayOnly.workspacePath).toBe("");
       expect(relayOnly.pin).toBe("123456");
+      expect(relayOnly.hostSecret).toBe("host_secret_12345");
     });
   });
 
@@ -798,6 +812,7 @@ describe("Protocol Contracts Suite (@airlink/protocol)", () => {
         pin: "123456",
         hostName: "MacBook Pro",
         workspacePath: "/Users/dev/repo",
+        hostSecret: "my_secret_token",
       });
       expect(safeSuccess.success).toBe(true);
       if (safeSuccess.success) {

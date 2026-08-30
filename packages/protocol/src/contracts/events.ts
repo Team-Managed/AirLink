@@ -31,7 +31,7 @@ export const RegisterHostSchema = z.object({
   pin: z.string().length(6, "PIN must be exactly 6 characters"),
   hostName: z.string().min(1, "Host name is required"),
   workspacePath: z.string().default(""),
-  hostSecret: z.string().min(8, "Host secret must be at least 8 characters").optional(),
+  hostSecret: z.string().min(8, "Host secret must be at least 8 characters"),
 });
 export type RegisterHost = z.infer<typeof RegisterHostSchema>;
 

@@ -7,7 +7,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy workspace configurations and manifests
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json tsconfig.base.json ./
 COPY packages/protocol/package.json ./packages/protocol/
 COPY packages/protocol/tsconfig.json ./packages/protocol/
 COPY apps/relay/package.json ./apps/relay/

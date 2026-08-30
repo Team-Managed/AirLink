@@ -6,6 +6,7 @@ export default defineConfig({
     alias: {
       vscode: path.resolve(__dirname, "apps/vscode-extension/tests/vscode-mock.ts"),
       "react-native": path.resolve(__dirname, "apps/mobile/tests/react-native-mock.ts"),
+      "expo-secure-store": path.resolve(__dirname, "apps/mobile/tests/secure-store-mock.ts"),
     },
   },
   test: {
