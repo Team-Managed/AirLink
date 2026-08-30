@@ -9,7 +9,7 @@ import {
   formatHistoryText,
   formatAvailableModelsList,
   formatMarkdownTerminal,
-  AIRLINK_MASCOT_ASCII,
+  TerminalMarkdownStreamer,
 } from "../src/terminal-ui.js";
 import type { AgentStream, ApprovalRequest } from "@airlink/protocol";
 
@@ -253,6 +253,52 @@ describe("Terminal UI Component Suite", () => {
       const formatted = formatMarkdownTerminal(md);
       expect(formatted).toContain("[ts]");
       expect(formatted).toContain("const x = 42;");
+    });
+  });
+
+  describe("TerminalMarkdownStreamer", () => {
+    it("flushes an unterminated code block ending with a trailing newline", () => {
+      const streamer = new TerminalMarkdownStreamer();
+      const logs: string[] = [];
+      const originalLog = console.log;
+      console.log = (...args: unknown[]) => {
+        logs.push(args.map(String).join(" "));
+      };
+
+      try {
+        streamer.write("```typescript\n");
+        streamer.write("const port = 4000;\n");
+        streamer.write("server.listen(port);\n");
+        streamer.flush();
+
+        const combined = logs.join("\n");
+        expect(combined).toContain("[typescript]");
+        expect(combined).toContain("const port = 4000;");
+        expect(combined).toContain("server.listen(port);");
+      } finally {
+        console.log = originalLog;
+      }
+    });
+
+    it("flushes unclosed code block with partial line in buffer", () => {
+      const streamer = new TerminalMarkdownStreamer();
+      const logs: string[] = [];
+      const originalLog = console.log;
+      console.log = (...args: unknown[]) => {
+        logs.push(args.map(String).join(" "));
+      };
+
+      try {
+        streamer.write("```python\ndef handler():\n    return 42");
+        streamer.flush();
+
+        const combined = logs.join("\n");
+        expect(combined).toContain("[python]");
+        expect(combined).toContain("def handler():");
+        expect(combined).toContain("return 42");
+      } finally {
+        console.log = originalLog;
+      }
     });
   });
 });

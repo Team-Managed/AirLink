@@ -345,20 +345,25 @@ export class TerminalMarkdownStreamer {
   }
 
   public flush(): void {
-    if (this.buffer.length > 0) {
-      if (this.inCodeBlock) {
+    if (this.inCodeBlock) {
+      if (this.buffer.length > 0) {
         this.codeLines.push(this.buffer);
-        const langHeader = this.codeLang ? chalk.dim(`── [${this.codeLang}] `) : chalk.dim("── ");
-        console.log(chalk.dim("┌") + langHeader + chalk.dim("─".repeat(Math.max(10, 48 - langHeader.length))));
-        for (const cLine of this.codeLines) {
-          console.log(chalk.dim("│ ") + chalk.hex("#cbd5e1")(cLine));
-        }
-        console.log(chalk.dim("└" + "─".repeat(48)));
-        this.inCodeBlock = false;
-        this.codeLines = [];
-      } else {
-        console.log(formatMarkdownTerminal(this.buffer));
       }
+      const langHeader = this.codeLang ? chalk.dim(`── [${this.codeLang}] `) : chalk.dim("── ");
+      console.log(chalk.dim("┌") + langHeader + chalk.dim("─".repeat(Math.max(10, 48 - langHeader.length))));
+      for (const cLine of this.codeLines) {
+        console.log(chalk.dim("│ ") + chalk.hex("#cbd5e1")(cLine));
+      }
+      console.log(chalk.dim("└" + "─".repeat(48)));
+      this.inCodeBlock = false;
+      this.codeLines = [];
+      this.codeLang = "";
+      this.buffer = "";
+      return;
+    }
+
+    if (this.buffer.length > 0) {
+      console.log(formatMarkdownTerminal(this.buffer));
       this.buffer = "";
     }
   }
