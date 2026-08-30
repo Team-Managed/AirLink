@@ -69,6 +69,7 @@ describe("Relay Server Integration", () => {
       pin,
       hostName: "MacBook Pro Workstation",
       workspacePath: "/Users/dev/code/agent-harness",
+      hostSecret: "secret-relay-12345",
     };
     hostSocket.emit(SOCKET_EVENTS.REGISTER_HOST, hostReg);
 
@@ -262,6 +263,7 @@ describe("Relay Server Integration", () => {
       pin,
       hostName: "Persistent Host",
       workspacePath: "/code",
+      hostSecret: "secret-relay-12345",
     });
     await new Promise((r) => setTimeout(r, 50));
 

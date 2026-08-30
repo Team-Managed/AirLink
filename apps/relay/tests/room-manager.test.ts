@@ -3,6 +3,7 @@ import { RoomManager } from "../src/room-manager.js";
 
 describe("RoomManager", () => {
   let manager: RoomManager;
+  const defaultSecret = "test-secret-12345";
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -15,21 +16,31 @@ describe("RoomManager", () => {
   });
 
   it("creates and retrieves an active room session by PIN", () => {
-    const room = manager.createRoom("123456", "host_socket_1", "MacBook Pro", "/Users/dev/project");
+    const room = manager.createRoom("123456", "host_socket_1", "MacBook Pro", "/Users/dev/project", undefined, defaultSecret);
 
-    expect(room.pin).toBe("123456");
-    expect(room.hostSocketId).toBe("host_socket_1");
-    expect(room.hostName).toBe("MacBook Pro");
-    expect(room.workspacePath).toBe("/Users/dev/project");
-    expect(room.expiresAt).toBe(Date.now() + 300_000);
+    expect(room).not.toBeNull();
+    expect(room?.pin).toBe("123456");
+    expect(room?.hostSocketId).toBe("host_socket_1");
+    expect(room?.hostName).toBe("MacBook Pro");
+    expect(room?.workspacePath).toBe("/Users/dev/project");
+    expect(room?.hostSecret).toBe(defaultSecret);
+    expect(room?.expiresAt).toBe(Date.now() + 300_000);
 
     const fetched = manager.getRoom("123456");
     expect(fetched).toBe(room);
     expect(manager.getActiveRoomCount()).toBe(1);
   });
 
+  it("rejects room creation if hostSecret is missing or too short", () => {
+    const noSecret = manager.createRoom("123456", "host_1", "Dev PC", "/work");
+    expect(noSecret).toBeNull();
+
+    const shortSecret = manager.createRoom("123456", "host_1", "Dev PC", "/work", undefined, "short");
+    expect(shortSecret).toBeNull();
+  });
+
   it("pairs a client socket with an existing room", () => {
-    manager.createRoom("654321", "host_1", "Dev PC", "/work");
+    manager.createRoom("654321", "host_1", "Dev PC", "/work", undefined, defaultSecret);
 
     const paired = manager.pairClient("654321", "client_1", "iPhone 15");
     expect(paired).toBeDefined();
@@ -46,7 +57,7 @@ describe("RoomManager", () => {
   });
 
   it("looks up room by host socket ID and generic socket ID", () => {
-    manager.createRoom("111222", "host_socket_x", "Host X", "/workspace");
+    manager.createRoom("111222", "host_socket_x", "Host X", "/workspace", undefined, defaultSecret);
     manager.pairClient("111222", "client_socket_y", "Mobile Y");
 
     expect(manager.getRoomByHostSocketId("host_socket_x")?.pin).toBe("111222");
@@ -56,10 +67,10 @@ describe("RoomManager", () => {
   });
 
   it("cleans up previous room when the same host socket creates a new room", () => {
-    manager.createRoom("PIN001", "host_socket_same", "Host A", "/path1");
+    manager.createRoom("PIN001", "host_socket_same", "Host A", "/path1", undefined, defaultSecret);
     expect(manager.getActiveRoomCount()).toBe(1);
 
-    manager.createRoom("PIN002", "host_socket_same", "Host A", "/path2");
+    manager.createRoom("PIN002", "host_socket_same", "Host A", "/path2", undefined, defaultSecret);
     expect(manager.getActiveRoomCount()).toBe(1);
     expect(manager.getRoom("PIN001")).toBeUndefined();
     expect(manager.getRoom("PIN002")).toBeDefined();
@@ -95,7 +106,7 @@ describe("RoomManager", () => {
   });
 
   it("revokes displaced client authorization when a new client pairs", () => {
-    manager.createRoom("PAIR_PIN", "host_1", "Host 1", "/p");
+    manager.createRoom("PAIR_PIN", "host_1", "Host 1", "/p", undefined, defaultSecret);
     manager.pairClient("PAIR_PIN", "client_first", "Client 1");
     expect(manager.getRoomByClientSocketId("client_first")?.pin).toBe("PAIR_PIN");
 
@@ -106,7 +117,7 @@ describe("RoomManager", () => {
   });
 
   it("unpairClient() clears client association but preserves room for host and reconnect", () => {
-    manager.createRoom("RECON_PIN", "host_stay", "Host Stay", "/path");
+    manager.createRoom("RECON_PIN", "host_stay", "Host Stay", "/path", undefined, defaultSecret);
     manager.pairClient("RECON_PIN", "client_leave", "Client Leave");
 
     const unpairedRoom = manager.unpairClient("client_leave");
@@ -120,7 +131,7 @@ describe("RoomManager", () => {
   });
 
   it("expires rooms automatically after 5-minute TTL elapses", () => {
-    manager.createRoom("EXP001", "host_exp", "Host Exp", "/path");
+    manager.createRoom("EXP001", "host_exp", "Host Exp", "/path", undefined, defaultSecret);
     expect(manager.getRoom("EXP001")).toBeDefined();
 
     // Fast-forward 300,001 ms
@@ -131,7 +142,7 @@ describe("RoomManager", () => {
   });
 
   it("removes rooms by host socket ID on removeBySocketId()", () => {
-    manager.createRoom("DEL001", "host_del", "Host Del", "/path");
+    manager.createRoom("DEL001", "host_del", "Host Del", "/path", undefined, defaultSecret);
     manager.pairClient("DEL001", "client_del");
 
     const removedBySocket = manager.removeBySocketId("host_del");
@@ -142,8 +153,8 @@ describe("RoomManager", () => {
   });
 
   it("prunes expired rooms on cleanExpired()", () => {
-    manager.createRoom("ROOM_A", "host_a", "Host A", "/a");
-    manager.createRoom("ROOM_B", "host_b", "Host B", "/b");
+    manager.createRoom("ROOM_A", "host_a", "Host A", "/a", undefined, defaultSecret);
+    manager.createRoom("ROOM_B", "host_b", "Host B", "/b", undefined, defaultSecret);
 
     vi.advanceTimersByTime(300_001);
 
@@ -153,7 +164,7 @@ describe("RoomManager", () => {
   });
 
   it("purges stale client sockets and creates a fresh session when createRoom is called after TTL expiry", () => {
-    manager.createRoom("STALE_PIN", "old_host", "Old Host", "/path");
+    manager.createRoom("STALE_PIN", "old_host", "Old Host", "/path", undefined, defaultSecret);
     manager.pairClient("STALE_PIN", "old_client");
     expect(manager.getRoom("STALE_PIN")?.clientSocketId).toBe("old_client");
 
@@ -161,9 +172,10 @@ describe("RoomManager", () => {
     vi.advanceTimersByTime(300_001);
 
     // Re-register the PIN with a new host
-    const freshRoom = manager.createRoom("STALE_PIN", "new_host", "New Host", "/new-path");
-    expect(freshRoom.hostSocketId).toBe("new_host");
-    expect(freshRoom.clientSocketId).toBeUndefined();
+    const freshRoom = manager.createRoom("STALE_PIN", "new_host", "New Host", "/new-path", undefined, defaultSecret);
+    expect(freshRoom).not.toBeNull();
+    expect(freshRoom?.hostSocketId).toBe("new_host");
+    expect(freshRoom?.clientSocketId).toBeUndefined();
     expect(manager.getRoomByClientSocketId("old_client")).toBeUndefined();
   });
 });

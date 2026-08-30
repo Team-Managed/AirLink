@@ -4,7 +4,7 @@ export interface RoomSession {
   hostSocketIds: string[];
   hostName: string;
   workspacePath: string;
-  hostSecret?: string | undefined;
+  hostSecret: string;
   clientSocketId?: string | undefined;
   clientName?: string | undefined;
   createdAt: number;
@@ -44,6 +44,10 @@ export class RoomManager {
     ttlMs?: number,
     hostSecret?: string,
   ): RoomSession | null {
+    if (!hostSecret || hostSecret.length < 8) {
+      return null;
+    }
+
     // 1. If this host socket previously created another PIN room, unmap it
     const existingPinForHost = this._hostSocketToPin.get(hostSocketId);
     if (existingPinForHost && existingPinForHost !== pin) {
@@ -60,8 +64,8 @@ export class RoomManager {
         // Room has expired: clean it up completely to prevent resurrection of stale client sockets
         this.removeRoom(pin);
       } else {
-        // Host authentication: If the room was created with a hostSecret, verify matching hostSecret
-        if (existingRoom.hostSecret && existingRoom.hostSecret !== hostSecret) {
+        // Host authentication: Verify matching hostSecret
+        if (existingRoom.hostSecret !== hostSecret) {
           return null;
         }
 
@@ -88,7 +92,7 @@ export class RoomManager {
       hostSocketIds: [hostSocketId],
       hostName,
       workspacePath,
-      hostSecret: hostSecret ?? undefined,
+      hostSecret,
       createdAt: now,
       expiresAt: now + duration,
     };
