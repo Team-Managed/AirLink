@@ -169,7 +169,12 @@
     - **Issue 4 (BYOK Key Masking Security):** Replaced substring key slicing in `SettingsScreen.tsx` with constant non-secret masks (`••••••••••••••••`) and added `hasApiKey` to `SecureVaultService` to prevent plaintext secret exposure in component state.
     - **Asset Modernization & Cleanup:** Declared static asset types in `apps/mobile/src/assets.d.ts`, migrated `pairing_bg.png` to static ES module imports across all screens, and purged unused legacy `AirLinkMobileLogo.tsx` and mascot assets.
     - **Verification:** 100% test pass rate across 35 test files and 238 unit/integration tests, 0 ESLint errors (`pnpm lint`), and 0 unapproved suppressions (`node scripts/check-suppressions.mjs`).
-  - **Verification:** 100% test pass rate across all test suites (35 test files, 238 tests) with 0 TypeScript/lint errors and live Render cloud relay deployment (`https://airlink-relay.onrender.com/health`).
+  - **PR #27 Qodo Code Review Remediation & Platform-Agnostic Polish:**
+    - **Issue 1 (Token Streaming Stall):** Refactored `TerminalMarkdownStreamer` in `apps/cli/src/terminal-ui.ts` to output prose tokens immediately to stdout in real-time without buffering stalls while preserving stateful boxed formatting for code blocks.
+    - **Issue 2 (Android Keyboard Avoidance):** Configured `KeyboardAvoidingView behavior="height"` in `SessionScreen.tsx` and platform-agnostic keyboard event tracking in `PromptInputBar.tsx`, ensuring bottom-mounted prompt input stays elevated above the soft keyboard.
+    - **Issue 3 (Full 6-Provider Vault Summary):** Removed truncation slice in `SettingsScreen.tsx` to display all 6 supported AI providers (`OpenRouter`, `Gemini`, `Anthropic`, `OpenAI`, `Groq`, and `Custom`) in the Active Vault Keys overview.
+    - **Verification:** 100% test pass rate across 35 test files and 239 unit/integration tests, 0 ESLint errors, and 0 unapproved suppressions.
+  - **Verification:** 100% test pass rate across all test suites (35 test files, 239 tests) with 0 TypeScript/lint errors and live Render cloud relay deployment (`https://airlink-relay.onrender.com/health`).
 
 ### Implementation Units Index
 
