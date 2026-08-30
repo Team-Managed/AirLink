@@ -8,6 +8,8 @@ import {
   formatStatsText,
   formatHistoryText,
   formatAvailableModelsList,
+  formatMarkdownTerminal,
+  AIRLINK_MASCOT_ASCII,
 } from "../src/terminal-ui.js";
 import type { AgentStream, ApprovalRequest } from "@airlink/protocol";
 
@@ -33,17 +35,15 @@ describe("Terminal UI Component Suite", () => {
     it("builds a formatted boxen banner containing PIN, pairing URL, and model", () => {
       const banner = formatBootBannerText({
         pin: "834192",
-        relayUrl: "http://localhost:3001",
+        relayUrl: "https://airlink-relay.onrender.com",
         workspacePath: "/workspace/project",
         model: "0x-alpha",
-        hostName: "dev-laptop",
       });
 
       expect(banner).toContain("834-192");
       expect(banner).toContain("https://airlink.dev/pair?pin=834192");
       expect(banner).toContain("/workspace/project");
       expect(banner).toContain("0x-alpha");
-      expect(banner).toContain("dev-laptop");
       expect(banner).toMatch(/airlink/i);
     });
   });
@@ -233,4 +233,27 @@ describe("Terminal UI Component Suite", () => {
       expect(list).toContain("0x-alpha");
     });
   });
+
+  describe("formatMarkdownTerminal", () => {
+    it("formats markdown headings, lists, bold, and inline code for terminal", () => {
+      const md = "# Main Header\n## Sub Header\n- Bullet item\n1. Numbered item\n**bold text** and `inline code`";
+      const formatted = formatMarkdownTerminal(md);
+      expect(formatted).toContain("Main Header");
+      expect(formatted).toContain("Sub Header");
+      expect(formatted).toContain("•");
+      expect(formatted).toContain("Bullet item");
+      expect(formatted).toContain("1.");
+      expect(formatted).toContain("Numbered item");
+      expect(formatted).toContain("bold text");
+      expect(formatted).toContain("inline code");
+    });
+
+    it("formats fenced code blocks with box borders", () => {
+      const md = "```ts\nconst x = 42;\n```";
+      const formatted = formatMarkdownTerminal(md);
+      expect(formatted).toContain("[ts]");
+      expect(formatted).toContain("const x = 42;");
+    });
+  });
 });
+

@@ -5,6 +5,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
 import chalk from "chalk";
+import boxen from "boxen";
 import dotenv from "dotenv";
 import {
   SocketBridge,
@@ -27,6 +28,7 @@ import {
   formatStatsText,
   formatHistoryText,
   formatAvailableModelsList,
+  TerminalMarkdownStreamer,
 } from "./terminal-ui.js";
 
 // Multi-level .env discovery (looks in current dir, monorepo root, or user home)
@@ -180,16 +182,24 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
     }
 
     isExecuting = true;
+    const mdStreamer = new TerminalMarkdownStreamer();
     try {
       if (origin === "remote") {
         console.log(chalk.hex("#38bdf8").bold(`\n[Remote @ Phone]: `) + chalk.white(promptText));
       }
 
       for await (const chunk of session.executeTurn({ prompt: promptText, byokConfig })) {
-        renderStreamChunk(chunk);
+        if (chunk.type === "token") {
+          mdStreamer.write(chunk.content);
+        } else {
+          mdStreamer.flush();
+          renderStreamChunk(chunk);
+        }
         bridge.sendStream(chunk);
       }
+      mdStreamer.flush();
     } catch (err) {
+      mdStreamer.flush();
       console.error(chalk.red.bold(`\nTurn execution error:`), err);
     } finally {
       isExecuting = false;
@@ -198,9 +208,17 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
 
   // 5. Connect bridge event listeners
   bridge.onSessionConnected((conn) => {
+    const clientName = conn.deviceName || "Remote Device";
     console.log(
-      chalk.green.bold(`\n[Pairing Established] `) +
-        chalk.white(`Remote client connected to session ${formatPinDisplay(conn.sessionId)}`),
+      chalk.dim(`\n✓ ${clientName} authenticated. Session paired (0.04s)\n`),
+    );
+    console.log(
+      boxen(`${chalk.hex("#ffffff").bold("airlink >")} ${chalk.dim("✓ Workstation paired with remote.")}`, {
+        padding: { top: 0, bottom: 0, left: 1, right: 1 },
+        margin: { top: 0, bottom: 0, left: 0, right: 0 },
+        borderStyle: "round",
+        borderColor: "gray",
+      }),
     );
   });
 

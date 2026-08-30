@@ -7,7 +7,7 @@ describe("CLI Argument Parser Suite", () => {
 
     expect(options.relayUrl).toBe(process.env["RELAY_URL"] || "http://localhost:3001");
     expect(options.pin).toMatch(/^\d{6}$/);
-    expect(options.workspacePath).toBe(process.cwd());
+    expect(options.workspacePath).toBe(process.env["INIT_CWD"] || process.cwd());
     expect(typeof options.model).toBe("string");
     expect(options.model.length).toBeGreaterThan(0);
     expect(options.daemon).toBe(false);
