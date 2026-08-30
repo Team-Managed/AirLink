@@ -261,7 +261,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
         {/* BYOK Configured Providers List — Matches web Screen 2 byokList */}
         <Text style={styles.sectionLabel}>ACTIVE VAULT KEYS</Text>
         <View style={styles.byokList}>
-          {PROVIDERS.slice(0, 4).map((p) => {
+          {PROVIDERS.map((p) => {
             const isConfigured = Boolean(configuredProviders[p.id]);
             const isSelected = selectedProvider === p.id;
             return (
