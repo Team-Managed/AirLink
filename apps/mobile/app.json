@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Agent Remote",
-    "slug": "agent-remote",
+    "name": "AirLink",
+    "slug": "airlink",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
