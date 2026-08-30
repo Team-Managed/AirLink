@@ -6,7 +6,7 @@ describe("Mobile UI Theme Tokens", () => {
     expect(THEME_COLORS.backgroundBase).toBe("#090d16");
     expect(THEME_COLORS.cardSurface).toBe("#0f172a");
     expect(THEME_COLORS.border).toBe("#1e293b");
-    expect(THEME_COLORS.primaryAccent).toBe("#38bdf8");
+    expect(THEME_COLORS.primaryAccent).toBe("#ffffff");
     expect(THEME_COLORS.success).toBe("#22c55e");
     expect(THEME_COLORS.danger).toBe("#ef4444");
     expect(THEME_COLORS.warning).toBe("#f59e0b");

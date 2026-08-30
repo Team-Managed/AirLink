@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,13 +10,170 @@ import {
   Keyboard,
   Animated,
 } from "react-native";
-import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_SPACING, THEME_RADII } from "../theme";
+import { THEME_TYPOGRAPHY, THEME_SPACING } from "../theme";
+import { DiffCard } from "./DiffCard";
+import { MarkdownText } from "./MarkdownText";
+import { LoadingState } from "./LoadingState";
 import type { StreamFeedItem } from "../types";
+
+/** Returns true if the string looks like a unified git diff */
+function isDiffContent(content: string): boolean {
+  return (
+    content.includes("diff --git") ||
+    (content.includes("---") && content.includes("+++") && content.includes("@@"))
+  );
+}
 
 export interface TerminalFeedProps {
   items: StreamFeedItem[];
   isStreaming?: boolean;
 }
+
+interface FeedRowItemProps {
+  item: StreamFeedItem;
+  isCollapsed: boolean;
+  isLastItem: boolean;
+  isStreaming: boolean;
+  cursorAnim: Animated.Value;
+  onToggleCollapse: (id: string) => void;
+}
+
+/**
+ * Pure memoized row component for FlatList — avoids re-rendering the whole stream on new tokens.
+ */
+const FeedRowItem: React.FC<FeedRowItemProps> = React.memo(
+  ({ item, isCollapsed, isLastItem, isStreaming, cursorAnim, onToggleCollapse }) => {
+    switch (item.type) {
+      // ── Thinking / CoT block ────────────────────────────────────────────────
+      case "thought":
+        return (
+          <View style={styles.thoughtCard}>
+            <TouchableOpacity
+              style={styles.thoughtHeader}
+              onPress={() => onToggleCollapse(item.id)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.traceWorkedRow}>
+                <Text style={styles.traceWorkedText}>Thinking...</Text>
+                <Text style={[styles.chevron, isCollapsed && styles.chevronRight]}>›</Text>
+              </View>
+              <Text style={styles.collapseToggleText}>{isCollapsed ? "Expand" : "Collapse"}</Text>
+            </TouchableOpacity>
+            {!isCollapsed && (
+              <Text style={styles.thoughtContent}>{item.content}</Text>
+            )}
+          </View>
+        );
+
+      // ── Tool call card ──────────────────────────────────────────────────────
+      case "tool_call": {
+        const toolName = item.metadata?.name || "tool";
+        return (
+          <View style={styles.toolCallCard}>
+            <View style={styles.toolCallHeaderRow}>
+              <View style={styles.toolNameBadge}>
+                <Text style={styles.toolNameText}>{toolName}</Text>
+              </View>
+              <Text style={styles.toolCallStatus}>Executing...</Text>
+            </View>
+            <View style={styles.codeBlock}>
+              <Text style={styles.codeBlockText}>{item.content}</Text>
+            </View>
+          </View>
+        );
+      }
+
+      // ── Tool result card ────────────────────────────────────────────────────
+      case "tool_result": {
+        const duration = item.metadata?.durationMs;
+        const exitCode = item.metadata?.exitCode ?? 0;
+        const isSuccess = exitCode === 0;
+
+        if (isSuccess && isDiffContent(item.content)) {
+          return (
+            <View style={styles.diffCardWrapper}>
+              {duration !== undefined && (
+                <Text style={styles.workedForText}>Worked for {Math.round(duration / 1000)}s ›</Text>
+              )}
+              <DiffCard diffText={item.content} />
+            </View>
+          );
+        }
+
+        return (
+          <View style={[styles.toolResultCard, !isSuccess && styles.toolResultFailed]}>
+            <TouchableOpacity
+              style={styles.toolResultHeaderRow}
+              onPress={() => onToggleCollapse(item.id)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.resultTitleGroup}>
+                <View
+                  style={[
+                    styles.resultStatusDot,
+                    isSuccess ? styles.statusDotSuccess : styles.statusDotError,
+                  ]}
+                />
+                <Text style={styles.resultTitle}>
+                  {item.metadata?.name ? `${item.metadata.name} Result` : "Tool Output"}
+                </Text>
+                {duration !== undefined && (
+                  <Text style={styles.durationBadge}>{duration}ms</Text>
+                )}
+              </View>
+              <Text style={styles.collapseToggleText}>{isCollapsed ? "Expand" : "Collapse"}</Text>
+            </TouchableOpacity>
+
+            {!isCollapsed && (
+              <View style={styles.codeBlock}>
+                <Text style={styles.codeBlockText}>{item.content}</Text>
+              </View>
+            )}
+          </View>
+        );
+      }
+
+      // ── Error card ──────────────────────────────────────────────────────────
+      case "error":
+        return (
+          <View style={styles.errorCard}>
+            <Text style={styles.errorTitle}>⚠ Agent Error</Text>
+            <Text style={styles.errorContent}>{item.content}</Text>
+          </View>
+        );
+
+      // ── Token / user prompt ─────────────────────────────────────────────────
+      case "token":
+      default:
+        if (item.role === "user") {
+          return (
+            <View style={styles.userMessageCard}>
+              <Text style={styles.userMessageText}>{item.content}</Text>
+            </View>
+          );
+        }
+
+        return (
+          <View style={styles.agentTokenContainer}>
+            <MarkdownText content={item.content} />
+            {isStreaming && isLastItem && (
+              <Animated.View style={[styles.blinkingCursor, { opacity: cursorAnim }]} />
+            )}
+          </View>
+        );
+    }
+  },
+  (prev, next) => {
+    return (
+      prev.item.id === next.item.id &&
+      prev.item.content === next.item.content &&
+      prev.item.type === next.item.type &&
+      prev.isCollapsed === next.isCollapsed &&
+      prev.isLastItem === next.isLastItem &&
+      prev.isStreaming === next.isStreaming
+    );
+  },
+);
 
 export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming = false }) => {
   const flatListRef = useRef<FlatList<StreamFeedItem>>(null);
@@ -66,13 +223,13 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
     previousItemCountRef.current = items.length;
   }, [items, isAutoScrollLocked]);
 
-  const handleContentSizeChange = () => {
+  const handleContentSizeChange = useCallback(() => {
     if (!isAutoScrollLocked && items.length > 0) {
       flatListRef.current?.scrollToEnd({ animated: true });
     }
-  };
+  }, [isAutoScrollLocked, items.length]);
 
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     Keyboard.dismiss();
 
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
@@ -86,169 +243,83 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
     } else if (isScrolledUpPast200 && !isAutoScrollLocked) {
       setIsAutoScrollLocked(true);
     }
-  };
+  }, [isAutoScrollLocked]);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     setIsAutoScrollLocked(false);
     setUnreadCount(0);
     flatListRef.current?.scrollToEnd({ animated: true });
-  };
+  }, []);
 
-  const toggleCollapse = (id: string) => {
+  const toggleCollapse = useCallback((id: string) => {
     setCollapsedItems((prev) => ({
       ...prev,
       [id]: !prev[id],
     }));
-  };
+  }, []);
 
-  const renderItem = ({ item, index }: { item: StreamFeedItem; index: number }) => {
-    const isCollapsed = collapsedItems[item.id] ?? false;
-    const isLastItem = index === items.length - 1;
+  const keyExtractor = useCallback((item: StreamFeedItem) => item.id, []);
 
-    switch (item.type) {
-      // ── Thinking / CoT block ────────────────────────────────────────────────
-      case "thought":
-        return (
-          <View style={styles.thoughtCard}>
-            {/* Frosted-glass header row — matches web "chatUpperSection" card */}
-            <TouchableOpacity
-              style={styles.thoughtHeader}
-              onPress={() => toggleCollapse(item.id)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.traceWorkedRow}>
-                <Text style={styles.traceWorkedText}>Thinking Process</Text>
-                {/* Chevron — matches web "traceWorkedHeader" SVG */}
-                <Text style={[styles.chevron, isCollapsed && styles.chevronRight]}>›</Text>
-              </View>
-              <Text style={styles.collapseToggleText}>{isCollapsed ? "Expand" : "Collapse"}</Text>
-            </TouchableOpacity>
-            {!isCollapsed && (
-              <Text style={styles.thoughtContent}>{item.content}</Text>
-            )}
-          </View>
-        );
+  const renderItem = useCallback(
+    ({ item, index }: { item: StreamFeedItem; index: number }) => {
+      const isCollapsed = collapsedItems[item.id] ?? false;
+      const isLastItem = index === items.length - 1;
 
-      // ── Tool call card ──────────────────────────────────────────────────────
-      case "tool_call": {
-        const toolName = item.metadata?.name || "tool";
-        return (
-          // Matches web "fileChangesCard": dark #030712 bg, white border
-          <View style={styles.toolCallCard}>
-            <View style={styles.toolCallHeaderRow}>
-              {/* Tool name badge — sky-blue pill (matches web "toolNameBadge") */}
-              <View style={styles.toolNameBadge}>
-                <Text style={styles.toolNameText}>{toolName}</Text>
-              </View>
-              <Text style={styles.toolCallStatus}>Executing...</Text>
-            </View>
-            {/* Code snippet — matches web terminal block */}
-            <View style={styles.codeBlock}>
-              <Text style={styles.codeBlockText}>{item.content}</Text>
-            </View>
-          </View>
-        );
-      }
+      return (
+        <FeedRowItem
+          item={item}
+          isCollapsed={isCollapsed}
+          isLastItem={isLastItem}
+          isStreaming={isStreaming}
+          cursorAnim={cursorAnim}
+          onToggleCollapse={toggleCollapse}
+        />
+      );
+    },
+    [collapsedItems, items.length, isStreaming, cursorAnim, toggleCollapse],
+  );
 
-      // ── Tool result card ────────────────────────────────────────────────────
-      case "tool_result": {
-        const duration = item.metadata?.durationMs;
-        const exitCode = item.metadata?.exitCode ?? 0;
-        const isSuccess = exitCode === 0;
+  if (items.length === 0 && !isStreaming) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyTitle}>AirLink Remote Active</Text>
+        <Text style={styles.emptySubtitle}>
+          Paired with your local workstation harness. Select a quick action below or type a prompt to start coding.
+        </Text>
 
-        return (
-          // Matches web "fileChangesCard" dark container
-          <View style={[styles.toolResultCard, !isSuccess && styles.toolResultFailed]}>
-            {/* Header row: green/red dot + "X Result" + duration + Collapse */}
-            <TouchableOpacity
-              style={styles.toolResultHeaderRow}
-              onPress={() => toggleCollapse(item.id)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.resultTitleGroup}>
-                <View
-                  style={[
-                    styles.resultStatusDot,
-                    isSuccess ? styles.statusDotSuccess : styles.statusDotError,
-                  ]}
-                />
-                <Text style={styles.resultTitle}>
-                  {item.metadata?.name ? `${item.metadata.name} Result` : "Tool Output"}
-                </Text>
-                {duration !== undefined && (
-                  <Text style={styles.durationBadge}>{duration}ms</Text>
-                )}
-              </View>
-              <Text style={styles.collapseToggleText}>{isCollapsed ? "Expand" : "Collapse"}</Text>
-            </TouchableOpacity>
-
-            {/* Output body — terminal-style code block */}
-            {!isCollapsed && (
-              <View style={styles.codeBlock}>
-                <Text style={styles.codeBlockText}>{item.content}</Text>
-              </View>
-            )}
-          </View>
-        );
-      }
-
-      // ── Error card ──────────────────────────────────────────────────────────
-      case "error":
-        return (
-          <View style={styles.errorCard}>
-            <Text style={styles.errorTitle}>⚠ Agent Error</Text>
-            <Text style={styles.errorContent}>{item.content}</Text>
-          </View>
-        );
-
-      // ── Token / user prompt ─────────────────────────────────────────────────
-      case "token":
-      default:
-        if (item.role === "user") {
-          // Matches web "userMessageCard": frosted glass, white text, rounded
-          return (
-            <View style={styles.userMessageCard}>
-              <Text style={styles.userMessageText}>{item.content}</Text>
-            </View>
-          );
-        }
-
-        // Agent token stream — matches web terminal output area
-        return (
-          <View style={styles.agentTokenContainer}>
-            <Text style={styles.agentTokenText}>
-              {item.content}
-            </Text>
-            {isStreaming && isLastItem && (
-              <Animated.View style={[styles.blinkingCursor, { opacity: cursorAnim }]} />
-            )}
-          </View>
-        );
-    }
-  };
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyCardHeader}>⚡ WORKSTATION CAPABILITIES</Text>
+          <Text style={styles.emptyCardLine}>• 1-Tap Git diff & branch review</Text>
+          <Text style={styles.emptyCardLine}>• 180s Human-in-the-loop safety approvals</Text>
+          <Text style={styles.emptyCardLine}>• Live streaming execution telemetry</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <FlatList
         ref={flatListRef}
         data={items}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         renderItem={renderItem}
         onScroll={handleScroll}
         onContentSizeChange={handleContentSizeChange}
         scrollEventThrottle={100}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={true}
-        initialNumToRender={15}
-        maxToRenderPerBatch={20}
-        windowSize={10}
+        initialNumToRender={10}
+        maxToRenderPerBatch={5}
+        updateCellsBatchingPeriod={50}
+        windowSize={5}
+        removeClippedSubviews={true}
       />
 
-      {/* Streaming indicator — matches web "telemetryLiveDot" row */}
+      {/* Streaming indicator — pixel-grid wavefront loader with glassmorphism */}
       {isStreaming && (
-        <View style={styles.streamingIndicatorRow}>
-          <View style={styles.pulsingDot} />
-          <Text style={styles.streamingText}>● Stream Active</Text>
+        <View style={styles.streamingContainer}>
+          <LoadingState label="Agent working..." isStreaming={isStreaming} variant="Drive" />
         </View>
       )}
 
@@ -271,7 +342,7 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME_COLORS.backgroundBase,
+    backgroundColor: "transparent",
   },
   listContent: {
     padding: THEME_SPACING.md,
@@ -279,26 +350,40 @@ const styles = StyleSheet.create({
     paddingBottom: THEME_SPACING.xxxl,
   },
 
+  // ── Diff card wrapper (auto-rendered for git diff tool results) ───────────
+  diffCardWrapper: {
+    gap: 4,
+  },
+  workedForText: {
+    color: "#ffffff",
+    fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
+    fontSize: 11,
+    paddingHorizontal: 2,
+    fontWeight: "700",
+  },
+
   // ── User message card ─────────────────────────────────────────────────────
-  // Matches web: rgba(255,255,255,0.06) bg, rgba(255,255,255,0.08) border, 10px radius
   userMessageCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.07)",
+    backgroundColor: "rgba(255, 255, 255, 0.14)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.09)",
-    borderRadius: THEME_RADII.md,
-    paddingHorizontal: THEME_SPACING.md,
-    paddingVertical: THEME_SPACING.sm,
+    borderColor: "rgba(255, 255, 255, 0.28)",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   userMessageText: {
-    color: THEME_COLORS.textPrimary,    // #f1f5f9 — matches web userMessageCard color
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.sm,
-    lineHeight: 20,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.regular,
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: "700",
   },
 
   // ── Agent token stream ────────────────────────────────────────────────────
-  // Clean readable prose, no background — matches web token telemetry output
   agentTokenContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -306,118 +391,127 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   agentTokenText: {
-    color: THEME_COLORS.textPrimary,
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.sm,
+    fontSize: 13.5,
     lineHeight: 22,
   },
   blinkingCursor: {
     width: 7,
     height: 14,
-    backgroundColor: THEME_COLORS.primaryAccent,
+    backgroundColor: "#ffffff",
     marginLeft: 2,
     marginTop: 3,
     borderRadius: 1,
   },
 
-  // ── Thinking / CoT card ───────────────────────────────────────────────────
-  // Matches web "chatUpperSection": translucent bg, subtle border, 10px radius
+  // ── Thinking / CoT card (Glassmorphic) ───────────────────────────────────
   thoughtCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.07)",
-    borderRadius: THEME_RADII.md,
-    padding: THEME_SPACING.sm,
+    borderColor: "rgba(255, 255, 255, 0.25)",
+    borderRadius: 16,
+    padding: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   thoughtHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  // Matches web "traceWorkedHeader": muted mono text + chevron
   traceWorkedRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
   },
   traceWorkedText: {
-    color: THEME_COLORS.textMuted,      // #94a3b8
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: 11,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
+    fontSize: 11.5,
+    fontWeight: "800",
   },
   chevron: {
-    color: THEME_COLORS.textMuted,
-    fontSize: 14,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
-    transform: [{ rotate: "90deg" }],   // pointing down when expanded
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "800",
+    transform: [{ rotate: "90deg" }],
   },
   chevronRight: {
-    transform: [{ rotate: "0deg" }],    // pointing right when collapsed
+    transform: [{ rotate: "0deg" }],
   },
   collapseToggleText: {
-    color: THEME_COLORS.primaryAccent,
+    color: "rgba(255, 255, 255, 0.85)",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
     fontSize: 11,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.medium,
+    fontWeight: "700",
   },
   thoughtContent: {
-    color: THEME_COLORS.textMuted,
+    color: "rgba(255, 255, 255, 0.95)",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
+    fontSize: 12,
     fontStyle: "italic",
     lineHeight: 18,
-    marginTop: THEME_SPACING.xs,
+    marginTop: 8,
   },
 
-  // ── Tool call card ────────────────────────────────────────────────────────
-  // Matches web "fileChangesCard": #030712 bg, white hairline border
+  // ── Tool call card (Glassmorphic) ────────────────────────────────────────
   toolCallCard: {
-    backgroundColor: THEME_COLORS.codeBg,   // #020617 ≈ web #030712
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.12)",
-    borderRadius: THEME_RADII.md,
-    padding: THEME_SPACING.sm,
-    gap: THEME_SPACING.xs,
+    borderColor: "rgba(255, 255, 255, 0.25)",
+    borderRadius: 16,
+    padding: 12,
+    gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   toolCallHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  // Matches web: sky-blue pill badge for tool name
   toolNameBadge: {
-    backgroundColor: THEME_COLORS.primaryAccentBg,
-    borderColor: "rgba(56, 189, 248, 0.35)",
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    borderColor: "rgba(255, 255, 255, 0.35)",
     borderWidth: 1,
-    borderRadius: THEME_RADII.sm,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   toolNameText: {
-    color: THEME_COLORS.primaryAccent,
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
     fontSize: 11,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
+    fontWeight: "800",
   },
   toolCallStatus: {
-    color: THEME_COLORS.textMuted,
+    color: "rgba(255, 255, 255, 0.85)",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
     fontSize: 11,
+    fontWeight: "600",
   },
 
-  // ── Tool result card ──────────────────────────────────────────────────────
+  // ── Tool result card (Glassmorphic) ──────────────────────────────────────
   toolResultCard: {
-    backgroundColor: THEME_COLORS.codeBg,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.12)",
-    borderRadius: THEME_RADII.md,
-    padding: THEME_SPACING.sm,
-    gap: THEME_SPACING.xs,
+    borderColor: "rgba(255, 255, 255, 0.25)",
+    borderRadius: 16,
+    padding: 12,
+    gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   toolResultFailed: {
-    borderColor: "rgba(239, 68, 68, 0.4)",
-    backgroundColor: THEME_COLORS.dangerBg,
+    borderColor: "rgba(239, 68, 68, 0.6)",
+    backgroundColor: "rgba(239, 68, 68, 0.25)",
   },
   toolResultHeaderRow: {
     flexDirection: "row",
@@ -430,98 +524,77 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   resultStatusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 6.5,
+    height: 6.5,
+    borderRadius: 3.25,
   },
   statusDotSuccess: {
-    backgroundColor: THEME_COLORS.success,
-    shadowColor: THEME_COLORS.success,
+    backgroundColor: "#22c55e",
+    shadowColor: "#22c55e",
     shadowOpacity: 0.8,
-    shadowRadius: 3,
+    shadowRadius: 4,
   },
   statusDotError: {
-    backgroundColor: THEME_COLORS.danger,
+    backgroundColor: "#ef4444",
   },
   resultTitle: {
-    color: THEME_COLORS.textPrimary,
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
+    fontSize: 12,
+    fontWeight: "800",
   },
   durationBadge: {
-    color: THEME_COLORS.textMuted,
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
     fontSize: 10,
-    backgroundColor: "rgba(255,255,255,0.07)",
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 3,
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
 
   // ── Shared code / terminal block ──────────────────────────────────────────
-  // Matches web "terminalBoxSplit" / "codeSnippetContainer"
   codeBlock: {
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    borderRadius: THEME_RADII.sm,
-    padding: THEME_SPACING.sm,
+    backgroundColor: "rgba(0, 0, 0, 0.40)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.20)",
+    borderRadius: 12,
+    padding: 10,
     maxHeight: 180,
   },
   codeBlockText: {
-    color: THEME_COLORS.textSecondary,   // #cbd5e1 — matches web tokenOutput default
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
+    fontSize: 11.5,
     lineHeight: 18,
   },
 
   // ── Error card ────────────────────────────────────────────────────────────
   errorCard: {
-    backgroundColor: THEME_COLORS.dangerBg,
-    borderColor: "rgba(239, 68, 68, 0.4)",
+    backgroundColor: "rgba(239, 68, 68, 0.25)",
+    borderColor: "rgba(239, 68, 68, 0.5)",
     borderWidth: 1,
-    borderRadius: THEME_RADII.md,
-    padding: THEME_SPACING.sm,
-    gap: 4,
+    borderRadius: 16,
+    padding: 12,
+    gap: 6,
   },
   errorTitle: {
-    color: THEME_COLORS.danger,
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
+    fontSize: 12,
+    fontWeight: "800",
   },
   errorContent: {
-    color: THEME_COLORS.textPrimary,
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
+    fontSize: 11.5,
     lineHeight: 18,
   },
 
-  // ── Streaming indicator bar ───────────────────────────────────────────────
-  // Matches web "telemetryLiveDot" row at bottom of terminal widget
-  streamingIndicatorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: THEME_COLORS.cardSurface,
-    paddingHorizontal: THEME_SPACING.md,
-    paddingVertical: 5,
-    borderTopWidth: 1,
-    borderTopColor: THEME_COLORS.border,
-  },
-  pulsingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: THEME_COLORS.primaryAccent,
-    shadowColor: THEME_COLORS.primaryAccent,
-    shadowOpacity: 0.9,
-    shadowRadius: 4,
-  },
-  streamingText: {
-    color: THEME_COLORS.primaryAccent,
-    fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: 11,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
+  // ── Streaming indicator container (Glassmorphic) ─────────────────────────
+  streamingContainer: {
+    paddingVertical: 6,
+    alignItems: "flex-start",
   },
 
   // ── Jump to live pill ─────────────────────────────────────────────────────
@@ -529,22 +602,73 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 12,
     alignSelf: "center",
-    backgroundColor: THEME_COLORS.cardSurfaceHover,
-    borderColor: THEME_COLORS.primaryAccent,
+    backgroundColor: "rgba(255, 255, 255, 0.22)",
+    borderColor: "#ffffff",
     borderWidth: 1,
-    paddingHorizontal: THEME_SPACING.md,
-    paddingVertical: 6,
-    borderRadius: THEME_RADII.full,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowRadius: 6,
     elevation: 4,
   },
   scrollResumeText: {
-    color: THEME_COLORS.primaryAccent,
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
+    fontSize: 11.5,
+    fontWeight: "800",
+  },
+
+  // ── Empty State Welcome Card ─────────────────────────────────────────────
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    gap: 14,
+  },
+  emptyTitle: {
+    color: "#ffffff",
+    fontSize: 19,
+    fontWeight: "800",
+    textAlign: "center",
+    letterSpacing: -0.3,
+  },
+  emptySubtitle: {
+    color: "rgba(255, 255, 255, 0.85)",
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+    maxWidth: 290,
+  },
+  emptyCard: {
+    width: "100%",
+    maxWidth: 330,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderColor: "rgba(255, 255, 255, 0.25)",
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+  },
+  emptyCardHeader: {
+    color: "#ffffff",
+    fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
+    fontSize: 10.5,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  emptyCardLine: {
+    color: "#ffffff",
+    fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
+    fontSize: 12,
+    lineHeight: 18,
   },
 });

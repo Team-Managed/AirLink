@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform } from "react-native";
-import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_SPACING, THEME_RADII } from "../theme";
+import { View, Text, TouchableOpacity, StyleSheet, KeyboardAvoidingView, StatusBar, ImageBackground } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_RADII } from "../theme";
 import { TerminalFeed } from "../components/TerminalFeed";
 import { PromptInputBar } from "../components/PromptInputBar";
 import { ApprovalDrawer } from "../components/ApprovalDrawer";
 import { TerminalFeedSkeleton } from "../components/SkeletonLoader";
 import { mobileSocketService } from "../services/socket";
 import { feedbackService } from "../services/feedback";
+import PAIRING_BG from "../../assets/pairing_bg.png";
 import type {
   StreamFeedItem,
   ApprovalRequest,
@@ -185,206 +187,223 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
     }
   };
 
+  const insets = useSafeAreaInsets();
+  const topPadding = Math.max(insets.top, StatusBar.currentHeight || 0);
+
   const workspaceName = sessionData.workspacePath
     ? sessionData.workspacePath.split("/").pop() || sessionData.workspacePath.split("\\").pop()
     : "workstation";
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header bar — matches web landing page phone mockup screen header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.statusDotLive} />
-          <View style={styles.hostInfo}>
-            <Text style={styles.screenHeaderTitle} numberOfLines={1}>
-              {sessionData.deviceName || "Remote Host"}
-            </Text>
-            <Text style={styles.workspaceText} numberOfLines={1}>
-              {workspaceName}
-            </Text>
-          </View>
-        </View>
+    <ImageBackground
+      source={PAIRING_BG}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      {/* Translucent scrim overlay layer */}
+      <View style={styles.overlayTint} />
 
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.modelChip} onPress={onOpenSettings} activeOpacity={0.7}>
-            <Text style={styles.modelChipText}>{currentDisplayModel}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.disconnectButton}
-            onPress={onDisconnect}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.disconnectButtonText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {reconnectToast && (
-        <View style={styles.reconnectToastBanner}>
-          <Text style={styles.reconnectToastText}>↻ {reconnectToast}</Text>
-        </View>
-      )}
-
-      {errorBanner && (
-        <View style={styles.sessionErrorBanner}>
-          <Text style={styles.sessionErrorText}>{errorBanner}</Text>
-        </View>
-      )}
-
-      {/* KeyboardAvoidingView ensures the prompt input bar always stays above the keyboard */}
       <KeyboardAvoidingView
-        style={styles.keyboardAvoidingContainer}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
+        style={[styles.container, { paddingTop: topPadding }]}
+        behavior="height"
       >
-        <View style={styles.feedContainer}>
-          {isHydrating ? (
-            <TerminalFeedSkeleton />
-          ) : (
-            <TerminalFeed items={feedItems} isStreaming={isStreaming} />
+        <View style={styles.innerContainer}>
+          {/* Header bar — frosted glass capsule banner */}
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <View style={styles.hostInfo}>
+                <Text style={styles.screenHeaderTitle} numberOfLines={1}>
+                  AirLink Remote
+                </Text>
+                <Text style={styles.workspaceText} numberOfLines={1}>
+                  {sessionData.deviceName || "Host"} • {workspaceName}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.headerRight}>
+              <TouchableOpacity style={styles.modelChip} onPress={onOpenSettings} activeOpacity={0.7}>
+                <Text style={styles.modelChipText}>{currentDisplayModel}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.disconnectButton}
+                onPress={onDisconnect}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.disconnectButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {reconnectToast && (
+            <View style={styles.reconnectToastBanner}>
+              <Text style={styles.reconnectToastText}>↻ {reconnectToast}</Text>
+            </View>
           )}
+
+          {errorBanner && (
+            <View style={styles.sessionErrorBanner}>
+              <Text style={styles.sessionErrorText}>{errorBanner}</Text>
+            </View>
+          )}
+
+          {/* Terminal feed + prompt input bar */}
+          <View style={styles.feedContainer}>
+            {isHydrating ? (
+              <TerminalFeedSkeleton />
+            ) : (
+              <TerminalFeed items={feedItems} isStreaming={isStreaming} />
+            )}
+          </View>
+
+          <PromptInputBar
+            onSubmit={handleSendPrompt}
+            disabled={isStreaming}
+            placeholder={
+              isStreaming ? "Agent is working..." : "Ask agent to build, refactor, or fix..."
+            }
+          />
+
+          <ApprovalDrawer
+            activeApproval={activeApproval}
+            onApprove={handleApprove}
+            onDeny={handleDeny}
+          />
         </View>
-
-        <PromptInputBar
-          onSubmit={handleSendPrompt}
-          disabled={isStreaming}
-          placeholder={
-            isStreaming ? "Agent is working..." : "Ask agent to build, refactor, or fix..."
-          }
-        />
       </KeyboardAvoidingView>
-
-      <ApprovalDrawer
-        activeApproval={activeApproval}
-        onApprove={handleApprove}
-        onDeny={handleDeny}
-      />
-    </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  backgroundImage: {
     flex: 1,
+    width: "100%",
+    height: "100%",
     backgroundColor: THEME_COLORS.backgroundBase,
   },
-  keyboardAvoidingContainer: {
+  overlayTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(10, 16, 30, 0.38)",
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  innerContainer: {
     flex: 1,
   },
+  // Frosted glass header bar
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    // Matches web landing page "screenHeader": frosted glass panel
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: THEME_RADII.md,
-    margin: THEME_SPACING.sm,
-    paddingHorizontal: THEME_SPACING.md,
-    paddingVertical: THEME_SPACING.sm,
+    borderColor: "rgba(255, 255, 255, 0.25)",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    minHeight: 52,
+    borderRadius: 18,
+    marginHorizontal: 12,
+    marginTop: 6,
+    marginBottom: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: THEME_SPACING.sm,
+    gap: 10,
     flex: 1,
-  },
-  statusDotLive: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: THEME_COLORS.success,
-    shadowColor: THEME_COLORS.success,
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
+    minWidth: 0,
   },
   hostInfo: {
     flex: 1,
+    minWidth: 0,
   },
-  // Matches web landing page screen header: "AirLink Remote" bold white
   screenHeaderTitle: {
-    color: THEME_COLORS.textPrimary,
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.sm,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
+    fontSize: 16,
+    fontWeight: "800",
+    letterSpacing: -0.3,
   },
   workspaceText: {
-    color: THEME_COLORS.textDim,
+    color: "rgba(255, 255, 255, 0.8)",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: 10,
+    fontSize: 10.5,
     marginTop: 1,
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: THEME_SPACING.sm,
+    gap: 8,
+    flexShrink: 0,
   },
-  // Matches web landing page: sky-blue monospace model badge (e.g. "DeepSeek-R1")
   modelChip: {
-    backgroundColor: THEME_COLORS.primaryAccentBg,
-    borderColor: "rgba(56, 189, 248, 0.35)",
+    backgroundColor: "rgba(255, 255, 255, 0.16)",
+    borderColor: "rgba(255, 255, 255, 0.3)",
     borderWidth: 1,
-    paddingHorizontal: THEME_SPACING.sm,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: THEME_RADII.full,
+    maxWidth: 140,
   },
   modelChipText: {
-    color: THEME_COLORS.primaryAccent,
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: 10,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
+    fontSize: 10.5,
+    fontWeight: "700",
   },
-  // Compact ✕ icon button to save header space
   disconnectButton: {
-    backgroundColor: THEME_COLORS.dangerBg,
-    borderColor: "rgba(239, 68, 68, 0.35)",
+    backgroundColor: "rgba(239, 68, 68, 0.25)",
+    borderColor: "rgba(239, 68, 68, 0.5)",
     borderWidth: 1,
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     borderRadius: THEME_RADII.full,
     alignItems: "center",
     justifyContent: "center",
   },
   disconnectButtonText: {
-    color: THEME_COLORS.danger,
-    fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: 12,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 16,
   },
-  // Glassy sky-blue reconnect toast — matches web landing page "↻ Replay" indicator
   reconnectToastBanner: {
-    backgroundColor: THEME_COLORS.primaryAccentBg,
+    backgroundColor: "rgba(255, 255, 255, 0.14)",
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(56, 189, 248, 0.3)",
-    paddingHorizontal: THEME_SPACING.md,
-    paddingVertical: 5,
-    flexDirection: "row",
+    borderBottomColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     alignItems: "center",
     justifyContent: "center",
-    gap: THEME_SPACING.xs,
   },
   reconnectToastText: {
-    color: THEME_COLORS.primaryAccent,
-    fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: 11,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
+    color: "#ffffff",
+    fontSize: 11.5,
+    fontWeight: "600",
     textAlign: "center",
   },
   sessionErrorBanner: {
-    backgroundColor: THEME_COLORS.dangerBg,
+    backgroundColor: "rgba(239, 68, 68, 0.3)",
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(239, 68, 68, 0.3)",
-    paddingHorizontal: THEME_SPACING.md,
-    paddingVertical: 5,
+    borderBottomColor: "rgba(239, 68, 68, 0.5)",
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
   sessionErrorText: {
-    color: THEME_COLORS.danger,
-    fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: 11,
+    color: "#ffffff",
+    fontSize: 11.5,
+    fontWeight: "600",
   },
   feedContainer: {
     flex: 1,
   },
 });
+

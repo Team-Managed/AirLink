@@ -29,15 +29,15 @@ const FEATURE_DATA: Record<number, FeatureData> = {
   // Screen 0: 6-Digit PIN Pairing
   0: {
     reasoning:
-      "I'm initializing the AirLink workstation daemon on port 4000. I'll establish a local WebSocket relay bridge and generate an ephemeral 6-digit session PIN (834-192) so you can pair securely from your phone in 3 seconds with zero port-forwarding.",
+      "I'm initializing the AirLink workstation daemon. I'll establish a secure WebSocket relay bridge and generate an ephemeral 6-digit session PIN (834-192) so you can pair securely from your phone in 3 seconds with zero port-forwarding.",
     commands: [
-      "airlink host --port 4000",
-      "ws://127.0.0.1:4000 [Listening]",
+      "airlink host",
+      "relay.airlink.dev [Connected]",
     ],
     streamingSummary:
-      "Workstation daemon is live and listening on ws://127.0.0.1:4000. Inbound WebSocket connections from your phone authenticate with PIN 834-192.",
+      "Workstation daemon is live and paired via WebSocket Relay. Inbound WebSocket connections from your phone authenticate with PIN 834-192.",
     nextStep: "Awaiting 6-digit PIN entry on mobile remote...",
-    prompt: "airlink host --port 4000",
+    prompt: "airlink host",
   },
 
   // Screen 1: BYOK Key Vault
@@ -247,7 +247,7 @@ export function WorkstationTuiMockup({
         {/* Potential Next Step Hint */}
         <div style={styles.nextStepHint}>
           {activeIndex === 0 && isPairedSuccess
-            ? "✔ Mobile-iPhone-16 authenticated. Session paired (0.04s)."
+            ? "✔ Remote device authenticated. Session paired (0.04s)."
             : activeIndex === 3 && isApproved
             ? "✔ 1-tap mobile authorization received. Executing command..."
             : activeIndex === 3
@@ -260,7 +260,7 @@ export function WorkstationTuiMockup({
           <span style={styles.promptSymbol}>airlink &gt;</span>
           <span style={styles.promptPlaceholder}>
             {activeIndex === 0 && isPairedSuccess
-              ? "✓ Workstation paired with iOS remote. Ready for instructions."
+              ? "✓ Workstation paired with remote. Ready for instructions."
               : current.prompt}
           </span>
           <span style={styles.blinkingBlockCursor}>█</span>

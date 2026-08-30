@@ -15,6 +15,18 @@ export interface BootBannerOptions {
 }
 
 /**
+ * ASCII representation of the official AirLink Origami Mascot.
+ * Matches the cute origami paper airplane character with doodle eyes (• ◡ •) and flight trail.
+ */
+export const AIRLINK_MASCOT_ASCII = [
+  chalk.hex("#38bdf8")("       __  /|"),
+  chalk.hex("#38bdf8")("      \\  \\/ |") + chalk.hex("#0284c7")("  *"),
+  chalk.hex("#f0f9ff")("       \\ ") + chalk.hex("#0f172a").bgHex("#f0f9ff")("• ◡ •") + chalk.hex("#f0f9ff")("\\"),
+  chalk.hex("#7dd3fc")("      / \\____/"),
+  chalk.hex("#0284c7")("  ~-~'"),
+].join("\n");
+
+/**
  * Formats a 6-digit PIN string with a hyphen for legibility (e.g., "834192" -> "834-192").
  */
 export function formatPinDisplay(rawPin: string): string {
@@ -26,35 +38,168 @@ export function formatPinDisplay(rawPin: string): string {
 }
 
 /**
- * Builds the string content for the workstation boot banner with sleek, modern CLI aesthetics.
+ * Formats markdown text into clean, terminal-friendly styled output using chalk.
+ */
+export function formatMarkdownTerminal(content: string): string {
+  if (!content) return "";
+
+  const lines = content.split("\n");
+  const formattedLines: string[] = [];
+  let inCodeBlock = false;
+  let codeLang = "";
+  let codeBuffer: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i] ?? "";
+    const trimmed = rawLine.trim();
+
+    // Code block fences
+    if (trimmed.startsWith("```")) {
+      if (!inCodeBlock) {
+        inCodeBlock = true;
+        codeLang = trimmed.slice(3).trim();
+        codeBuffer = [];
+      } else {
+        inCodeBlock = false;
+        const langHeader = codeLang ? chalk.dim(`── [${codeLang}] `) : chalk.dim("── ");
+        formattedLines.push(chalk.dim("┌") + langHeader + chalk.dim("─".repeat(Math.max(10, 45 - langHeader.length))));
+        for (const cLine of codeBuffer) {
+          formattedLines.push(chalk.dim("│ ") + chalk.hex("#cbd5e1")(cLine));
+        }
+        formattedLines.push(chalk.dim("└" + "─".repeat(45)));
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeBuffer.push(rawLine);
+      continue;
+    }
+
+    // Headings
+    if (trimmed.startsWith("### ")) {
+      formattedLines.push(chalk.bold.hex("#38bdf8")(`■ ${trimmed.slice(4)}`));
+      continue;
+    }
+    if (trimmed.startsWith("## ")) {
+      formattedLines.push(chalk.bold.hex("#38bdf8")(`◆ ${trimmed.slice(3)}`));
+      continue;
+    }
+    if (trimmed.startsWith("# ")) {
+      formattedLines.push(chalk.bold.hex("#38bdf8")(`\n▼ ${trimmed.slice(2)}`));
+      continue;
+    }
+
+    // Horizontal rules
+    if (/^[-*_]{3,}$/.test(trimmed)) {
+      formattedLines.push(chalk.dim("─".repeat(50)));
+      continue;
+    }
+
+    // Blockquotes
+    if (trimmed.startsWith("> ")) {
+      formattedLines.push(chalk.hex("#38bdf8")("│ ") + chalk.dim.italic(trimmed.slice(2)));
+      continue;
+    }
+
+    // Bullet lists
+    const bulletMatch = rawLine.match(/^(\s*)[-*+]\s+(.*)/);
+    if (bulletMatch) {
+      const indent = " ".repeat(bulletMatch[1]?.length || 0);
+      const text = formatInlineMarkdown(bulletMatch[2] || "");
+      formattedLines.push(`${indent} ${chalk.hex("#38bdf8")("•")} ${text}`);
+      continue;
+    }
+
+    // Numbered lists
+    const numMatch = rawLine.match(/^(\s*)(\d+)\.\s+(.*)/);
+    if (numMatch) {
+      const indent = " ".repeat(numMatch[1]?.length || 0);
+      const num = numMatch[2];
+      const text = formatInlineMarkdown(numMatch[3] || "");
+      formattedLines.push(`${indent} ${chalk.hex("#38bdf8")(`${num}.`)} ${text}`);
+      continue;
+    }
+
+    // Regular line with inline markdown formatting
+    formattedLines.push(formatInlineMarkdown(rawLine));
+  }
+
+  // Close unclosed code block if stream finished abruptly
+  if (inCodeBlock && codeBuffer.length > 0) {
+    formattedLines.push(chalk.dim("┌── [code] " + "─".repeat(34)));
+    for (const cLine of codeBuffer) {
+      formattedLines.push(chalk.dim("│ ") + chalk.hex("#cbd5e1")(cLine));
+    }
+    formattedLines.push(chalk.dim("└" + "─".repeat(45)));
+  }
+
+  return formattedLines.join("\n");
+}
+
+/**
+ * Formats inline markdown tokens: **bold**, *italic*, `code`, ~~strike~~
+ */
+export function formatInlineMarkdown(text: string): string {
+  if (!text) return "";
+
+  // Inline code: `code`
+  let res = text.replace(/`([^`]+)`/g, (_m, p1) => chalk.hex("#38bdf8").bgHex("#0f172a")(` ${p1} `));
+
+  // Bold: **text** or __text__
+  res = res.replace(/(\*\*|__)(.*?)\1/g, (_m, _p1, p2) => chalk.bold.white(p2));
+
+  // Italic: *text* or _text_
+  res = res.replace(/(\*|_)(.*?)\1/g, (_m, _p1, p2) => chalk.italic(p2));
+
+  // Strikethrough: ~~text~~
+  res = res.replace(/~~(.*?)~~/g, (_m, p1) => chalk.strikethrough.dim(p1));
+
+  return res;
+}
+
+/**
+ * Builds the string content for the workstation boot banner matching the authentic developer terminal mockup 1:1.
  */
 export function formatBootBannerText(options: BootBannerOptions): string {
   const pinDisplay = formatPinDisplay(options.pin);
   const rawPinDigits = options.pin.replace(/\D/g, "");
   const pairUrl = `https://airlink.dev/pair?pin=${rawPinDigits}`;
-  const engineLabel =
-    options.provider && options.provider !== "simulated"
-      ? chalk.hex("#38bdf8")(`${options.model} (${options.provider})`)
-      : chalk.hex("#a855f7")(options.model || "0x-alpha");
 
-  const lines = [
-    `${chalk.bold.hex("#38bdf8")("AirLink")} ${chalk.dim("·")} ${chalk.white("Workstation Remote")} ${chalk.dim(`(${options.hostName || "local"})`)}`,
+  const introText = chalk.hex("#94a3b8")(
+    `I'm initializing the AirLink workstation daemon. I'll establish a secure WebSocket relay bridge and generate an ephemeral 6-digit session PIN (${pinDisplay}) so you can pair securely from your phone in 3 seconds with zero port-forwarding.`
+  );
+
+  const ranAction1 = `${chalk.white("•")} ${chalk.bold.white("Ran")} ${chalk.hex("#7ee787")("airlink host")}`;
+  const ranAction2 = `${chalk.white("•")} ${chalk.bold.white("Ran")} ${chalk.hex("#7ee787")("relay.airlink.dev [Connected]")}`;
+
+  const calloutLines = [
+    `${chalk.hex("#38bdf8").bold(">")} ${chalk.white("Workstation daemon is live and paired via WebSocket Relay.")}`,
+    `  Inbound connection from your phone authenticates with PIN ${chalk.bold.hex("#4ade80")(pinDisplay)}.`,
     "",
-    `  ${chalk.dim("PIN")}          ${chalk.bold.hex("#4ade80")(pinDisplay)}`,
-    `  ${chalk.dim("Pair")}         ${chalk.hex("#38bdf8").underline(pairUrl)}`,
-    `  ${chalk.dim("Workspace")}    ${chalk.white(options.workspacePath)}`,
-    `  ${chalk.dim("Model")}        ${engineLabel}`,
-    "",
-    chalk.dim("Ready. Type a prompt below or /help for commands."),
+    `  ${chalk.dim("Pair URL:")}   ${chalk.hex("#38bdf8").underline(pairUrl)}`,
+    `  ${chalk.dim("Workspace:")}  ${chalk.white(options.workspacePath)}`,
+    `  ${chalk.dim("Model:")}      ${chalk.cyan(options.model || "0x-alpha")}`,
   ];
 
-  return boxen(lines.join("\n"), {
-    padding: { top: 0, bottom: 0, left: 1, right: 2 },
-    margin: { top: 1, bottom: 1, left: 0, right: 0 },
+  const calloutBox = boxen(calloutLines.join("\n"), {
+    padding: { top: 0, bottom: 0, left: 1, right: 1 },
+    margin: { top: 0, bottom: 0, left: 0, right: 0 },
     borderStyle: "round",
     borderColor: "gray",
   });
+
+  return [
+    "",
+    introText,
+    "",
+    ranAction1,
+    ranAction2,
+    "",
+    calloutBox,
+  ].join("\n");
 }
+
 
 /**
  * Renders the boot banner to stdout.
@@ -66,12 +211,12 @@ export function renderBootBanner(options: BootBannerOptions): void {
 /**
  * Helper to parse unified diff content into formatted TUI code lines.
  */
-function formatInlineDiffLines(diffText: string): string {
+export function formatInlineDiffLines(diffText: string): string {
   const lines = diffText.split("\n").filter((l) => l.trim().length > 0);
   const formatted: string[] = [];
-  let lineCounter = 33;
+  let lineCounter = 1;
 
-  for (const line of lines.slice(0, 8)) {
+  for (const line of lines.slice(0, 15)) {
     if (line.startsWith("+++") || line.startsWith("---") || line.startsWith("@@")) {
       continue;
     }
@@ -91,12 +236,12 @@ function formatInlineDiffLines(diffText: string): string {
 }
 
 /**
- * Formats an incoming stream chunk into a colorized string representation matching the authentic developer TUI.
+ * Formats an incoming stream chunk into a clean, human-friendly colorized string representation.
  */
 export function formatStreamChunkText(chunk: AgentStream): string {
   switch (chunk.type) {
     case "thought":
-      return chalk.hex("#8b949e").italic(chunk.content);
+      return chalk.hex("#8b949e").italic(`💭 ${chunk.content}`);
 
     case "token":
       return chunk.content;
@@ -108,29 +253,34 @@ export function formatStreamChunkText(chunk: AgentStream): string {
       if (toolName === "write_file" || toolName === "edit_file" || toolName === "patch_file") {
         const filePath = String(args["path"] || args["filePath"] || "file");
         const diffPreview = typeof args["content"] === "string" ? formatInlineDiffLines(args["content"]) : "";
-        return `\n${chalk.white("•")} ${chalk.bold.white("Edited")} ${chalk.cyan(filePath)}${diffPreview}`;
+        return `\n${chalk.hex("#38bdf8")("•")} ${chalk.bold.white("Edited")} ${chalk.cyan(filePath)}${diffPreview}`;
       }
 
       if (toolName === "execute_bash" || toolName === "run_tests" || toolName === "run_lint") {
         const command = String(args["command"] || chunk.content || toolName);
-        return `\n${chalk.white("•")} ${chalk.bold.white("Ran")} ${chalk.hex("#7ee787")(command)}`;
+        return `\n${chalk.hex("#38bdf8")("•")} ${chalk.bold.white("Ran")} ${chalk.hex("#7ee787")(command)}`;
       }
 
       if (toolName === "get_git_diff") {
-        return `\n${chalk.white("•")} ${chalk.bold.white("Ran")} ${chalk.hex("#7ee787")("git diff")}`;
+        return `\n${chalk.hex("#38bdf8")("•")} ${chalk.bold.white("Ran")} ${chalk.hex("#7ee787")("git diff")}`;
       }
 
       if (toolName === "list_directory") {
         const p = String(args["path"] || ".");
-        return `\n${chalk.white("•")} ${chalk.bold.white("Ran")} ${chalk.hex("#7ee787")(`ls ${p}`)}`;
+        return `\n${chalk.hex("#38bdf8")("•")} ${chalk.bold.white("Ran")} ${chalk.hex("#7ee787")(`ls ${p}`)}`;
       }
 
       const argsStr = chunk.metadata?.["args"] ? ` ${JSON.stringify(chunk.metadata["args"])}` : "";
-      return `\n${chalk.white("•")} ${chalk.bold.white("Ran")} ${chalk.cyan(toolName)}${chalk.dim(argsStr)}`;
+      return `\n${chalk.hex("#38bdf8")("•")} ${chalk.bold.white("Ran")} ${chalk.cyan(toolName)}${chalk.dim(argsStr)}`;
     }
 
     case "tool_result": {
       const toolName = chunk.metadata?.["name"] ? `Tool Result: ${String(chunk.metadata["name"])}` : "Result";
+      const isDiff = chunk.content.includes("diff --git") || (chunk.content.includes("---") && chunk.content.includes("+++"));
+      
+      if (isDiff) {
+        return `\n  ${chalk.cyan.bold(`[${toolName}]`)}\n${formatDiffText(chunk.content)}`;
+      }
       return chalk.dim(`  [${toolName}] ${chunk.content}`);
     }
 
@@ -138,10 +288,120 @@ export function formatStreamChunkText(chunk: AgentStream): string {
       return chalk.red.bold(`\n✖ [Error] ${chunk.content}`);
 
     case "done":
-      return `\n\n${chalk.dim("Potential next step: Tap [Review] on phone or commit to git.")}\n`;
+      return `\n\n${chalk.dim("✈ AirLink · Potential next step: Tap [Review] on phone or commit to git.")}\n`;
 
     default:
       return chunk.content;
+  }
+}
+
+/**
+ * Stream-aware Terminal Markdown Renderer.
+ * Buffers partial incoming tokens and flushes formatted markdown lines
+ * to terminal stdout in real-time.
+ */
+export class TerminalMarkdownStreamer {
+  private buffer = "";
+  private inCodeBlock = false;
+  private codeLang = "";
+  private codeLines: string[] = [];
+  private atLineStart = true;
+  private fenceBuffer = "";
+  private isFirstLineOfBlock = false;
+
+  public write(token: string): void {
+    for (let i = 0; i < token.length; i++) {
+      const ch = token[i] ?? "";
+
+      if (this.inCodeBlock) {
+        if (ch === "\n") {
+          const line = this.buffer;
+          this.buffer = "";
+          const trimmed = line.trim();
+
+          if (this.isFirstLineOfBlock) {
+            this.codeLang = trimmed;
+            this.isFirstLineOfBlock = false;
+            this.atLineStart = true;
+          } else if (trimmed.startsWith("```")) {
+            this.renderCodeBlock();
+            this.inCodeBlock = false;
+            this.atLineStart = true;
+          } else {
+            this.codeLines.push(line);
+            this.atLineStart = true;
+          }
+        } else {
+          this.buffer += ch;
+        }
+        continue;
+      }
+
+      // Check for code block opening fence at the start of a line
+      if (this.atLineStart) {
+        if (ch === "`" && this.fenceBuffer.length < 3) {
+          this.fenceBuffer += ch;
+          if (this.fenceBuffer === "```") {
+            this.inCodeBlock = true;
+            this.isFirstLineOfBlock = true;
+            this.codeLang = "";
+            this.codeLines = [];
+            this.fenceBuffer = "";
+            this.buffer = "";
+          }
+          continue;
+        } else if (this.fenceBuffer.length > 0) {
+          // Emitted 1 or 2 backticks not completing a triple-backtick fence
+          process.stdout.write(this.fenceBuffer);
+          this.fenceBuffer = "";
+          this.atLineStart = false;
+        }
+      }
+
+      process.stdout.write(ch);
+      if (ch === "\n") {
+        this.atLineStart = true;
+      } else if (this.atLineStart && ch !== " " && ch !== "\t") {
+        this.atLineStart = false;
+      }
+    }
+  }
+
+  private renderCodeBlock(): void {
+    const langHeader = this.codeLang ? chalk.dim(`── [${this.codeLang}] `) : chalk.dim("── ");
+    console.log(chalk.dim("┌") + langHeader + chalk.dim("─".repeat(Math.max(10, 48 - langHeader.length))));
+    for (const cLine of this.codeLines) {
+      console.log(chalk.dim("│ ") + chalk.hex("#cbd5e1")(cLine));
+    }
+    console.log(chalk.dim("└" + "─".repeat(48)));
+    this.codeLines = [];
+    this.codeLang = "";
+    this.isFirstLineOfBlock = false;
+  }
+
+  public flush(): void {
+    if (this.fenceBuffer.length > 0) {
+      process.stdout.write(this.fenceBuffer);
+      this.fenceBuffer = "";
+    }
+    if (this.inCodeBlock) {
+      if (this.buffer.length > 0) {
+        const trimmed = this.buffer.trim();
+        if (this.isFirstLineOfBlock) {
+          this.codeLang = trimmed;
+          this.isFirstLineOfBlock = false;
+        } else if (!trimmed.startsWith("```")) {
+          this.codeLines.push(this.buffer);
+        }
+        this.buffer = "";
+      }
+      this.renderCodeBlock();
+      this.inCodeBlock = false;
+      this.atLineStart = true;
+    } else if (this.buffer.length > 0) {
+      process.stdout.write(this.buffer);
+      this.buffer = "";
+    }
   }
 }
 
@@ -155,6 +415,7 @@ export function renderStreamChunk(chunk: AgentStream): void {
     console.log(formatStreamChunkText(chunk));
   }
 }
+
 
 /**
  * Formats approval request information for terminal display.
@@ -171,7 +432,7 @@ export function formatApprovalText(request: ApprovalRequest): string {
   const timeoutSec = Math.round(request.timeoutMs / 1000);
 
   const lines = [
-    chalk.bold.yellow("[ACTION APPROVAL REQUIRED] (Dual-Surface Gate)"),
+    chalk.bold.yellow("⚠️  [ACTION APPROVAL REQUIRED] (Dual-Surface Gate)"),
     `Tool: ${chalk.bold.cyan(request.toolName)} | Risk Level: ${riskColor(` ${request.riskLevel.toUpperCase()} `)}`,
     `Timeout: ${chalk.dim(`${timeoutSec} seconds (auto-denies if unattended)`)}`,
     ...(request.description ? [`Description: ${chalk.dim(request.description)}`] : []),

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
-import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_SPACING, THEME_RADII } from "../theme";
+import React, { useState, useEffect } from "react";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Keyboard } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { THEME_RADII } from "../theme";
 import { hapticsService } from "../services/haptics";
 import type { QuickActionItem } from "../types";
 
@@ -56,6 +57,17 @@ export const PromptInputBar: React.FC<PromptInputBarProps> = ({
   placeholder = "Ask agent to build, refactor, or fix...",
 }) => {
   const [text, setText] = useState<string>("");
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState<boolean>(false);
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", () => setIsKeyboardOpen(true));
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => setIsKeyboardOpen(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const handlePillPress = (action: QuickActionItem) => {
     hapticsService.triggerSelection();
@@ -73,7 +85,12 @@ export const PromptInputBar: React.FC<PromptInputBarProps> = ({
   const hasText = text.trim().length > 0;
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { paddingBottom: isKeyboardOpen ? 4 : Math.max(insets.bottom, 4) },
+      ]}
+    >
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -97,7 +114,7 @@ export const PromptInputBar: React.FC<PromptInputBarProps> = ({
           value={text}
           onChangeText={setText}
           placeholder={placeholder}
-          placeholderTextColor={THEME_COLORS.textDim}
+          placeholderTextColor="rgba(255, 255, 255, 0.55)"
           multiline={true}
           maxLength={4000}
           editable={!disabled}
@@ -118,7 +135,7 @@ export const PromptInputBar: React.FC<PromptInputBarProps> = ({
               hasText && !disabled ? styles.submitTextActive : styles.submitTextDisabled,
             ]}
           >
-            Send
+            ➔
           </Text>
         </TouchableOpacity>
       </View>
@@ -127,90 +144,79 @@ export const PromptInputBar: React.FC<PromptInputBarProps> = ({
 };
 
 const styles = StyleSheet.create({
-  // Frosted-glass container — matches web "screenBottomBlock" input area dark bg
   container: {
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    backgroundColor: "rgba(10, 16, 30, 0.50)",
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.08)",
-    paddingTop: THEME_SPACING.xs,
-    paddingBottom: THEME_SPACING.sm,
-    paddingHorizontal: THEME_SPACING.md,
+    borderTopColor: "rgba(255, 255, 255, 0.15)",
+    paddingTop: 6,
+    paddingHorizontal: 12,
   },
-  // Horizontal scrollable quick-action pills — same as web "Quick Actions" row
   pillsContainer: {
     flexDirection: "row",
-    gap: THEME_SPACING.xs,
-    paddingBottom: THEME_SPACING.xs,
+    gap: 6,
+    paddingBottom: 5,
   },
-  // Matches web "reviewBtnMini" pill: frosted bg, hairline white border, rounded
   pillButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.07)",
-    borderColor: "rgba(255, 255, 255, 0.12)",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderColor: "rgba(255, 255, 255, 0.25)",
     borderWidth: 1,
-    paddingHorizontal: THEME_SPACING.sm,
-    paddingVertical: 4,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
     borderRadius: THEME_RADII.full,
   },
   pillText: {
-    color: THEME_COLORS.textSecondary,
-    fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
+    color: "#ffffff",
     fontSize: 11,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.medium,
+    fontWeight: "600",
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: THEME_SPACING.sm,
-    marginTop: 4,
+    gap: 8,
+    paddingBottom: 4,
   },
-  // Rounded pill text input — matches web frosted input card
   textInput: {
     flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderColor: "rgba(255, 255, 255, 0.25)",
     borderWidth: 1,
-    borderRadius: THEME_RADII.xl,
-    color: THEME_COLORS.textPrimary,
-    fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.sm,
-    lineHeight: 20,
-    paddingHorizontal: THEME_SPACING.md,
-    paddingVertical: THEME_SPACING.sm,
+    borderRadius: 20,
+    color: "#ffffff",
+    fontSize: 13,
+    lineHeight: 19,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     minHeight: 40,
     maxHeight: 120,
   },
-  // Send button — same height as input, square-ish circle
   submitButton: {
     width: 40,
     height: 40,
-    borderRadius: THEME_RADII.full,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
-  // Active: solid sky-blue glow — matches web primary CTA button
   submitButtonActive: {
-    backgroundColor: THEME_COLORS.primaryAccent,
-    shadowColor: THEME_COLORS.primaryAccent,
+    backgroundColor: "#ffffff",
+    shadowColor: "#ffffff",
     shadowOpacity: 0.5,
     shadowRadius: 8,
     elevation: 4,
   },
-  // Disabled: translucent dark
   submitButtonDisabled: {
-    backgroundColor: "rgba(255, 255, 255, 0.07)",
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.10)",
+    borderColor: "rgba(255, 255, 255, 0.18)",
     borderWidth: 1,
   },
   submitButtonText: {
-    fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.sm,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
+    fontSize: 15,
+    fontWeight: "800",
   },
   submitTextActive: {
-    color: "#000000",
+    color: "#090d16",
   },
   submitTextDisabled: {
-    color: THEME_COLORS.textDim,
+    color: "rgba(255, 255, 255, 0.4)",
   },
 });
-

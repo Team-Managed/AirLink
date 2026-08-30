@@ -169,6 +169,14 @@ export class SecureVaultService {
   }
 
   /**
+   * Checks whether an API key is stored for a provider without exposing the secret.
+   */
+  public async hasApiKey(provider: LLMProvider): Promise<boolean> {
+    const val = await this.getItem(`${KEY_PREFIX}${provider}`);
+    return Boolean(val && val.trim().length > 0);
+  }
+
+  /**
    * Clears the stored API key for a provider.
    */
   public async clearApiKey(provider: LLMProvider): Promise<void> {

@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
-import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_SPACING, THEME_RADII } from "../theme";
+import { THEME_TYPOGRAPHY } from "../theme";
 import type { ParsedDiff, ParsedDiffLine, ParsedHunk } from "../types";
 
 export interface DiffCardProps {
   diffText: string;
   filePath?: string;
   onOpenPR?: () => void;
+  branchName?: string;
+  statusText?: string;
 }
 
 export function parseUnifiedDiff(
@@ -116,8 +118,15 @@ export function parseUnifiedDiff(
   };
 }
 
-export const DiffCard: React.FC<DiffCardProps> = ({ diffText, filePath, onOpenPR }) => {
-  const parsed = parseUnifiedDiff(diffText, filePath);
+export const DiffCard: React.FC<DiffCardProps> = React.memo(({
+  diffText,
+  filePath = "workspace/change.diff",
+  onOpenPR,
+  branchName,
+  statusText,
+}) => {
+  const parsed = useMemo(() => parseUnifiedDiff(diffText, filePath), [diffText, filePath]);
+  const showFooter = Boolean(onOpenPR || branchName || statusText);
 
   return (
     <View style={styles.cardContainer}>
@@ -188,45 +197,59 @@ export const DiffCard: React.FC<DiffCardProps> = ({ diffText, filePath, onOpenPR
         </View>
       </ScrollView>
 
-      {onOpenPR && (
-        <View style={styles.footerRow}>
-          <TouchableOpacity style={styles.openPRButton} onPress={onOpenPR} activeOpacity={0.8}>
-            <Text style={styles.openPRButtonText}>Create GitHub Pull Request</Text>
-          </TouchableOpacity>
+      {showFooter && (
+        <View style={styles.diffFooterRow}>
+          {branchName ? (
+            <Text style={styles.diffBranchName}>{branchName}</Text>
+          ) : (
+            <View />
+          )}
+          {onOpenPR ? (
+            <TouchableOpacity style={styles.openPRButton} onPress={onOpenPR} activeOpacity={0.8}>
+              <Text style={styles.openPRButtonText}>Create Pull Request →</Text>
+            </TouchableOpacity>
+          ) : statusText ? (
+            <Text style={styles.diffReadyText}>{statusText}</Text>
+          ) : null}
         </View>
       )}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   cardContainer: {
-    backgroundColor: THEME_COLORS.cardSurface,
-    borderRadius: THEME_RADII.md,
+    backgroundColor: "rgba(10, 16, 30, 0.70)",
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: THEME_COLORS.border,
+    borderColor: "rgba(255, 255, 255, 0.25)",
     overflow: "hidden",
-    marginVertical: THEME_SPACING.sm,
+    marginVertical: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: THEME_COLORS.cardSurfaceHover,
-    paddingHorizontal: THEME_SPACING.md,
-    paddingVertical: THEME_SPACING.sm,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    paddingHorizontal: 12,
+    paddingVertical: 9,
     borderBottomWidth: 1,
-    borderBottomColor: THEME_COLORS.border,
+    borderBottomColor: "rgba(255, 255, 255, 0.20)",
   },
   filePathBadge: {
     flex: 1,
-    marginRight: THEME_SPACING.sm,
+    marginRight: 8,
   },
   filePathText: {
-    color: THEME_COLORS.textPrimary,
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
+    fontSize: 11,
+    fontWeight: "800",
   },
   counterGroup: {
     flexDirection: "row",
@@ -234,110 +257,130 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   addCounterBadge: {
-    backgroundColor: THEME_COLORS.successBg,
-    borderRadius: THEME_RADII.sm,
+    backgroundColor: "rgba(34, 197, 94, 0.25)",
+    borderColor: "rgba(34, 197, 94, 0.5)",
+    borderWidth: 1,
+    borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
   addCounterText: {
-    color: THEME_COLORS.success,
+    color: "#4ade80",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
+    fontSize: 10.5,
+    fontWeight: "800",
   },
   delCounterBadge: {
-    backgroundColor: THEME_COLORS.dangerBg,
-    borderRadius: THEME_RADII.sm,
+    backgroundColor: "rgba(239, 68, 68, 0.25)",
+    borderColor: "rgba(239, 68, 68, 0.5)",
+    borderWidth: 1,
+    borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
   delCounterText: {
-    color: THEME_COLORS.danger,
+    color: "#f87171",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
+    fontSize: 10.5,
+    fontWeight: "800",
   },
   diffScrollView: {
-    backgroundColor: THEME_COLORS.codeBg,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
     maxHeight: 280,
   },
   diffBody: {
     minWidth: "100%",
-    paddingVertical: THEME_SPACING.xs,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
   },
   hunkBlock: {
-    marginBottom: THEME_SPACING.xs,
+    marginBottom: 6,
   },
   hunkHeaderRow: {
-    backgroundColor: THEME_COLORS.cardSurface,
-    paddingHorizontal: THEME_SPACING.md,
+    backgroundColor: "rgba(255, 255, 255, 0.10)",
+    paddingHorizontal: 8,
     paddingVertical: 3,
-    borderBottomWidth: 1,
-    borderBottomColor: THEME_COLORS.border,
+    borderRadius: 6,
+    marginBottom: 3,
   },
   hunkHeaderText: {
-    color: THEME_COLORS.primaryAccent,
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: 11,
+    fontSize: 10,
+    fontWeight: "700",
   },
   lineRow: {
     flexDirection: "row",
-    paddingHorizontal: THEME_SPACING.sm,
+    paddingHorizontal: 6,
     paddingVertical: 2,
+    borderRadius: 4,
+    marginVertical: 0.5,
   },
   lineRowAdd: {
-    backgroundColor: THEME_COLORS.successBg,
+    backgroundColor: "rgba(34, 197, 94, 0.18)",
   },
   lineRowDel: {
-    backgroundColor: THEME_COLORS.dangerBg,
+    backgroundColor: "rgba(239, 68, 68, 0.18)",
   },
   linePrefix: {
-    width: 16,
-    color: THEME_COLORS.textMuted,
+    width: 14,
+    color: "rgba(255, 255, 255, 0.8)",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    userSelect: "none",
+    fontSize: 10.5,
   },
   prefixAdd: {
-    color: THEME_COLORS.success,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
+    color: "#4ade80",
+    fontWeight: "800",
   },
   prefixDel: {
-    color: THEME_COLORS.danger,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
+    color: "#f87171",
+    fontWeight: "800",
   },
   lineContent: {
     flex: 1,
-    color: THEME_COLORS.textMuted,
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    lineHeight: 18,
+    fontSize: 10.5,
+    lineHeight: 16,
   },
   contentAdd: {
-    color: THEME_COLORS.success,
+    color: "#4ade80",
   },
   contentDel: {
-    color: THEME_COLORS.danger,
+    color: "#f87171",
   },
-  footerRow: {
-    padding: THEME_SPACING.sm,
-    backgroundColor: THEME_COLORS.cardSurface,
+  diffFooterRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.10)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: THEME_COLORS.border,
-    alignItems: "flex-end",
+    borderTopColor: "rgba(255, 255, 255, 0.20)",
+  },
+  diffBranchName: {
+    color: "rgba(255, 255, 255, 0.85)",
+    fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  diffReadyText: {
+    color: "#ffffff",
+    fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
+    fontSize: 10.5,
+    fontWeight: "700",
   },
   openPRButton: {
-    backgroundColor: THEME_COLORS.primaryAccentBg,
-    borderColor: THEME_COLORS.primaryAccent,
-    borderWidth: 1,
-    paddingHorizontal: THEME_SPACING.md,
-    paddingVertical: THEME_SPACING.xs,
-    borderRadius: THEME_RADII.sm,
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   openPRButtonText: {
-    color: THEME_COLORS.primaryAccent,
+    color: "#090d16",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
+    fontSize: 10.5,
+    fontWeight: "800",
   },
 });
