@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, StatusBar, Modal } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { THEME_COLORS } from "./theme";
 import { PairingScreen } from "./screens/PairingScreen";
 import { SessionScreen } from "./screens/SessionScreen";
@@ -130,36 +131,40 @@ export function App(): React.JSX.Element {
   };
 
   return (
-    <View style={styles.rootContainer}>
-      <StatusBar barStyle="light-content" backgroundColor={THEME_COLORS.backgroundBase} />
-      {isPaired && sessionData ? (
-        <SessionScreen
-          sessionData={sessionData}
-          onDisconnect={handleDisconnect}
-          byokConfig={byokConfig}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-        />
-      ) : (
-        <PairingScreen
-          onConnect={handleConnect}
-          isConnecting={isConnecting}
-          errorMessage={errorMessage}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-        />
-      )}
+    <SafeAreaProvider>
+      <View style={styles.rootContainer}>
+        <StatusBar barStyle="light-content" backgroundColor={THEME_COLORS.backgroundBase} />
+        <View style={styles.appViewport}>
+          {isPaired && sessionData ? (
+            <SessionScreen
+              sessionData={sessionData}
+              onDisconnect={handleDisconnect}
+              byokConfig={byokConfig}
+              onOpenSettings={() => setIsSettingsOpen(true)}
+            />
+          ) : (
+            <PairingScreen
+              onConnect={handleConnect}
+              isConnecting={isConnecting}
+              errorMessage={errorMessage}
+              onOpenSettings={() => setIsSettingsOpen(true)}
+            />
+          )}
 
-      <Modal
-        visible={isSettingsOpen}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setIsSettingsOpen(false)}
-      >
-        <SettingsScreen
-          onClose={() => setIsSettingsOpen(false)}
-          onConfigSaved={(cfg) => setByokConfig(cfg)}
-        />
-      </Modal>
-    </View>
+          <Modal
+            visible={isSettingsOpen}
+            animationType="slide"
+            presentationStyle="pageSheet"
+            onRequestClose={() => setIsSettingsOpen(false)}
+          >
+            <SettingsScreen
+              onClose={() => setIsSettingsOpen(false)}
+              onConfigSaved={(cfg) => setByokConfig(cfg)}
+            />
+          </Modal>
+        </View>
+      </View>
+    </SafeAreaProvider>
   );
 }
 
@@ -167,7 +172,17 @@ const styles = StyleSheet.create({
   rootContainer: {
     flex: 1,
     backgroundColor: THEME_COLORS.backgroundBase,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  appViewport: {
+    flex: 1,
+    width: "100%",
+    maxWidth: 480,
+    backgroundColor: THEME_COLORS.backgroundBase,
   },
 });
 
 export default App;
+
+
