@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "AirLink",
-    "slug": "airlink",
+    "slug": "airlink-monorepo",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -12,6 +12,21 @@
     },
     "web": {
       "bundler": "metro"
+    },
+    "android": {
+      "package": "com.airlink.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#090d16"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.airlink.mobile",
+      "supportsTablet": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "abff94d0-ca27-4841-8fa2-87b67e471292"
+      }
     }
   }
 }
