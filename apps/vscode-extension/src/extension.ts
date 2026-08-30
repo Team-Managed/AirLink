@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as os from "node:os";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as crypto from "node:crypto";
 import dotenv from "dotenv";
 import {
   SocketBridge,
@@ -91,7 +92,7 @@ function loadEnvironment(workspacePath: string | null): void {
 // ── PIN helpers ──────────────────────────────────────────────────────────────
 
 export function generateSessionPin(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 export function formatPin(pin: string): string {
@@ -112,13 +113,17 @@ export function activate(context: vscode.ExtensionContext): void {
   loadEnvironment(workspacePath);
 
   const config = vscode.workspace.getConfiguration("agentRemote");
-  const relayUrl =
-    config.get<string>("relayUrl") || process.env["RELAY_URL"] || "http://localhost:3001";
-  const model = config.get<string>("model") || process.env["AGENT_MODEL"] || undefined;
+  const configRelay = config.get<string>("relayUrl");
+  const envRelay = process.env["RELAY_URL"];
 
   // 1. Check for active session in the workspace (e.g. started via CLI) or generate fresh PIN
   const activeRecord = loadActiveSession(workspacePath ?? undefined);
   currentPin = activeRecord?.pin || generateSessionPin();
+
+  // Precedence: explicit VS Code setting > active session persisted relayUrl > process.env > default "http://localhost:3001"
+  const relayUrl =
+    configRelay || activeRecord?.relayUrl || envRelay || "http://localhost:3001";
+  const model = config.get<string>("model") || process.env["AGENT_MODEL"] || undefined;
 
   const chatProvider = new AgentChatViewProvider(context.extensionUri);
 
@@ -205,22 +210,28 @@ export function activate(context: vscode.ExtensionContext): void {
     });
 
     activeBridge.onHostApprovalPrompt(async (request) => {
+      // Deliver approval request to the chat webview
+      chatProvider.handleApprovalRequest(request);
+
       const toolLabel = request.toolName;
       const details = request.commandOrDiff || request.description || "";
 
       const choice = await vscode.window.showWarningMessage(
-        `Agent Remote — Tool Approval Required\n\nTool: ${toolLabel}\nDetails: ${details}`,
+        `AirLink — Tool Approval Required\n\nTool: ${toolLabel}\nDetails: ${details}`,
         { modal: true },
         "Approve",
         "Deny",
       );
 
-      const approved = choice === "Approve";
-      activeBridge?.approvalManager.resolveApproval(
-        request.approvalId,
-        approved,
-        approved ? "Approved via VS Code host modal" : "Denied by developer",
-      );
+      if (choice) {
+        const approved = choice === "Approve";
+        activeBridge?.approvalManager.resolveApproval(
+          request.approvalId,
+          approved,
+          approved ? "Approved via VS Code host modal" : "Denied by developer",
+        );
+        chatProvider.handleApprovalResolved(request.approvalId, approved);
+      }
     });
   }
 
@@ -455,6 +466,10 @@ export function activate(context: vscode.ExtensionContext): void {
  * Deactivates the extension and releases all socket resources.
  */
 export function deactivate(): void {
+  if (activeSession) {
+    activeSession.abortActiveTurn();
+    void activeSession.cancelSession();
+  }
   if (activeBridge) {
     activeBridge.disconnect();
     activeBridge = null;

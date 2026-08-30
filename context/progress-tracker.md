@@ -110,9 +110,22 @@
   - **Pure White Background System:** Configured all body sections (`FeatureGrid`, `HowItWorksSection`, `FaqSection`, `SupportSection`, `InstallCommandBar`, `LandingFooter`, and `PairingCard`) with clean `#ffffff` canvas, `#e2e8f0` hairline borders, `#0f172a` primary text, `#475569` secondary text, and `#f8fafc` subtle hover states.
   - **Synchronized UI Context Tokens (`context/ui-context.md` & `globals.css`):** Synchronized `--bg-canvas` (`#ffffff`), `--bg-subtle` (`#f8fafc`), `--surface-card` (`#ffffff`), `--surface-inset` (`#f1f5f9`), `--sky-azure` (`#0284c7`), `--sky-light` (`#e0f2fe`), `--ocean-deep` (`#0f172a`), `--signal-sunset` (`#ea580c`), and `--signal-seafoam` (`#0d9488`).
   - **AirLink Brand Rename & Monorepo Package Alignment:** Renamed monorepo workspace from `@agent-remote/*` to `@airlink/*` across all packages (`@airlink/protocol`, `@airlink/bridge-core`, `@airlink/cli`, `@airlink/relay`, `@airlink/web`, `@airlink/mobile`, `vscode-airlink`).
-  - **Remediation of Qodo Code Review (6/6 Bugs Fixed):**
-    - Corrected install command tab to copy `npx @airlink/cli`.
-    - Implemented real `/api/support` endpoint with payload validation and ticket ID generation (`AIR-XXXX-YYY`).
+  - **Remediation of PR #24 Qodo Code Review (All 14 Findings Remediated & Verified):**
+    - Issue #1: Added `tsconfig.base.json` to builder `COPY` in `Dockerfile`.
+    - Issue #2: Added Anthropic tool schema translation and SSE `tool_use`/`input_json_delta` streaming in `llm-runner.ts`.
+    - Issue #3: Made `hostSecret` mandatory in `RegisterHostSchema` and enforced strict verification in `room-manager.ts` and `server.ts`.
+    - Issue #4: Replaced `new Function` dynamic import with native static import of `expo-secure-store` in `vault.ts`.
+    - Issue #5: Durably persisted support tickets via `apps/web/src/lib/support-store.ts` before returning 200.
+    - Issue #6: Durably persisted newsletter subscribers via `apps/web/src/lib/subscribers-store.ts` before returning 200.
+    - Issue #7: Bound single shared `ApprovalManager` to both `TrueForgeSession` and `SocketBridge` in `host-controller.ts`.
+    - Issue #8: Fixed web reconnect catch-up payload to use `lastSeenSeq` in `useWebSession.ts`.
+    - Issue #9: Configured `typescript-eslint` for strict TypeScript linting across all packages.
+    - Issue #10: Aborted turns and cancelled session in `deactivate()` in `extension.ts`.
+    - Issue #11: Routed `onHostApprovalPrompt` to webview approval card in `extension.ts`.
+    - Issue #12: Generated PINs with `crypto.randomInt(100000, 1000000).toString()` across CLI, extension, and bridge.
+    - Issue #13: Enforced numeric-only PIN input (`\D/g`) and number-pad keyboard in `PairingScreen.tsx`.
+    - Issue #14: Honored `activeRecord?.relayUrl` during host initialization in `extension.ts`.
+    - Verification: 35/35 test suites passing (234 unit/integration tests), 0 lint violations, 0 unapproved suppressions.
     - Implemented real `/api/subscribe` newsletter endpoint with email validation and error feedback.
     - Mounted `<ArchitectureDiagram />` with `id="architecture"` for valid hash navigation.
     - Throttled `DitheredBackground` frame loop (~22 FPS), added `prefers-reduced-motion` check, and visibility change pausing.
