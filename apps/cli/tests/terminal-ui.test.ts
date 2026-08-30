@@ -280,6 +280,31 @@ describe("Terminal UI Component Suite", () => {
       }
     });
 
+    it("writes prose tokens immediately to stdout without newline buffering", () => {
+      const streamer = new TerminalMarkdownStreamer();
+      const writes: string[] = [];
+      const originalWrite = process.stdout.write;
+      process.stdout.write = (
+        chunk: string | Uint8Array,
+        _encodingOrCallback?: BufferEncoding | ((err?: Error) => void),
+        _callback?: (err?: Error) => void,
+      ): boolean => {
+        writes.push(String(chunk));
+        return true;
+      };
+
+      try {
+        streamer.write("Hello ");
+        expect(writes.join("")).toBe("Hello ");
+        streamer.write("world, ");
+        expect(writes.join("")).toBe("Hello world, ");
+        streamer.write("this is live streaming.");
+        expect(writes.join("")).toBe("Hello world, this is live streaming.");
+      } finally {
+        process.stdout.write = originalWrite;
+      }
+    });
+
     it("flushes unclosed code block with partial line in buffer", () => {
       const streamer = new TerminalMarkdownStreamer();
       const logs: string[] = [];

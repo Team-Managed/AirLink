@@ -305,65 +305,101 @@ export class TerminalMarkdownStreamer {
   private inCodeBlock = false;
   private codeLang = "";
   private codeLines: string[] = [];
+  private atLineStart = true;
+  private fenceBuffer = "";
+  private isFirstLineOfBlock = false;
 
   public write(token: string): void {
-    this.buffer += token;
-    const lines = this.buffer.split("\n");
-    // The last element is the uncompleted partial line
-    this.buffer = lines.pop() ?? "";
+    for (let i = 0; i < token.length; i++) {
+      const ch = token[i] ?? "";
 
-    for (const line of lines) {
-      this.processLine(line);
+      if (this.inCodeBlock) {
+        if (ch === "\n") {
+          const line = this.buffer;
+          this.buffer = "";
+          const trimmed = line.trim();
+
+          if (this.isFirstLineOfBlock) {
+            this.codeLang = trimmed;
+            this.isFirstLineOfBlock = false;
+            this.atLineStart = true;
+          } else if (trimmed.startsWith("```")) {
+            this.renderCodeBlock();
+            this.inCodeBlock = false;
+            this.atLineStart = true;
+          } else {
+            this.codeLines.push(line);
+            this.atLineStart = true;
+          }
+        } else {
+          this.buffer += ch;
+        }
+        continue;
+      }
+
+      // Check for code block opening fence at the start of a line
+      if (this.atLineStart) {
+        if (ch === "`" && this.fenceBuffer.length < 3) {
+          this.fenceBuffer += ch;
+          if (this.fenceBuffer === "```") {
+            this.inCodeBlock = true;
+            this.isFirstLineOfBlock = true;
+            this.codeLang = "";
+            this.codeLines = [];
+            this.fenceBuffer = "";
+            this.buffer = "";
+          }
+          continue;
+        } else if (this.fenceBuffer.length > 0) {
+          // Emitted 1 or 2 backticks not completing a triple-backtick fence
+          process.stdout.write(this.fenceBuffer);
+          this.fenceBuffer = "";
+          this.atLineStart = false;
+        }
+      }
+
+      process.stdout.write(ch);
+      if (ch === "\n") {
+        this.atLineStart = true;
+      } else if (this.atLineStart && ch !== " " && ch !== "\t") {
+        this.atLineStart = false;
+      }
     }
   }
 
-  private processLine(line: string): void {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("```")) {
-      if (!this.inCodeBlock) {
-        this.inCodeBlock = true;
-        this.codeLang = trimmed.slice(3).trim();
-        this.codeLines = [];
-      } else {
-        this.inCodeBlock = false;
-        const langHeader = this.codeLang ? chalk.dim(`── [${this.codeLang}] `) : chalk.dim("── ");
-        console.log(chalk.dim("┌") + langHeader + chalk.dim("─".repeat(Math.max(10, 48 - langHeader.length))));
-        for (const cLine of this.codeLines) {
-          console.log(chalk.dim("│ ") + chalk.hex("#cbd5e1")(cLine));
-        }
-        console.log(chalk.dim("└" + "─".repeat(48)));
-      }
-      return;
+  private renderCodeBlock(): void {
+    const langHeader = this.codeLang ? chalk.dim(`── [${this.codeLang}] `) : chalk.dim("── ");
+    console.log(chalk.dim("┌") + langHeader + chalk.dim("─".repeat(Math.max(10, 48 - langHeader.length))));
+    for (const cLine of this.codeLines) {
+      console.log(chalk.dim("│ ") + chalk.hex("#cbd5e1")(cLine));
     }
-
-    if (this.inCodeBlock) {
-      this.codeLines.push(line);
-      return;
-    }
-
-    console.log(formatMarkdownTerminal(line));
+    console.log(chalk.dim("└" + "─".repeat(48)));
+    this.codeLines = [];
+    this.codeLang = "";
+    this.isFirstLineOfBlock = false;
   }
 
   public flush(): void {
+    if (this.fenceBuffer.length > 0) {
+      process.stdout.write(this.fenceBuffer);
+      this.fenceBuffer = "";
+    }
     if (this.inCodeBlock) {
       if (this.buffer.length > 0) {
-        this.codeLines.push(this.buffer);
+        const trimmed = this.buffer.trim();
+        if (this.isFirstLineOfBlock) {
+          this.codeLang = trimmed;
+          this.isFirstLineOfBlock = false;
+        } else if (!trimmed.startsWith("```")) {
+          this.codeLines.push(this.buffer);
+        }
+        this.buffer = "";
       }
-      const langHeader = this.codeLang ? chalk.dim(`── [${this.codeLang}] `) : chalk.dim("── ");
-      console.log(chalk.dim("┌") + langHeader + chalk.dim("─".repeat(Math.max(10, 48 - langHeader.length))));
-      for (const cLine of this.codeLines) {
-        console.log(chalk.dim("│ ") + chalk.hex("#cbd5e1")(cLine));
-      }
-      console.log(chalk.dim("└" + "─".repeat(48)));
+      this.renderCodeBlock();
       this.inCodeBlock = false;
-      this.codeLines = [];
-      this.codeLang = "";
-      this.buffer = "";
-      return;
-    }
-
-    if (this.buffer.length > 0) {
-      console.log(formatMarkdownTerminal(this.buffer));
+      this.atLineStart = true;
+    } else if (this.buffer.length > 0) {
+      process.stdout.write(this.buffer);
       this.buffer = "";
     }
   }
