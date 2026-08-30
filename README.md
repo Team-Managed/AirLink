@@ -6,7 +6,7 @@
 </h1>
 
 <p align="center">
-  <b>Remotely prompt, stream, and approve your local AI coding agent — from your phone, browser, or any device — without opening a single port.</b>
+  <b>Remotely prompt, stream, and approve your local AI coding agent — from your mobile phone — without opening a single port.</b>
   <br /><br />
   <a href="https://github.com/Team-Managed/AirLink/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/Team-Managed/AirLink?label=pull%20requests&style=flat-square" /></a>
   <a href="https://github.com/Team-Managed/AirLink/actions"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/Team-Managed/AirLink/ci.yml?branch=main&label=CI&style=flat-square" /></a>
@@ -27,22 +27,22 @@ You get an agent working in an afternoon. Then you walk away from your desk — 
 | :--- | :--- |
 | Can't reach your tools remotely | MCP tool servers run locally; a stateless cloud relay tunnels events outbound via WebSocket — no inbound ports needed |
 | Can't run generated code safely | TrueForge sandboxes all execution locally on your workstation |
-| Can't stop the agent before it does damage | Every destructive operation (bash, file writes, deploys) pauses for your approval with a 180 s timeout and auto-deny fallback |
+| Can't stop the agent before it does damage | Every destructive operation (bash, file writes, deploys) pauses for your approval with a 180s timeout and auto-deny fallback |
 
-Pair your workstation to your phone in under 10 seconds with a 6-digit PIN. Stream tokens, inspect Git diffs, approve or reject tool calls — all from wherever you are.
+Pair your workstation to your phone in under 10 seconds with a 6-digit PIN. Stream tokens, inspect Git diffs, approve or reject tool calls — all from your mobile phone.
 
 ---
 
 ## Demo
 
-> **[▶ Watch the 3-minute demo](#)** ← *(demo video link goes here)*
+> **[▶ Watch the 3-minute demo](#)** ← *(demo video link)*
 
-A single session shows:
-1. User prompts from the mobile app
-2. TrueForge dispatches tools via MCP (filesystem read, git diff, bash)
-3. Agent proposes a destructive rollback → **approval drawer appears on phone**
-4. User approves → command runs → stream resumes
-5. User disconnects, reconnects → missed tokens replay instantly from the ring buffer
+A single CLI + Mobile session shows:
+1. **Host Boot:** Developer runs `npx @airlink/cli` on their workstation and receives a 6-digit PIN (`834-192`).
+2. **Mobile Pairing:** Developer opens the AirLink Mobile App on iOS/Android, enters the PIN, and pairs instantly.
+3. **Prompt & Stream:** User prompts from phone → TrueForge dispatches local MCP tools (filesystem read, git diff, bash) on the workstation.
+4. **Human-in-the-Loop Safety:** Agent proposes a destructive action → **180s Approval Drawer slides up on phone** with haptic feedback.
+5. **Reconnection Catch-Up:** Phone disconnects (e.g. elevator) and reconnects → missed tokens replay instantly from host's 500-event ring buffer.
 
 ---
 
@@ -50,57 +50,67 @@ A single session shows:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         Your Workstation (PC)                   │
+│                    Your Workstation (PC / Mac)                  │
 │                                                                 │
-│  ┌────────────────┐    ┌──────────────────────────────────────┐ │
-│  │ VS Code Ext    │    │         bridge-core engine           │ │
-│  │ (Chat Webview) │◄──►│  TrueForge SDK ─► MCP Tools         │ │
-│  └────────────────┘    │  Ring Buffer (seq_id 1..500)         │ │
-│  ┌────────────────┐    │  Approval Promise Map (180s timeout) │ │
-│  │  Terminal CLI  │◄──►│  Slack / Discord Webhook notifiers   │ │
-│  └────────────────┘    └──────────────┬───────────────────────┘ │
-└─────────────────────────────────────┬┘                          │
-              Outbound WebSocket only  │                           │
-                                       ▼                           │
-                          ┌─────────────────────┐                 │
-                          │  Stateless Relay     │ (Fly.io)       │
-                          │  Socket.io · PIN rooms│                │
-                          │  IP rate-limit 3/5min│                │
-                          └──────────┬──────────┘                 │
-                                     │                             │
-              ┌──────────────────────┤                             │
-              ▼                      ▼                             │
-   ┌──────────────────┐   ┌──────────────────┐                    │
-   │  Mobile App      │   │  Web /pair       │                    │
-   │  React Native    │   │  Next.js 15      │                    │
-   │  PIN · Stream    │   │  Browser pairing │                    │
-   │  Diff · Approve  │   │                  │                    │
-   └──────────────────┘   └──────────────────┘                    │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │                    Terminal CLI Host                       │ │
+│  │                      (`apps/cli`)                          │ │
+│  │                                                            │ │
+│  │  ┌──────────────────────────────────────────────────────┐  │ │
+│  │  │                  bridge-core engine                  │  │ │
+│  │  │  • TrueForge SDK ─► Local MCP Tools                  │  │ │
+│  │  │  • In-Memory Ring Buffer (seq_id 1..500)             │  │ │
+│  │  │  • Approval Promise Map (180s timeout auto-deny)     │  │ │
+│  │  │  • Slack / Discord Webhook Notifiers                 │  │ │
+│  │  └──────────────────────────────────────────────────────┘  │ │
+│  └──────────────────────────────┬─────────────────────────────┘ │
+└─────────────────────────────────┼───────────────────────────────┘
+                                  │ Outbound WebSocket (No inbound ports)
+                                  ▼
+                     ┌───────────────────────────┐
+                     │   Stateless Cloud Relay   │ (Render)
+                     │   Socket.io · PIN rooms   │
+                     │   IP Rate-Limit (3 fails) │
+                     └─────────────┬─────────────┘
+                                   │
+                                   ▼
+                     ┌───────────────────────────┐
+                     │     Native Mobile App     │
+                     │   React Native / Expo     │
+                     │   • 6-Digit PIN Pairing   │
+                     │   • Live Token Stream     │
+                     │   • Visual Git Diff Cards │
+                     │   • 180s Approval Drawer  │
+                     └───────────────────────────┘
 ```
 
-**Full monorepo layout:**
+<!--
+Note: AirLink also includes a web client (`apps/web`) and VS Code extension (`apps/vscode-extension`), but the primary demo highlights the standalone Terminal CLI + Native Mobile App experience.
+-->
+
+**Core Repository Layout:**
 ```
 apps/
-  cli/                  # Terminal host & client (Node.js)
-  vscode-extension/     # VS Code Extension + Chat Webview
-  relay/                # Stateless Socket.io cloud relay
-  mobile/               # React Native (Expo) control client
-  web/                  # Next.js landing page + /pair client
+  cli/                  # Workstation Terminal Host & REPL (Node.js)
+  mobile/               # Native Control Client (React Native / Expo)
+  relay/                # Stateless Socket.io Cloud Relay (Docker / Render)
+  # web/                # (Optional) Next.js Web Landing & Browser Pairing
+  # vscode-extension/   # (Optional) VS Code Activity Bar Extension
 
 packages/
-  protocol/             # Shared Zod schemas + TypeScript types
-  bridge-core/          # Core engine: tunnel, TrueForge SDK, buffer, approvals
+  protocol/             # Shared Zod schemas + TypeScript contracts
+  bridge-core/          # Core engine: tunnel, TrueForge SDK, ring buffer, approvals
 ```
 
 ---
 
-## Quickstart
+## Quickstart (CLI & Mobile in 60 Seconds)
 
 ### Prerequisites
 
 - Node.js 22 LTS
 - pnpm 9+
-- A TrueForge-compatible model API key (OpenAI, Anthropic, OpenRouter, etc.)
+- A TrueForge-compatible model API key (`GEMINI_API_KEY`, `OPENAI_API_KEY`, etc.)
 
 ### 1 — Clone and install
 
@@ -114,47 +124,33 @@ pnpm install
 
 ```bash
 cp .env.example .env
-# Edit .env and set your API keys
+# Set your model API key (e.g. GEMINI_API_KEY=...)
 ```
 
-Key variables in `.env.example`:
+### 3 — Start the Workstation CLI Host
 
-```env
-TRUEFORGE_API_KEY=          # Your TrueForge / OpenRouter API key
-RELAY_URL=                  # Cloud relay (default: wss://relay.airlink.dev)
-SLACK_WEBHOOK_URL=          # Optional: approval alerts to Slack
-DISCORD_WEBHOOK_URL=        # Optional: approval alerts to Discord
-```
-
-### 3 — Start the relay (local dev)
-
-```bash
-pnpm --filter @airlink/relay dev
-# Relay running at http://localhost:3001
-```
-
-### 4 — Start the host
-
-**Terminal CLI:**
 ```bash
 pnpm --filter @airlink/cli dev
 ```
+
+The terminal prints your clean pairing banner and **6-digit PIN**:
+```text
+╔═══════════════════════════════════════════════╗
+║   AirLink — Workstation Harness               ║
+║   PIN: 834-192                                ║
+║   Relay: https://airlink-relay.onrender.com   ║
+╚═══════════════════════════════════════════════╝
 ```
-╔═══════════════════════════════════════╗
-║   AirLink Remote Agent                ║
-║   PIN: 834-192                        ║
-║   Pair: https://airlink.dev/pair      ║
-╚═══════════════════════════════════════╝
+
+### 4 — Open the Mobile App on Your Phone
+
+In a second terminal:
+```bash
+pnpm --filter @airlink/mobile start
 ```
-
-**VS Code Extension:**
-
-Press `F5` in the `apps/vscode-extension` workspace to launch the Extension Development Host. Click the `$(radio-tower) AirLink` status bar item to start a session.
-
-### 5 — Pair from your phone or browser
-
-- **Mobile:** Download the app → Enter the 6-digit PIN → Connected
-- **Browser:** Visit `https://airlink.dev/pair` → Enter PIN → Connected
+1. Scan the QR code with **Expo Go** on your iPhone or Android phone.
+2. Enter the **6-digit PIN** (`834-192`).
+3. Tap **Connect & Control** — you are now paired!
 
 ---
 
@@ -162,48 +158,50 @@ Press `F5` in the `apps/vscode-extension` workspace to launch the Extension Deve
 
 ### Real tools via MCP
 
-AirLink connects TrueForge to local MCP tool servers. The agent can read files, run bash commands, inspect git history, and write diffs — all executing **on your workstation**, never on a remote machine.
+AirLink connects TrueForge to local MCP tool servers. The agent can read files, execute bash commands, run test suites, and inspect git history — all executing **on your local workstation**, never in the cloud.
 
 ### Human-in-the-Loop approval gate
 
-Before any destructive operation executes, `bridge-core` intercepts the tool call and emits an `approval:request` event to every paired surface (mobile drawer + terminal/VS Code notification simultaneously). You have **180 seconds** to approve or reject. No response = **automatic deny**.
+Before any destructive command executes, `bridge-core` intercepts the tool call and emits an `approval:request` event to your mobile phone. You have **180 seconds** to approve or reject with haptic feedback. No response = **automatic deny**.
 
-```
-Agent wants to run:  rm -rf dist/
+```text
+Agent proposes:  rm -rf dist/ && git reset --hard HEAD~1
 
-[Mobile approval drawer]         [VS Code modal]
- ┌────────────────────────┐       ┌─────────────────────┐
- │ ⚠ Approval Required    │       │ AirLink: Approval   │
- │                        │       │                     │
- │ rm -rf dist/           │       │ rm -rf dist/        │
- │                        │       │                     │
- │ [APPROVE]   [REJECT]   │       │ [Yes]      [No]     │
- │         2:58 remaining  │       └─────────────────────┘
- └────────────────────────┘
+[ Mobile Approval Drawer ]
+ ┌────────────────────────────────────────┐
+ │ ⚠ Action Approval Required             │
+ │                                        │
+ │ Tool: bash_command                     │
+ │ Command: rm -rf dist/                  │
+ │                                        │
+ │ [ ✓ APPROVE ]          [ ✕ REJECT ]    │
+ │                                        │
+ │          ⏳ 178s remaining             │
+ └────────────────────────────────────────┘
 ```
 
 ### Reconnection replay
 
-Every stream event carries a monotonic `seq_id`. A 500-event in-memory ring buffer on the host replays missed chunks the moment a mobile client reconnects — no tokens lost even when you switch networks.
+Every stream chunk carries a strictly monotonic `seq_id`. An in-memory ring buffer holding the last 500 events on your PC replays all missed chunks the moment your phone reconnects.
 
 ---
 
 ## The 10 System Invariants
 
-1. **Decoupled Bridge Core** — all logic lives in `packages/bridge-core`; CLI, VS Code, and web are thin wrappers.
+1. **Decoupled Bridge Core** — all logic lives in `packages/bridge-core`; CLI and mobile app are clean presentation clients.
 2. **Outbound only** — the PC never opens inbound ports; all traffic flows through an outbound WebSocket tunnel.
 3. **Local execution** — TrueForge and all MCP tools run exclusively on your workstation.
 4. **Dual memory separation** — verbatim logs on disk; pruned context fed to the LLM window.
 5. **Zero disk bloat** — ring buffer capped at 500 events (~500 KB RAM); sessions pruned on 14-day LRU (lifetime < 30 MB).
 6. **Monotonic sequencing** — every `bridge-core` event carries an incrementing `seq_id`; missed sequences replay on reconnect.
-7. **Dual-surface approvals** — every approval fires on mobile drawer **and** local host simultaneously.
+7. **Dual-surface approvals** — approvals fire on mobile drawer and local terminal simultaneously.
 8. **Bounded timeout** — approvals auto-deny after **180 seconds** with reason `Timed out`.
 9. **Strict Zod contracts** — every socket payload validated against `packages/protocol` schemas before processing.
 10. **Automated quality gate** — every PR reviewed by Qodo, checked for suppressions, and tested with Vitest before merge.
 
 ---
 
-## Development
+## Development & Testing
 
 ### Run all tests
 
@@ -216,35 +214,17 @@ Test Files  35 passed (35)
 Tests       234 passed (234)
 ```
 
-### Lint
+### Run the CLI + Mobile stack locally
 
 ```bash
-pnpm lint
-```
-
-### Type-check all packages
-
-```bash
-pnpm build
-```
-
-### Run the full stack locally
-
-```bash
-# Terminal 1 — relay
-pnpm --filter @airlink/relay dev
-
-# Terminal 2 — CLI host
+# Terminal 1 — Workstation CLI Host
 pnpm --filter @airlink/cli dev
 
-# Terminal 3 — mobile (Expo)
+# Terminal 2 — Mobile App (Expo)
 pnpm --filter @airlink/mobile start
-
-# Terminal 4 — web (Next.js)
-pnpm --filter @airlink/web dev
 ```
 
-### Docker (relay only)
+### Docker (Cloud Relay)
 
 ```bash
 docker build -t airlink-relay .
@@ -265,14 +245,12 @@ Every substantive change to this repository was shipped through a reviewed pull 
 
 ### What changed based on Qodo
 
-- **Critical (resolved):** `hostSecret` missing from `RegisterHostSchema` allowing any client to hijack a PIN room → made mandatory with `z.string().min(8)` and server-side enforcement.
+- **Critical (resolved):** `hostSecret` missing from `RegisterHostSchema` allowing any client to hijack a PIN room → made mandatory with `z.string().min(8)` and server-side verification.
 - **Critical (resolved):** `Math.random()` used for 6-digit PINs (predictable) → replaced with `crypto.randomInt(100000, 1000000)` everywhere.
 - **High (resolved):** Anthropic tool calls silently never executed because tool schema translation was missing → full `input_schema` mapping and SSE `content_block_start` / `input_json_delta` accumulation implemented.
 - **High (resolved):** Support tickets and newsletter subscriptions dropped on receipt (no persistence) → durable in-memory + disk stores created before HTTP 200 returned.
 - **Medium (resolved):** Empty catch blocks swallowing errors silently across storage modules → replaced with structured error logging and typed 500 error responses.
 - **Low (resolved):** `new Function` dynamic import of `expo-secure-store` (bypasses bundler) → converted to native static import.
-
-Every finding was addressed, a follow-up review was triggered, and the final state of the PR records the review, decisions, and resolution.
 
 ---
 
@@ -284,7 +262,7 @@ This project was built for the [TrueForge Agent Harness Hackathon](https://www.w
 
 - **Real MCP tools:** Local filesystem, git, bash, GitHub issues — all executed on-device through `@modelcontextprotocol/server-filesystem` and custom MCP servers.
 - **Sandboxed execution:** All code runs locally on the developer's workstation via TrueForge's execution harness.
-- **Human-in-the-Loop gates:** Destructive tools intercepted by `ApprovalManager` before execution. Approval prompts fire on mobile and desktop simultaneously.
+- **Human-in-the-Loop gates:** Destructive tools intercepted by `ApprovalManager` before execution. Approval prompts fire on mobile and terminal simultaneously.
 - **Subagent task handling:** `TrueForgeSession` manages multi-turn context lifecycle, tool dispatch, and stream routing.
 - **Reconnection resilience:** 500-event ring buffer with monotonic `seq_id` replays missed tokens on reconnect.
 
@@ -294,16 +272,15 @@ This project was built for the [TrueForge Agent Harness Hackathon](https://www.w
 - **All 14 Qodo findings addressed** — security issues, logic bugs, and silent errors fixed before merge.
 - **Strict Zod protocol contracts** — every WebSocket payload schema-validated at runtime.
 - **Zero unapproved suppressions** — enforced mechanically via `scripts/check-suppressions.mjs` pre-commit.
-- **Full `typescript-eslint` integration** — type-safe lint rules across all 7 workspace packages.
+- **Full `typescript-eslint` integration** — type-safe lint rules across all workspace packages.
 - **Consistent PR discipline** — conventional commit messages, per-feature branches, Qodo review before every merge.
 
 ### 🎨 Savile Row Track — Best UI
 
 - **Live token stream** on mobile with virtualized `FlatList` for smooth rendering at high throughput.
-- **Visual Git diff cards** — color-coded unified diffs with expand/collapse per file.
-- **Approval drawer** — bottom sheet with action details, 180 s animated countdown, approve/reject buttons, and haptic feedback.
-- **Status indicators** — VS Code status bar PIN, connection state ring, streaming pulse animations.
-- **Web landing & pairing** — animated hero with GSAP cloud motion, instant 6-digit PIN pairing from any browser.
+- **Visual Git diff cards** — color-coded unified diffs with syntax highlighting.
+- **Approval drawer** — bottom sheet with action details, 180s animated countdown, approve/reject buttons, and haptic feedback.
+- **Clean terminal aesthetics** — compact CLI boxen banner, bold PIN highlight, and structured tool execution feeds.
 
 ---
 
@@ -314,19 +291,6 @@ This project was built for the [TrueForge Agent Harness Hackathon](https://www.w
 - **Host secrets** — every PIN room is locked to a cryptographic `hostSecret` (`crypto.randomUUID()`); mismatched secrets are rejected to prevent room takeover.
 - **BYOK (Bring Your Own Key)** — API keys stored in hardware-backed Keychain/Keystore via `expo-secure-store`; never sent to the relay.
 - **Gitleaks CI scan** — `secret_scan.yml` runs on every push and PR; no credentials may be committed.
-
-Report vulnerabilities privately via GitHub's [Security Advisories](https://github.com/Team-Managed/AirLink/security/advisories).
-
----
-
-## Contributing
-
-1. Fork the repo and create a branch from `dev`.
-2. Make your changes with conventional commits (`feat:`, `fix:`, `docs:`, etc.).
-3. Open a pull request against `dev` — Qodo will review it automatically.
-4. Address any High-severity findings before requesting a merge.
-
-See [AGENTS.md](./AGENTS.md) for the agent context rules that govern all development on this repo.
 
 ---
 
