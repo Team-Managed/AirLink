@@ -38,7 +38,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
   }, []);
 
   const handlePinChange = (text: string) => {
-    const sanitized = text.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6);
+    const sanitized = text.replace(/\D/g, "").slice(0, 6);
     setPin(sanitized);
 
     feedbackService.triggerSelection("light");
@@ -152,9 +152,9 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
               value={pin}
               onChangeText={handlePinChange}
               maxLength={6}
-              autoCapitalize="characters"
+              autoCapitalize="none"
               autoCorrect={false}
-              keyboardType="default"
+              keyboardType="number-pad"
               caretHidden
             />
           </TouchableOpacity>

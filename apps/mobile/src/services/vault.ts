@@ -1,3 +1,4 @@
+import * as SecureStore from "expo-secure-store";
 import type { BYOKConfig, LLMProvider } from "@airlink/protocol";
 
 const KEY_PREFIX = "agent_remote_byok_";
@@ -48,18 +49,16 @@ export class SecureVaultService {
     }
     this.hasCheckedSecureStore = true;
     try {
-      const dynamicImport = new Function('return import("expo-secure-store")');
-      const mod = (await dynamicImport()) as SecureStoreInterface | null;
-      if (mod && typeof mod.getItemAsync === "function") {
-        if (typeof mod.isAvailableAsync === "function") {
-          const available = await mod.isAvailableAsync();
+      if (SecureStore && typeof SecureStore.getItemAsync === "function") {
+        if (typeof SecureStore.isAvailableAsync === "function") {
+          const available = await SecureStore.isAvailableAsync().catch(() => false);
           if (available) {
-            this.secureStoreModule = mod;
-            return mod;
+            this.secureStoreModule = SecureStore as unknown as SecureStoreInterface;
+            return this.secureStoreModule;
           }
         } else {
-          this.secureStoreModule = mod;
-          return mod;
+          this.secureStoreModule = SecureStore as unknown as SecureStoreInterface;
+          return this.secureStoreModule;
         }
       }
     } catch {

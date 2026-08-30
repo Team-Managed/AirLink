@@ -1,34 +1,51 @@
 import React from "react";
 
-export const View = ({ children, style, ...props }: any) =>
+export interface MockComponentProps {
+  children?: React.ReactNode;
+  style?: React.CSSProperties | Record<string, unknown>;
+  onPress?: () => void;
+  [key: string]: unknown;
+}
+
+export const View = ({ children, style, ...props }: MockComponentProps) =>
   React.createElement("div", { style, ...props }, children);
-export const Text = ({ children, style, ...props }: any) =>
+export const Text = ({ children, style, ...props }: MockComponentProps) =>
   React.createElement("span", { style, ...props }, children);
-export const TextInput = React.forwardRef(({ style, ...props }: any, ref: any) =>
-  React.createElement("input", { ref, style, ...props }),
+export const TextInput = React.forwardRef<HTMLInputElement, MockComponentProps>(
+  ({ style, ...props }, ref) => React.createElement("input", { ref, style, ...props }),
 );
-export const TouchableOpacity = ({ children, style, onPress, ...props }: any) =>
+TextInput.displayName = "TextInput";
+
+export const TouchableOpacity = ({ children, style, onPress, ...props }: MockComponentProps) =>
   React.createElement("button", { style, onClick: onPress, ...props }, children);
-export const ScrollView = ({ children, style, ...props }: any) =>
+export const ScrollView = ({ children, style, ...props }: MockComponentProps) =>
   React.createElement("div", { style, ...props }, children);
-export const FlatList = ({ data, renderItem, keyExtractor }: any) =>
+
+export interface FlatListProps<T = unknown> {
+  data?: readonly T[];
+  renderItem: (info: { item: T; index: number }) => React.ReactNode;
+  keyExtractor?: (item: T, index: number) => string;
+}
+
+export const FlatList = <T,>({ data, renderItem, keyExtractor }: FlatListProps<T>) =>
   React.createElement(
     "div",
     null,
-    data?.map((item: any, idx: number) => {
+    data?.map((item: T, idx: number) => {
       const key = keyExtractor ? keyExtractor(item, idx) : String(idx);
       return React.createElement(React.Fragment, { key }, renderItem({ item, index: idx }));
     }),
   );
-export const Modal = ({ children, visible }: any) =>
+
+export const Modal = ({ children, visible }: { children?: React.ReactNode; visible?: boolean }) =>
   visible ? React.createElement("div", null, children) : null;
-export const SafeAreaView = ({ children, style, ...props }: any) =>
+export const SafeAreaView = ({ children, style, ...props }: MockComponentProps) =>
   React.createElement("div", { style, ...props }, children);
 export const StatusBar = () => null;
 export const ActivityIndicator = () => React.createElement("div", null, "Loading...");
 
 export const StyleSheet = {
-  create: (styles: any) => styles,
+  create: <T extends Record<string, unknown>>(styles: T): T => styles,
 };
 
 export const Animated = {
@@ -43,18 +60,19 @@ export const Animated = {
     stopAnimation() {}
   },
   timing: () => ({
-    start: (cb?: any) => {
+    start: (cb?: (result: { finished: boolean }) => void) => {
       if (cb) cb({ finished: true });
     },
   }),
 };
 
 export const Vibration = {
-  vibrate: (_pattern: any) => {},
+  vibrate: (_pattern?: number | number[]) => {},
   cancel: () => {},
 };
 
 export const Platform = {
   OS: "web",
-  select: (obj: any) => obj.web || obj.default,
+  select: <T>(obj: { web?: T; default?: T } & Record<string, T | undefined>): T | undefined =>
+    obj.web ?? obj.default,
 };
