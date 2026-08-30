@@ -1,3 +1,4 @@
+import * as crypto from "node:crypto";
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { io as ioClient, Socket as ClientSocket } from "socket.io-client";
 import { createRelayServer, RelayServerInstance } from "../src/server.js";
@@ -64,12 +65,14 @@ describe("Relay Server Integration", () => {
 
     await Promise.all([waitForConnect(hostSocket), waitForConnect(clientSocket)]);
 
+    const hostSecret = crypto.randomUUID();
+
     // 1. Host registers
     const hostReg: RegisterHost = {
       pin,
       hostName: "MacBook Pro Workstation",
       workspacePath: "/Users/dev/code/agent-harness",
-      hostSecret: "secret-relay-12345",
+      hostSecret,
     };
     hostSocket.emit(SOCKET_EVENTS.REGISTER_HOST, hostReg);
 
@@ -263,7 +266,7 @@ describe("Relay Server Integration", () => {
       pin,
       hostName: "Persistent Host",
       workspacePath: "/code",
-      hostSecret: "secret-relay-12345",
+      hostSecret: crypto.randomUUID(),
     });
     await new Promise((r) => setTimeout(r, 50));
 
