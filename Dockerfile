@@ -33,9 +33,10 @@ ENV NODE_ENV=production
 ENV PORT=3001
 
 # Copy compiled artifacts and package definitions
-COPY package.json ./
+COPY package.json pnpm-workspace.yaml ./
 COPY --from=builder /app/packages/protocol/package.json ./packages/protocol/
 COPY --from=builder /app/packages/protocol/dist ./packages/protocol/dist
+COPY --from=builder /app/packages/protocol/node_modules ./packages/protocol/node_modules
 COPY --from=builder /app/apps/relay/package.json ./apps/relay/
 COPY --from=builder /app/apps/relay/dist ./apps/relay/dist
 COPY --from=builder /app/node_modules ./node_modules
