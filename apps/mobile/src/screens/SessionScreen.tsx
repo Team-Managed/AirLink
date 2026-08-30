@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, StatusBar, ImageBackground } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, KeyboardAvoidingView, StatusBar, ImageBackground } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_RADII } from "../theme";
 import { TerminalFeed } from "../components/TerminalFeed";
@@ -188,10 +188,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
   };
 
   const insets = useSafeAreaInsets();
-  const topPadding = Math.max(
-    insets.top,
-    Platform.OS === "android" ? (StatusBar.currentHeight || 28) : 0,
-  );
+  const topPadding = Math.max(insets.top, StatusBar.currentHeight || 0);
 
   const workspaceName = sessionData.workspacePath
     ? sessionData.workspacePath.split("/").pop() || sessionData.workspacePath.split("\\").pop()
@@ -208,7 +205,7 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
 
       <KeyboardAvoidingView
         style={[styles.container, { paddingTop: topPadding }]}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="height"
       >
         <View style={styles.innerContainer}>
           {/* Header bar — frosted glass capsule banner */}

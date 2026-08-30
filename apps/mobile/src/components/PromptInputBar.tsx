@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Keyboard, Platform } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Keyboard } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { THEME_RADII } from "../theme";
 import { hapticsService } from "../services/haptics";
@@ -61,14 +61,8 @@ export const PromptInputBar: React.FC<PromptInputBarProps> = ({
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    const showSub = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      () => setIsKeyboardOpen(true),
-    );
-    const hideSub = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      () => setIsKeyboardOpen(false),
-    );
+    const showSub = Keyboard.addListener("keyboardDidShow", () => setIsKeyboardOpen(true));
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => setIsKeyboardOpen(false));
     return () => {
       showSub.remove();
       hideSub.remove();
