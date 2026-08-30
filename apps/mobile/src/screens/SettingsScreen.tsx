@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_RADII } from "../theme";
 import { vaultService } from "../services/vault";
 import { hapticsService } from "../services/haptics";
+import PAIRING_BG from "../../assets/pairing_bg.png";
 import type { LLMProvider, BYOKConfig } from "@airlink/protocol";
 
 export interface SettingsScreenProps {
@@ -48,19 +49,19 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
   const providerLoadGenRef = useRef<number>(0);
 
   const [storedKeysCount, setStoredKeysCount] = useState<number>(0);
-  const [providerKeys, setProviderKeys] = useState<Record<string, string>>({});
+  const [configuredProviders, setConfiguredProviders] = useState<Record<string, boolean>>({});
 
   const refreshStoredKeys = async () => {
-    const keysMap: Record<string, string> = {};
+    const configuredMap: Record<string, boolean> = {};
     let count = 0;
     for (const p of PROVIDERS) {
-      const k = await vaultService.getApiKey(p.id);
-      if (k) {
-        keysMap[p.id] = k;
+      const hasKey = await vaultService.hasApiKey(p.id);
+      if (hasKey) {
+        configuredMap[p.id] = true;
         count++;
       }
     }
-    setProviderKeys(keysMap);
+    setConfiguredProviders(configuredMap);
     setStoredKeysCount(count);
   };
 
@@ -208,16 +209,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
     setTimeout(() => setStatusMessage(null), 3000);
   };
 
-  const formatKeyMask = (key?: string) => {
-    if (!key || key.length < 8) return "••••••••••••••••";
-    const prefix = key.slice(0, 7);
-    const suffix = key.slice(-4);
-    return `${prefix}••••••••${suffix}`;
-  };
-
   return (
     <ImageBackground
-      source={require("../../assets/pairing_bg.png")}
+      source={PAIRING_BG}
       style={styles.backgroundImage}
       resizeMode="cover"
     >
@@ -268,7 +262,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
         <Text style={styles.sectionLabel}>ACTIVE VAULT KEYS</Text>
         <View style={styles.byokList}>
           {PROVIDERS.slice(0, 4).map((p) => {
-            const hasKey = Boolean(providerKeys[p.id]);
+            const isConfigured = Boolean(configuredProviders[p.id]);
             const isSelected = selectedProvider === p.id;
             return (
               <TouchableOpacity
@@ -282,12 +276,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onConfi
               >
                 <View style={styles.byokTopRow}>
                   <Text style={styles.byokProviderName}>{p.label}</Text>
-                  <Text style={hasKey ? styles.byokStatusActive : styles.byokStatusInactive}>
-                    {hasKey ? "● Active" : "○ Not Configured"}
+                  <Text style={isConfigured ? styles.byokStatusActive : styles.byokStatusInactive}>
+                    {isConfigured ? "● Active" : "○ Not Configured"}
                   </Text>
                 </View>
                 <Text style={styles.byokKeyMask}>
-                  {hasKey ? formatKeyMask(providerKeys[p.id]) : p.placeholder}
+                  {isConfigured ? "••••••••••••••••" : p.placeholder}
                 </Text>
               </TouchableOpacity>
             );
