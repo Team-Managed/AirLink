@@ -106,49 +106,62 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
     const isLastItem = index === items.length - 1;
 
     switch (item.type) {
+      // ── Thinking / CoT block ────────────────────────────────────────────────
       case "thought":
         return (
           <View style={styles.thoughtCard}>
+            {/* Frosted-glass header row — matches web "chatUpperSection" card */}
             <TouchableOpacity
               style={styles.thoughtHeader}
               onPress={() => toggleCollapse(item.id)}
               activeOpacity={0.7}
             >
-              <View style={styles.thoughtTitleRow}>
-                <Text style={styles.thoughtTitle}>Thinking Process</Text>
+              <View style={styles.traceWorkedRow}>
+                <Text style={styles.traceWorkedText}>Thinking Process</Text>
+                {/* Chevron — matches web "traceWorkedHeader" SVG */}
+                <Text style={[styles.chevron, isCollapsed && styles.chevronRight]}>›</Text>
               </View>
               <Text style={styles.collapseToggleText}>{isCollapsed ? "Expand" : "Collapse"}</Text>
             </TouchableOpacity>
-            {!isCollapsed && <Text style={styles.thoughtContent}>{item.content}</Text>}
+            {!isCollapsed && (
+              <Text style={styles.thoughtContent}>{item.content}</Text>
+            )}
           </View>
         );
 
+      // ── Tool call card ──────────────────────────────────────────────────────
       case "tool_call": {
         const toolName = item.metadata?.name || "tool";
         return (
+          // Matches web "fileChangesCard": dark #030712 bg, white border
           <View style={styles.toolCallCard}>
-            <View style={styles.toolCallHeader}>
+            <View style={styles.toolCallHeaderRow}>
+              {/* Tool name badge — sky-blue pill (matches web "toolNameBadge") */}
               <View style={styles.toolNameBadge}>
                 <Text style={styles.toolNameText}>{toolName}</Text>
               </View>
               <Text style={styles.toolCallStatus}>Executing...</Text>
             </View>
-            <View style={styles.codeSnippetContainer}>
-              <Text style={styles.codeSnippetText}>{item.content}</Text>
+            {/* Code snippet — matches web terminal block */}
+            <View style={styles.codeBlock}>
+              <Text style={styles.codeBlockText}>{item.content}</Text>
             </View>
           </View>
         );
       }
 
+      // ── Tool result card ────────────────────────────────────────────────────
       case "tool_result": {
         const duration = item.metadata?.durationMs;
         const exitCode = item.metadata?.exitCode ?? 0;
         const isSuccess = exitCode === 0;
 
         return (
+          // Matches web "fileChangesCard" dark container
           <View style={[styles.toolResultCard, !isSuccess && styles.toolResultFailed]}>
+            {/* Header row: green/red dot + "X Result" + duration + Collapse */}
             <TouchableOpacity
-              style={styles.toolResultHeader}
+              style={styles.toolResultHeaderRow}
               onPress={() => toggleCollapse(item.id)}
               activeOpacity={0.7}
             >
@@ -162,37 +175,51 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
                 <Text style={styles.resultTitle}>
                   {item.metadata?.name ? `${item.metadata.name} Result` : "Tool Output"}
                 </Text>
-                {duration !== undefined && <Text style={styles.durationBadge}>{duration}ms</Text>}
+                {duration !== undefined && (
+                  <Text style={styles.durationBadge}>{duration}ms</Text>
+                )}
               </View>
               <Text style={styles.collapseToggleText}>{isCollapsed ? "Expand" : "Collapse"}</Text>
             </TouchableOpacity>
+
+            {/* Output body — terminal-style code block */}
             {!isCollapsed && (
-              <View style={styles.resultContentBox}>
-                <Text style={styles.resultContentText}>{item.content}</Text>
+              <View style={styles.codeBlock}>
+                <Text style={styles.codeBlockText}>{item.content}</Text>
               </View>
             )}
           </View>
         );
       }
 
+      // ── Error card ──────────────────────────────────────────────────────────
       case "error":
         return (
           <View style={styles.errorCard}>
-            <View style={styles.errorHeader}>
-              <Text style={styles.errorTitle}>Agent Error</Text>
-            </View>
+            <Text style={styles.errorTitle}>⚠ Agent Error</Text>
             <Text style={styles.errorContent}>{item.content}</Text>
           </View>
         );
 
+      // ── Token / user prompt ─────────────────────────────────────────────────
       case "token":
       default:
+        if (item.role === "user") {
+          // Matches web "userMessageCard": frosted glass, white text, rounded
+          return (
+            <View style={styles.userMessageCard}>
+              <Text style={styles.userMessageText}>{item.content}</Text>
+            </View>
+          );
+        }
+
+        // Agent token stream — matches web terminal output area
         return (
-          <View style={[styles.tokenContainer, item.role === "user" && styles.userPromptContainer]}>
-            <Text style={[styles.tokenContent, item.role === "user" && styles.userPromptText]}>
+          <View style={styles.agentTokenContainer}>
+            <Text style={styles.agentTokenText}>
               {item.content}
             </Text>
-            {isStreaming && isLastItem && item.role !== "user" && (
+            {isStreaming && isLastItem && (
               <Animated.View style={[styles.blinkingCursor, { opacity: cursorAnim }]} />
             )}
           </View>
@@ -217,13 +244,15 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
         windowSize={10}
       />
 
+      {/* Streaming indicator — matches web "telemetryLiveDot" row */}
       {isStreaming && (
         <View style={styles.streamingIndicatorRow}>
           <View style={styles.pulsingDot} />
-          <Text style={styles.streamingText}>Agent generating response...</Text>
+          <Text style={styles.streamingText}>● Stream Active</Text>
         </View>
       )}
 
+      {/* Jump to live pill — matches web "scrollResumePill" */}
       {isAutoScrollLocked && (
         <TouchableOpacity
           style={styles.scrollResumePill}
@@ -231,7 +260,7 @@ export const TerminalFeed: React.FC<TerminalFeedProps> = ({ items, isStreaming =
           activeOpacity={0.8}
         >
           <Text style={styles.scrollResumeText}>
-            Jump to Live {unreadCount > 0 ? `(${unreadCount} new)` : ""}
+            ↓ Jump to Live {unreadCount > 0 ? `(${unreadCount} new)` : ""}
           </Text>
         </TouchableOpacity>
       )}
@@ -246,72 +275,91 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: THEME_SPACING.md,
+    gap: THEME_SPACING.sm,
     paddingBottom: THEME_SPACING.xxxl,
   },
-  tokenContainer: {
-    marginVertical: 3,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
+
+  // ── User message card ─────────────────────────────────────────────────────
+  // Matches web: rgba(255,255,255,0.06) bg, rgba(255,255,255,0.08) border, 10px radius
+  userMessageCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.07)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.09)",
+    borderRadius: THEME_RADII.md,
+    paddingHorizontal: THEME_SPACING.md,
+    paddingVertical: THEME_SPACING.sm,
   },
-  userPromptContainer: {
-    backgroundColor: THEME_COLORS.cardSurfaceHover,
-    borderRadius: THEME_RADII.sm,
-    paddingHorizontal: THEME_SPACING.sm,
-    paddingVertical: 6,
-    marginVertical: 6,
-    borderLeftWidth: 2,
-    borderLeftColor: THEME_COLORS.primaryAccent,
-  },
-  userPromptText: {
-    color: THEME_COLORS.primaryAccent,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
-  },
-  tokenContent: {
-    color: THEME_COLORS.textPrimary,
-    fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
+  userMessageText: {
+    color: THEME_COLORS.textPrimary,    // #f1f5f9 — matches web userMessageCard color
+    fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
     fontSize: THEME_TYPOGRAPHY.fontSize.sm,
     lineHeight: 20,
+    fontWeight: THEME_TYPOGRAPHY.fontWeight.regular,
+  },
+
+  // ── Agent token stream ────────────────────────────────────────────────────
+  // Clean readable prose, no background — matches web token telemetry output
+  agentTokenContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
+    paddingHorizontal: 2,
+  },
+  agentTokenText: {
+    color: THEME_COLORS.textPrimary,
+    fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
+    fontSize: THEME_TYPOGRAPHY.fontSize.sm,
+    lineHeight: 22,
   },
   blinkingCursor: {
-    width: 8,
+    width: 7,
     height: 14,
     backgroundColor: THEME_COLORS.primaryAccent,
-    marginLeft: 3,
+    marginLeft: 2,
+    marginTop: 3,
     borderRadius: 1,
   },
+
+  // ── Thinking / CoT card ───────────────────────────────────────────────────
+  // Matches web "chatUpperSection": translucent bg, subtle border, 10px radius
   thoughtCard: {
-    backgroundColor: THEME_COLORS.cardSurface,
-    borderRadius: THEME_RADII.md,
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
     borderWidth: 1,
-    borderColor: THEME_COLORS.border,
+    borderColor: "rgba(255, 255, 255, 0.07)",
+    borderRadius: THEME_RADII.md,
     padding: THEME_SPACING.sm,
-    marginVertical: THEME_SPACING.xs,
   },
   thoughtHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  thoughtTitleRow: {
+  // Matches web "traceWorkedHeader": muted mono text + chevron
+  traceWorkedRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
   },
-  thoughtIcon: {
-    fontSize: 12,
+  traceWorkedText: {
+    color: THEME_COLORS.textMuted,      // #94a3b8
+    fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
+    fontSize: 11,
+    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
   },
-  thoughtTitle: {
+  chevron: {
     color: THEME_COLORS.textMuted,
-    fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    fontStyle: "italic",
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.medium,
+    fontSize: 14,
+    fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
+    transform: [{ rotate: "90deg" }],   // pointing down when expanded
+  },
+  chevronRight: {
+    transform: [{ rotate: "0deg" }],    // pointing right when collapsed
   },
   collapseToggleText: {
     color: THEME_COLORS.primaryAccent,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
     fontSize: 11,
+    fontWeight: THEME_TYPOGRAPHY.fontWeight.medium,
   },
   thoughtContent: {
     color: THEME_COLORS.textMuted,
@@ -321,26 +369,29 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: THEME_SPACING.xs,
   },
+
+  // ── Tool call card ────────────────────────────────────────────────────────
+  // Matches web "fileChangesCard": #030712 bg, white hairline border
   toolCallCard: {
-    backgroundColor: THEME_COLORS.cardSurface,
-    borderRadius: THEME_RADII.md,
+    backgroundColor: THEME_COLORS.codeBg,   // #020617 ≈ web #030712
     borderWidth: 1,
-    borderColor: THEME_COLORS.border,
+    borderColor: "rgba(255, 255, 255, 0.12)",
+    borderRadius: THEME_RADII.md,
     padding: THEME_SPACING.sm,
-    marginVertical: THEME_SPACING.xs,
+    gap: THEME_SPACING.xs,
   },
-  toolCallHeader: {
+  toolCallHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: THEME_SPACING.xs,
   },
+  // Matches web: sky-blue pill badge for tool name
   toolNameBadge: {
     backgroundColor: THEME_COLORS.primaryAccentBg,
-    borderColor: THEME_COLORS.primaryAccent,
+    borderColor: "rgba(56, 189, 248, 0.35)",
     borderWidth: 1,
     borderRadius: THEME_RADII.sm,
-    paddingHorizontal: 6,
+    paddingHorizontal: 7,
     paddingVertical: 2,
   },
   toolNameText: {
@@ -354,30 +405,21 @@ const styles = StyleSheet.create({
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
     fontSize: 11,
   },
-  codeSnippetContainer: {
-    backgroundColor: THEME_COLORS.codeBg,
-    borderRadius: THEME_RADII.sm,
-    padding: THEME_SPACING.xs,
-  },
-  codeSnippetText: {
-    color: THEME_COLORS.textSecondary,
-    fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
-    lineHeight: 18,
-  },
+
+  // ── Tool result card ──────────────────────────────────────────────────────
   toolResultCard: {
-    backgroundColor: THEME_COLORS.cardSurface,
-    borderRadius: THEME_RADII.md,
+    backgroundColor: THEME_COLORS.codeBg,
     borderWidth: 1,
-    borderColor: THEME_COLORS.border,
+    borderColor: "rgba(255, 255, 255, 0.12)",
+    borderRadius: THEME_RADII.md,
     padding: THEME_SPACING.sm,
-    marginVertical: THEME_SPACING.xs,
+    gap: THEME_SPACING.xs,
   },
   toolResultFailed: {
-    borderColor: THEME_COLORS.danger,
+    borderColor: "rgba(239, 68, 68, 0.4)",
     backgroundColor: THEME_COLORS.dangerBg,
   },
-  toolResultHeader: {
+  toolResultHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -394,6 +436,9 @@ const styles = StyleSheet.create({
   },
   statusDotSuccess: {
     backgroundColor: THEME_COLORS.success,
+    shadowColor: THEME_COLORS.success,
+    shadowOpacity: 0.8,
+    shadowRadius: 3,
   },
   statusDotError: {
     backgroundColor: THEME_COLORS.danger,
@@ -408,34 +453,35 @@ const styles = StyleSheet.create({
     color: THEME_COLORS.textMuted,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
     fontSize: 10,
-    backgroundColor: THEME_COLORS.cardSurfaceHover,
+    backgroundColor: "rgba(255,255,255,0.07)",
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 3,
   },
-  resultContentBox: {
-    backgroundColor: THEME_COLORS.codeBg,
+
+  // ── Shared code / terminal block ──────────────────────────────────────────
+  // Matches web "terminalBoxSplit" / "codeSnippetContainer"
+  codeBlock: {
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
     borderRadius: THEME_RADII.sm,
-    padding: THEME_SPACING.xs,
-    marginTop: THEME_SPACING.xs,
+    padding: THEME_SPACING.sm,
     maxHeight: 180,
   },
-  resultContentText: {
-    color: THEME_COLORS.textSecondary,
+  codeBlockText: {
+    color: THEME_COLORS.textSecondary,   // #cbd5e1 — matches web tokenOutput default
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
     fontSize: THEME_TYPOGRAPHY.fontSize.xs,
     lineHeight: 18,
   },
+
+  // ── Error card ────────────────────────────────────────────────────────────
   errorCard: {
     backgroundColor: THEME_COLORS.dangerBg,
-    borderColor: THEME_COLORS.danger,
+    borderColor: "rgba(239, 68, 68, 0.4)",
     borderWidth: 1,
     borderRadius: THEME_RADII.md,
     padding: THEME_SPACING.sm,
-    marginVertical: THEME_SPACING.xs,
-  },
-  errorHeader: {
-    marginBottom: 4,
+    gap: 4,
   },
   errorTitle: {
     color: THEME_COLORS.danger,
@@ -449,12 +495,16 @@ const styles = StyleSheet.create({
     fontSize: THEME_TYPOGRAPHY.fontSize.xs,
     lineHeight: 18,
   },
+
+  // ── Streaming indicator bar ───────────────────────────────────────────────
+  // Matches web "telemetryLiveDot" row at bottom of terminal widget
   streamingIndicatorRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: THEME_COLORS.cardSurfaceHover,
+    gap: 6,
+    backgroundColor: THEME_COLORS.cardSurface,
     paddingHorizontal: THEME_SPACING.md,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderTopWidth: 1,
     borderTopColor: THEME_COLORS.border,
   },
@@ -463,13 +513,18 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: THEME_COLORS.primaryAccent,
-    marginRight: THEME_SPACING.sm,
+    shadowColor: THEME_COLORS.primaryAccent,
+    shadowOpacity: 0.9,
+    shadowRadius: 4,
   },
   streamingText: {
-    color: THEME_COLORS.textMuted,
-    fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
+    color: THEME_COLORS.primaryAccent,
+    fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
     fontSize: 11,
+    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
   },
+
+  // ── Jump to live pill ─────────────────────────────────────────────────────
   scrollResumePill: {
     position: "absolute",
     bottom: 12,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform } from "react-native";
 import { THEME_COLORS, THEME_TYPOGRAPHY, THEME_SPACING, THEME_RADII } from "../theme";
 import { TerminalFeed } from "../components/TerminalFeed";
 import { PromptInputBar } from "../components/PromptInputBar";
@@ -191,11 +191,12 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header bar — matches web landing page phone mockup screen header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.statusDotLive} />
           <View style={styles.hostInfo}>
-            <Text style={styles.deviceNameText} numberOfLines={1}>
+            <Text style={styles.screenHeaderTitle} numberOfLines={1}>
               {sessionData.deviceName || "Remote Host"}
             </Text>
             <Text style={styles.workspaceText} numberOfLines={1}>
@@ -214,14 +215,14 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
             onPress={onDisconnect}
             activeOpacity={0.7}
           >
-            <Text style={styles.disconnectButtonText}>Disconnect</Text>
+            <Text style={styles.disconnectButtonText}>✕</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {reconnectToast && (
         <View style={styles.reconnectToastBanner}>
-          <Text style={styles.reconnectToastText}>{reconnectToast}</Text>
+          <Text style={styles.reconnectToastText}>↻ {reconnectToast}</Text>
         </View>
       )}
 
@@ -231,21 +232,28 @@ export const SessionScreen: React.FC<SessionScreenProps> = ({
         </View>
       )}
 
-      <View style={styles.feedContainer}>
-        {isHydrating ? (
-          <TerminalFeedSkeleton />
-        ) : (
-          <TerminalFeed items={feedItems} isStreaming={isStreaming} />
-        )}
-      </View>
+      {/* KeyboardAvoidingView ensures the prompt input bar always stays above the keyboard */}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingContainer}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
+        <View style={styles.feedContainer}>
+          {isHydrating ? (
+            <TerminalFeedSkeleton />
+          ) : (
+            <TerminalFeed items={feedItems} isStreaming={isStreaming} />
+          )}
+        </View>
 
-      <PromptInputBar
-        onSubmit={handleSendPrompt}
-        disabled={isStreaming}
-        placeholder={
-          isStreaming ? "Agent is working..." : "Ask agent to build, refactor, or fix..."
-        }
-      />
+        <PromptInputBar
+          onSubmit={handleSendPrompt}
+          disabled={isStreaming}
+          placeholder={
+            isStreaming ? "Agent is working..." : "Ask agent to build, refactor, or fix..."
+          }
+        />
+      </KeyboardAvoidingView>
 
       <ApprovalDrawer
         activeApproval={activeApproval}
@@ -261,13 +269,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: THEME_COLORS.backgroundBase,
   },
+  keyboardAvoidingContainer: {
+    flex: 1,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: THEME_COLORS.cardSurface,
-    borderBottomWidth: 1,
-    borderBottomColor: THEME_COLORS.border,
+    // Matches web landing page "screenHeader": frosted glass panel
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: THEME_RADII.md,
+    margin: THEME_SPACING.sm,
     paddingHorizontal: THEME_SPACING.md,
     paddingVertical: THEME_SPACING.sm,
   },
@@ -278,37 +292,43 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statusDotLive: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     backgroundColor: THEME_COLORS.success,
+    shadowColor: THEME_COLORS.success,
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
   },
   hostInfo: {
     flex: 1,
   },
-  deviceNameText: {
+  // Matches web landing page screen header: "AirLink Remote" bold white
+  screenHeaderTitle: {
     color: THEME_COLORS.textPrimary,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: THEME_TYPOGRAPHY.fontSize.xs,
+    fontSize: THEME_TYPOGRAPHY.fontSize.sm,
     fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
   },
   workspaceText: {
-    color: THEME_COLORS.textMuted,
+    color: THEME_COLORS.textDim,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
     fontSize: 10,
+    marginTop: 1,
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
     gap: THEME_SPACING.sm,
   },
+  // Matches web landing page: sky-blue monospace model badge (e.g. "DeepSeek-R1")
   modelChip: {
-    backgroundColor: THEME_COLORS.cardSurfaceHover,
-    borderColor: THEME_COLORS.border,
+    backgroundColor: THEME_COLORS.primaryAccentBg,
+    borderColor: "rgba(56, 189, 248, 0.35)",
     borderWidth: 1,
     paddingHorizontal: THEME_SPACING.sm,
     paddingVertical: 3,
-    borderRadius: THEME_RADII.sm,
+    borderRadius: THEME_RADII.full,
   },
   modelChipText: {
     color: THEME_COLORS.primaryAccent,
@@ -316,26 +336,34 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
   },
+  // Compact ✕ icon button to save header space
   disconnectButton: {
     backgroundColor: THEME_COLORS.dangerBg,
-    borderColor: THEME_COLORS.danger,
+    borderColor: "rgba(239, 68, 68, 0.35)",
     borderWidth: 1,
-    paddingHorizontal: THEME_SPACING.sm,
-    paddingVertical: 3,
-    borderRadius: THEME_RADII.sm,
+    width: 28,
+    height: 28,
+    borderRadius: THEME_RADII.full,
+    alignItems: "center",
+    justifyContent: "center",
   },
   disconnectButtonText: {
     color: THEME_COLORS.danger,
     fontFamily: THEME_TYPOGRAPHY.fontFamily.sans,
-    fontSize: 10,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.semibold,
+    fontSize: 12,
+    fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
   },
+  // Glassy sky-blue reconnect toast — matches web landing page "↻ Replay" indicator
   reconnectToastBanner: {
     backgroundColor: THEME_COLORS.primaryAccentBg,
     borderBottomWidth: 1,
-    borderBottomColor: THEME_COLORS.primaryAccent,
+    borderBottomColor: "rgba(56, 189, 248, 0.3)",
     paddingHorizontal: THEME_SPACING.md,
-    paddingVertical: 6,
+    paddingVertical: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: THEME_SPACING.xs,
   },
   reconnectToastText: {
     color: THEME_COLORS.primaryAccent,
@@ -347,9 +375,9 @@ const styles = StyleSheet.create({
   sessionErrorBanner: {
     backgroundColor: THEME_COLORS.dangerBg,
     borderBottomWidth: 1,
-    borderBottomColor: THEME_COLORS.danger,
+    borderBottomColor: "rgba(239, 68, 68, 0.3)",
     paddingHorizontal: THEME_SPACING.md,
-    paddingVertical: 6,
+    paddingVertical: 5,
   },
   sessionErrorText: {
     color: THEME_COLORS.danger,

@@ -134,6 +134,11 @@
     - Refined CLI TUI boot banner: removed internal `Relay Server` clutter, established clean `AIRLINK — WORKSTATION HARNESS` branding, `airlink >` prompt, and `https://airlink.dev/pair` link.
     - Removed shortcut helper footer and token telemetry strip from CLI prompt and landing page mockup.
     - Replaced static model fallback with active `gemini-2.0-flash` configuration.
+  - **Mobile Terminal UX & Keyboard Ergonomics Polish (`apps/mobile`):**
+    - Enhanced [`SessionScreen.tsx`](file:///c:/Users/Tyra/agent-harness/apps/mobile/src/screens/SessionScreen.tsx) with native `KeyboardAvoidingView` so prompt input bar stays positioned above the on-screen soft keyboard.
+    - Synchronized mobile screen header styling to frosted glass aesthetic matching landing page mockups (`screenHeaderTitle`, `modelChip`, compact disconnect icon, and animated reconnection toast).
+    - Polished [`TerminalFeed.tsx`](file:///c:/Users/Tyra/agent-harness/apps/mobile/src/components/TerminalFeed.tsx) with monospace streaming tokens, live activity pulses, and sticky jump-to-live scroll resume pill.
+    - Polished [`PromptInputBar.tsx`](file:///c:/Users/Tyra/agent-harness/apps/mobile/src/components/PromptInputBar.tsx) with streamlined action pills and send triggers.
   - **Verification:** 100% test pass rate across all test suites (35 test files, 234 tests) with 0 TypeScript/lint errors and live Render cloud relay deployment (`https://airlink-relay.onrender.com/health`).
 
 ### Implementation Units Index
