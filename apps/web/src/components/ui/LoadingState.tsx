@@ -6,10 +6,11 @@ import React, { useEffect, useState } from "react";
  * LOADING STATE — pixel-grid loader for long-running work
  *
  * Variants:
- *   Drive  — square cells, chevron wavefront driving right
+ *   Drive  — square cells, chevron wavefront driving right;
+ *            the 650ms cycle is shorter than the sweep, so
+ *            two fronts are always in flight
  *   Dots   — same wavefront, circular cells
  *   Orbit  — a comet lapping the grid perimeter
- *   Surfer — the Drive loader paired with context video
  * ───────────────────────────────────────────────────────── */
 
 const chevron = Array.from({ length: 9 }, (_, i) => {
@@ -43,9 +44,9 @@ function LoaderGrid({
     <span
       aria-hidden
       style={{
-        display: "grid",
+        display: "inline-grid",
         gridTemplateColumns: "repeat(3, 4px)",
-        gap: 2,
+        gap: "2px",
         flexShrink: 0,
       }}
     >
@@ -53,12 +54,15 @@ function LoaderGrid({
         <span
           key={index}
           style={{
-            width: 4,
-            height: 4,
-            backgroundColor: "var(--ink, #ffffff)",
-            borderRadius: round ? "50%" : 1,
-            opacity: delay === null ? 0.07 : 0.2,
-            animation: delay === null ? "none" : `pixel-on ${dur}ms ease-in-out ${delay}ms infinite`,
+            width: "4px",
+            height: "4px",
+            backgroundColor: "#38bdf8",
+            borderRadius: round ? "9999px" : "1px",
+            opacity: delay === null ? 0.08 : 0.2,
+            animation:
+              delay === null
+                ? "none"
+                : `pixelPulse ${dur}ms ease-in-out ${delay}ms infinite alternate`,
           }}
         />
       ))}
@@ -78,101 +82,63 @@ function useElapsed() {
 }
 
 export function LoadingState({
-  label,
+  label = "Agent working...",
   variant = "Drive",
-  videoSrc = "/subway-surfers.mp4",
 }: {
   label?: string;
-  variant?: string;
-  videoSrc?: string;
+  variant?: "Drive" | "Dots" | "Orbit";
 }) {
   const elapsed = useElapsed();
-  const surfer = variant === "Surfer";
-  const resolvedLabel = label ?? (surfer ? "Subway surfing" : "Processing turn");
-  const [videoOk, setVideoOk] = useState(true);
   const { delays, dur, round } = PATTERNS[variant] ?? PATTERNS.Drive;
 
-  const labelEl = (
-    <span
-      style={{
-        fontSize: 11.5,
-        fontWeight: 600,
-        color: "transparent",
-        backgroundImage:
-          "linear-gradient(90deg, #94a3b8 35%, #ffffff 50%, #94a3b8 65%)",
-        backgroundSize: "200% 100%",
-        WebkitBackgroundClip: "text",
-        animation: "shimmer-text 1.4s linear infinite",
-      }}
-    >
-      {resolvedLabel}
-    </span>
-  );
-
-  const elapsedEl = (
-    <span
-      style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: 10.5,
-        color: "#94a3b8",
-        fontVariantNumeric: "tabular-nums",
-      }}
-    >
-      {elapsed}
-    </span>
-  );
-
-  if (surfer) {
-    return (
-      <div role="status" style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <LoaderGrid {...PATTERNS.Drive} />
-          {labelEl}
-          {elapsedEl}
-        </div>
-
-        <div
-          style={{
-            marginTop: 6,
-            width: 180,
-            overflow: "hidden",
-            borderRadius: 8,
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.4)",
-            animation: "pop-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both",
-            transformOrigin: "top left",
-          }}
-        >
-          <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", background: "#030712" }}>
-            {videoOk ? (
-              <video
-                src={videoSrc}
-                autoPlay
-                muted
-                loop
-                playsInline
-                onError={() => setVideoOk(false)}
-                style={{ height: "100%", width: "100%", objectFit: "cover" }}
-              />
-            ) : (
-              <div style={{ display: "flex", height: "100%", width: "100%", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                <LoaderGrid {...PATTERNS.Drive} />
-                <span style={{ padding: "0 10px", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 9.5, color: "#64748b" }}>
-                  Feed active
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div role="status" style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+    <div
+      role="status"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "8px",
+        padding: "6px 12px",
+        backgroundColor: "rgba(15, 23, 42, 0.75)",
+        backdropFilter: "blur(8px)",
+        border: "1px solid rgba(56, 189, 248, 0.25)",
+        borderRadius: "9999px",
+        boxShadow: "0 0 15px rgba(56, 189, 248, 0.15)",
+      }}
+    >
+      <style>{`
+        @keyframes pixelPulse {
+          0% { opacity: 0.15; transform: scale(0.9); }
+          100% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 3px #38bdf8); }
+        }
+        @keyframes shimmerText {
+          0% { opacity: 0.75; }
+          50% { opacity: 1; }
+          100% { opacity: 0.75; }
+        }
+      `}</style>
       <LoaderGrid delays={delays} dur={dur} round={round} />
-      {labelEl}
-      {elapsedEl}
+      <span
+        style={{
+          fontSize: "12px",
+          fontWeight: 600,
+          color: "#38bdf8",
+          animation: "shimmerText 1.4s ease-in-out infinite",
+          letterSpacing: "-0.2px",
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          fontFamily: "var(--font-mono, monospace)",
+          fontSize: "11px",
+          color: "#94a3b8",
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {elapsed}
+      </span>
     </div>
   );
 }

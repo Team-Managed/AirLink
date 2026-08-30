@@ -128,8 +128,8 @@ export default function WebPairPage() {
 
 const styles: Record<string, React.CSSProperties> = {
   webContainer: {
-    backgroundColor: "#f8fafc",
-    color: "#0f172a",
+    backgroundColor: "#090d16",
+    color: "#f8fafc",
     minHeight: "100vh",
     position: "relative",
     overflowX: "hidden",
@@ -142,20 +142,20 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: "100vh",
   },
   toastBanner: {
-    backgroundColor: "rgba(34, 138, 122, 0.15)",
-    borderBottom: "1px solid #228a7a",
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    borderBottom: "1px solid rgba(16, 185, 129, 0.3)",
     padding: "6px 16px",
-    color: "#228a7a",
+    color: "#34d399",
     fontSize: 12,
     textAlign: "center",
     fontFamily: "var(--font-mono)",
     fontWeight: 700,
   },
   errorBanner: {
-    backgroundColor: "rgba(199, 68, 68, 0.15)",
-    borderBottom: "1px solid #c74444",
+    backgroundColor: "rgba(239, 68, 68, 0.15)",
+    borderBottom: "1px solid rgba(239, 68, 68, 0.3)",
     padding: "6px 16px",
-    color: "#c74444",
+    color: "#f87171",
     fontSize: 12,
     textAlign: "center",
     fontWeight: 700,
