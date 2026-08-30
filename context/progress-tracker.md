@@ -162,7 +162,14 @@
     - Polished [`theme.ts`](file:///c:/Users/Tyra/agent-harness/apps/mobile/src/theme.ts) with obsidian glass and mockup palette tokens (`cardSurfaceDeep`, `boxInset`, `glassPanel`, `emeraldBadgeBg`, `delLineBg`, `addLineBg`).
     - Added [`AirLinkMobileLogo.tsx`](file:///c:/Users/Tyra/agent-harness/apps/mobile/src/components/AirLinkMobileLogo.tsx): origami airplane mascot with sky-blue origami fold across Pairing and Session screen headers.
     - Migrated to `react-native-safe-area-context` with `useSafeAreaInsets` across [`SessionScreen.tsx`](file:///c:/Users/Tyra/agent-harness/apps/mobile/src/screens/SessionScreen.tsx), [`PairingScreen.tsx`](file:///c:/Users/Tyra/agent-harness/apps/mobile/src/screens/PairingScreen.tsx), and [`SettingsScreen.tsx`](file:///c:/Users/Tyra/agent-harness/apps/mobile/src/screens/SettingsScreen.tsx), eliminating Android status bar / notch overlaps and elevating the prompt input bar above navigation bars.
-  - **Verification:** 100% test pass rate across all test suites (35 test files, 234 tests) with 0 TypeScript/lint errors and live Render cloud relay deployment (`https://airlink-relay.onrender.com/health`).
+  - **PR #26 Qodo Code Review Remediation & Asset Modernization:**
+    - **Issue 1 (Approval Risk Badge):** Restored readable, accessible frosted `HIGH RISK` / `MEDIUM RISK` / `LOW RISK` badges in `ApprovalDrawer.tsx` header with semantic color indicators (`#f87171` high, `#fbbf24` medium, `#4ade80` low) alongside the countdown gate badge.
+    - **Issue 2 (CLI Terminal Streamer Flush):** Updated `TerminalMarkdownStreamer.flush()` in `apps/cli/src/terminal-ui.ts` to flush and render unclosed code blocks ending with newlines without dropping content; added unit test coverage in `terminal-ui.test.ts`.
+    - **Issue 3 (DiffCard Footer Decoupling):** Updated `DiffCard.tsx` with explicit optional `branchName?: string` and `statusText?: string` props, eliminating fabricated branch/readiness claims during pre-execution safety approvals.
+    - **Issue 4 (BYOK Key Masking Security):** Replaced substring key slicing in `SettingsScreen.tsx` with constant non-secret masks (`••••••••••••••••`) and added `hasApiKey` to `SecureVaultService` to prevent plaintext secret exposure in component state.
+    - **Asset Modernization & Cleanup:** Declared static asset types in `apps/mobile/src/assets.d.ts`, migrated `pairing_bg.png` to static ES module imports across all screens, and purged unused legacy `AirLinkMobileLogo.tsx` and mascot assets.
+    - **Verification:** 100% test pass rate across 35 test files and 238 unit/integration tests, 0 ESLint errors (`pnpm lint`), and 0 unapproved suppressions (`node scripts/check-suppressions.mjs`).
+  - **Verification:** 100% test pass rate across all test suites (35 test files, 238 tests) with 0 TypeScript/lint errors and live Render cloud relay deployment (`https://airlink-relay.onrender.com/health`).
 
 ### Implementation Units Index
 
