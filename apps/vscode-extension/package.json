@@ -1,0 +1,93 @@
+{
+  "name": "vscode-airlink",
+  "displayName": "AirLink",
+  "description": "AirLink: Open-Source Coding Agent Universal Remote Control for VS Code",
+  "version": "0.1.0",
+  "publisher": "airlink",
+  "main": "./dist/extension.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Team-Managed/AirLink"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "AI",
+    "Programming Languages",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onView:agentRemote.chatView"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "agent-remote-sidebar",
+          "title": "AirLink",
+          "icon": "$(radio-tower)"
+        }
+      ]
+    },
+    "views": {
+      "agent-remote-sidebar": [
+        {
+          "type": "webview",
+          "id": "agentRemote.chatView",
+          "name": "AirLink Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "agentRemote.start",
+        "title": "Start Remote Harness",
+        "category": "AirLink"
+      },
+      {
+        "command": "agentRemote.stop",
+        "title": "Stop Remote Harness",
+        "category": "AirLink"
+      },
+      {
+        "command": "agentRemote.copyPIN",
+        "title": "Copy Pairing PIN & URL",
+        "category": "AirLink"
+      },
+      {
+        "command": "agentRemote.createPR",
+        "title": "Create Pull Request from Session",
+        "category": "AirLink"
+      },
+      {
+        "command": "agentRemote.importIssue",
+        "title": "Import GitHub Issue Context",
+        "category": "AirLink"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "package": "node esbuild.mjs && vsce package --no-dependencies",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@airlink/bridge-core": "workspace:*",
+    "@airlink/protocol": "workspace:*",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}

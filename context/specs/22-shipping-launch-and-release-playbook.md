@@ -4,6 +4,7 @@ Also read `15-deployment-and-release.md`, `16-ci-workflows-and-governance.md`, `
 Define the pre-launch release gates, smoke test protocol, staging verification, instant rollback procedures, and post-launch monitoring playbook following the `shipping-and-launch` standard.
 
 ## Implementation
+
 1. Pre-Launch Release Gate (The 6-Point Verification):
    - **Gate 1 (Code Quality & Suppression):** `node scripts/check-suppressions.mjs` passes with 0 unapproved `@ts-ignore` or `any`-casts.
    - **Gate 2 (Typecheck & Lint):** Monorepo `pnpm typecheck` and `pnpm lint` pass with 0 errors across all 6 workspaces.
@@ -14,7 +15,7 @@ Define the pre-launch release gates, smoke test protocol, staging verification, 
 2. Staged Deployment & Smoke Test Sequence:
    - **Stage 1 (Staging Preview):** Deploy Cloud Relay Docker container to staging environment (`relay-staging.yourdomain.com`).
    - **Stage 2 (Local Host Smoke Test):**
-     - Run `pnpm dev:cli` on workstation -> verify bold banner and ASCII QR code generate.
+     - Run `pnpm dev:cli` on workstation -> verify bold banner and 6-digit PIN generate.
      - Connect mobile app via 6-digit PIN -> verify `session:connected` arrives in $< 200\text{ms}$.
    - **Stage 3 (Turn Execution & HITL Approval Smoke Test):**
      - Submit prompt from mobile -> verify tokens stream in real time.
@@ -31,16 +32,19 @@ Define the pre-launch release gates, smoke test protocol, staging verification, 
    - Monitor GitHub Issues and PR Qodo Merge alerts for any regression reports.
 
 ## Scope Limits
+
 - Do not release production builds with failing tests or skipped typecheck steps.
 - Do not deploy changes directly to production without staging smoke test verification.
 - Do not maintain unmonitored feature flags past 2 weeks.
 
 ## Notes
+
 - The pre-launch checklist ensures complete demo-day readiness for the hackathon presentation without live demo crashes.
 - Ephemeral architecture guarantees instant rollbacks without persistent data corruption.
 - Depends on: 00 through 21.
 
 ## Check When Done
+
 - Pre-launch 6-point release gate passes 100%.
 - Full 4-stage smoke test sequence executes cleanly end-to-end.
 - Rollback playbook is validated and documented.

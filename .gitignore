@@ -12,3 +12,8 @@ coverage/
 *.pem
 .DS_Store
 Thumbs.db
+*.tsbuildinfo
+.agent-remote/
+.airlink-data/
+*.vsix
+

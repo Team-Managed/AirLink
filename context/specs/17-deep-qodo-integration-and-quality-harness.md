@@ -4,6 +4,7 @@ Also read `01-monorepo-and-protocol-contracts.md`, `02-bridge-core-and-ring-buff
 Deeply integrate Qodo (Qodo Gen, Qodo Merge PR Agent, and Qodo Cover) across the entire codebase to maximize code quality, automated test coverage, and PR review intelligence for the WeMakeDevs Q Branch Track.
 
 ## Implementation
+
 1. Configure Qodo Merge PR Agent Workflow (`.github/workflows/qodo_merge.yml`):
    - Set up GitHub Actions workflow using `qodo-ai/pr-agent-action@v0.22` triggered on `pull_request` (`opened`, `reopened`, `synchronize`, `ready_for_review`).
    - Configure automated actions on every PR:
@@ -31,16 +32,19 @@ Deeply integrate Qodo (Qodo Gen, Qodo Merge PR Agent, and Qodo Cover) across the
    - Embed dynamic Qodo test quality and review badges in the root `README.md`.
 
 ## Scope Limits
+
 - Do not generate trivial mock tests that pass without exercising real code paths.
 - Do not commit mock API keys into `.pr_agent.toml` or workflow configurations.
 - Do not disable Qodo Merge review gating on pull requests.
 
 ## Notes
+
 - Deep Qodo integration directly addresses the Hackathon "Q Branch Track" ($5,000 prize for Best Code Quality & Testing).
 - Automated PR reviews with Qodo Merge ensure that all incremental units maintain clean, bug-free implementations before merging.
 - Depends on: 00 through 17.
 
 ## Check When Done
+
 - `.github/workflows/qodo_merge.yml` and `.pr_agent.toml` are configured and validated.
 - Qodo Gen unit test suites cover protocol contracts, ring buffer, rate limiting, and approval timeouts with >90% coverage.
 - PRs automatically receive Qodo Merge code quality reviews, descriptions, and improvement suggestions.

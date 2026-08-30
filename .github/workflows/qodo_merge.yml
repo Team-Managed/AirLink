@@ -7,16 +7,17 @@ on:
     types: [created, edited]
 
 concurrency:
-  group: qodo-merge-${{ github.event.pull_request.number || github.event.issue.number }}
-  cancel-in-progress: true
+  group: qodo-merge-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
+  cancel-in-progress: false
 
 jobs:
   qodo_merge:
     name: Qodo Merge AI Review
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: ${{ github.event.pull_request.draft == false }}
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
       issues: write
 
@@ -25,9 +26,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Qodo Merge PR Agent
-        uses: qodo-ai/pr-agent-action@v0.22
+        uses: qodo-ai/pr-agent@dba5f03c1fe1d6816cafee5d5a3160a42d53b4f7 # v0.34.2
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_KEY || secrets.QODO_API_KEY }}
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CONFIG.AUTO_REVIEW: "true"
           CONFIG.AUTO_DESCRIBE: "true"

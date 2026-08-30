@@ -7,6 +7,8 @@ export const LLMProviderSchema = z.enum([
   "openrouter",
   "anthropic",
   "openai",
+  "groq",
+  "gemini",
   "custom",
 ]);
 export type LLMProvider = z.infer<typeof LLMProviderSchema>;
@@ -28,7 +30,8 @@ export type BYOKConfig = z.infer<typeof BYOKConfigSchema>;
 export const RegisterHostSchema = z.object({
   pin: z.string().length(6, "PIN must be exactly 6 characters"),
   hostName: z.string().min(1, "Host name is required"),
-  workspacePath: z.string().min(1, "Workspace path is required"),
+  workspacePath: z.string().default(""),
+  hostSecret: z.string().min(8, "Host secret must be at least 8 characters"),
 });
 export type RegisterHost = z.infer<typeof RegisterHostSchema>;
 
@@ -108,6 +111,9 @@ export type AgentStream = z.infer<typeof AgentStreamSchema>;
 export const RiskLevelSchema = z.enum(["low", "medium", "high"]);
 export type RiskLevel = z.infer<typeof RiskLevelSchema>;
 
+export const APPROVAL_TIMEOUT_MS = 180000;
+export const MAX_RING_BUFFER_SIZE = 500;
+
 /**
  * ApprovalRequest: Emitted when an agent tool requires Human-in-the-Loop confirmation.
  */
@@ -120,7 +126,12 @@ export const ApprovalRequestSchema = z.object({
   commandOrDiff: z.string(),
   riskLevel: RiskLevelSchema,
   description: z.string().optional(),
-  timeoutMs: z.number().int().positive().default(180000), // Strict 180s invariant
+  timeoutMs: z
+    .number()
+    .int("timeoutMs must be an integer")
+    .positive("timeoutMs must be positive")
+    .max(APPROVAL_TIMEOUT_MS, `timeoutMs cannot exceed ${APPROVAL_TIMEOUT_MS}ms (180s)`)
+    .default(APPROVAL_TIMEOUT_MS),
   createdAt: z.number().default(() => Date.now()),
 });
 export type ApprovalRequest = z.infer<typeof ApprovalRequestSchema>;
@@ -149,10 +160,20 @@ export type ClientSync = z.infer<typeof ClientSyncSchema>;
 /**
  * StreamBatch: Catch-up batch of stream events replayed from the in-memory ring buffer.
  */
-export const StreamBatchSchema = z.object({
-  sessionId: z.string().min(1),
-  events: z.array(AgentStreamSchema),
-});
+export const StreamBatchSchema = z
+  .object({
+    sessionId: z.string().min(1),
+    events: z
+      .array(AgentStreamSchema)
+      .max(
+        MAX_RING_BUFFER_SIZE,
+        `Batch cannot exceed maximum ring buffer bound (${MAX_RING_BUFFER_SIZE})`,
+      ),
+  })
+  .refine((data) => data.events.every((event) => event.sessionId === data.sessionId), {
+    message: "All stream batch events must match the batch sessionId",
+    path: ["events"],
+  });
 export type StreamBatch = z.infer<typeof StreamBatchSchema>;
 
 /**

@@ -3,6 +3,7 @@ Read `00-product-map.md` before starting.
 Create the monorepo workspace layout and the shared `@agent-remote/protocol` package. Leave relay implementation, bridge logic, and mobile screens to units 02–12.
 
 ## Implementation
+
 1. Create the root workspace configuration:
    - Configure `pnpm-workspace.yaml` registering `apps/*` and `packages/*`.
    - Setup root `package.json` with workspace script shortcuts (`build`, `typecheck`, `lint`, `test`, `dev:relay`, `dev:cli`, `dev:mobile`) and root devDependencies (`typescript`, `vitest`, `prettier`, `eslint`).
@@ -27,18 +28,21 @@ Create the monorepo workspace layout and the shared `@agent-remote/protocol` pac
    - Verify that default values (`timeoutMs = 180000`, `clientName = 'Mobile App'`) populate automatically upon parsing.
 
 ## Scope Limits
+
 - Do not implement Socket.io connections, TrueForge SDK bindings, or React components in this unit.
 - Do not write manual duplicate TypeScript interfaces; always use `z.infer<typeof Schema>`.
 - Do not commit mock or placeholder return values in tests.
 - Do not introduce runtime dependencies beyond Zod in this package.
 
 ## Notes
+
 - All apps and packages consume contracts exclusively from `@agent-remote/protocol`.
 - Package exports must remain pure JavaScript and TypeScript definitions with zero side-effects.
 - Inferred types must be exported side-by-side with Zod schemas.
 - Depends on: 00. Required before: 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12.
 
 ## Check When Done
+
 - Root `pnpm install` succeeds and correctly resolves workspace packages.
 - `packages/protocol` builds cleanly without TypeScript errors.
 - Vitest suite `pnpm --filter @agent-remote/protocol test` passes with 100% assertions green.

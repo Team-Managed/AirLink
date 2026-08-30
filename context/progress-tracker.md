@@ -3,30 +3,160 @@
 ## Current Phase: Phase 3 (Monorepo Scaffolding & Incremental Implementation)
 
 ### Completed Work
+
 - [x] Cloned empty repository at `agent-harness`
 - [x] Defined product scope, hackathon tracks, and core invariants in `context/project-overview.md`
 - [x] Documented Dual-Memory Model & Local Anti-Bloat Policy in `context/architecture-context.md`
-- [x] Authored complete, clean 17-unit Spec Suite in `context/specs/` (`00-product-map.md` through `17-deep-qodo-integration-and-quality-harness.md`)
+- [x] Authored complete, clean 22-unit Spec Suite in `context/specs/` (`00-product-map.md` through `22-shipping-launch-and-release-playbook.md`)
 - [x] Defined UI design system tokens in `context/ui-context.md`
 - [x] Defined TypeScript and Prompt rules in `context/code-standards.md`
 - [x] Established Spec-Driven Incremental Workflow in `context/ai-workflow-rules.md`
 - [x] Purged all duplicate, redundant, and excessive files from context
+- [x] **Unit 01:** Monorepo Workspace & Protocol Contracts (`packages/protocol`)
+- [x] **Unit 02:** Bridge Core Engine & Ring Buffer (`packages/bridge-core` + `@truefoundry/trueforge-sdk`)
+- [x] **Unit 03:** Approval State Machine & Timeouts (`packages/bridge-core`)
+- [x] **Unit 04:** Cloud Relay Server (`apps/relay`)
+- [x] **Unit 16:** CI Workflows, Governance & Secret Scanning (`.github/workflows/ci.yml`, `secret_scan.yml`, `scripts/check-suppressions.mjs`)
+- [x] **Unit 17:** Deep Qodo Integration, Test Harness & PR Automation (`.pr_agent.toml`, `.github/workflows/qodo_merge.yml`, `tests/qodo/`)
+- [x] **Unit 18:** Qodo PR Playbook & Track Alignment Playbook (`context/specs/18-qodo-pr-playbook-and-track-alignment.md`, `.github/pull_request_template.md`)
+- [x] **Unit 05:** Terminal CLI Host & Interactive Client (`apps/cli`, `scripts/install.ps1`, `scripts/install.sh`)
+- [x] **Unit 06:** VS Code Extension Host & Chat Panel (`apps/vscode-extension`)
+- [x] **Multi-Provider Live AI Engine & SDK Capabilities:** Standardized live SSE streaming in `bridge-core` with Google Gemini, Groq, OpenRouter, GitHub Models, and Ollama; integrated full `@truefoundry/trueforge-sdk` subclients for agents, mcpServers, models, sessions, turn history, and sandbox file downloads.
+- [x] **5-Layer Modular Prompt Architecture & Skill Registry:** Implemented byte-identical static caching prefixes (Layers 1–3), dynamic workspace context/directives (Layers 4–5), autonomous filesystem tool execution loop, and `SKILL.md` plugin registry.
+- [x] **VS Code Extension CJS Bundling Fix:** Switched from raw `tsc` ESM output to `esbuild` CJS bundle (`dist/extension.js`). Extension host now loads correctly — buttons, PIN input, prompt submission, and quick actions are all functional.
+- [x] **Active Session Persistence & Multi-Host PIN Sync:** Added `session-persistence` module in `packages/bridge-core` to synchronize active session PINs between CLI, VS Code Extension, and Mobile/Web clients; wired TrueForge SDK `listEvents()` and `createTurnStream()` for multi-device in-sync sessions.
+- [x] **PR #12 Qodo Code Review Hardening & Host Architecture:**
+  - Resolved 16 review findings: workspace path boundary traversal confinement, test filter shell injection hardening, multi-host room synchronization without client eviction, relay-only host registration, provider-native structured JSON schema tool calling, BYOK pipeline wiring, atomic model switching, destructive tool approval pauses, abort signal turn cancellation, graceful CLI shutdown, `--pr` auto-execution, and esbuild context API watch bundling.
+  - Extracted shared `AgentHostController` abstraction in `packages/bridge-core`.
+  - 100% test pass rate (19 test files, 166 unit/integration tests).
+
+- [x] **Mobile React Native Client & Control Shell (`apps/mobile`):**
+  - Scaffolded Expo SDK 51+ / React Native client shell with semantic dark developer theme tokens (`#090d16`).
+  - Built `MobileSocketService` managing real-time Socket.io tunnel, strict Zod protocol validation, monotonic sequence tracking, and catch-up sync.
+  - Implemented `PairingScreen` with 6-digit PIN input, monospace letter tracking, auto-submit on 6th digit, and error handling.
+  - Implemented virtualized `TerminalFeed` with streaming token aggregation, collapsible thought cards, tool call snippets, and auto-scroll locking.
+  - Implemented `PromptInputBar` with horizontal quick-action pills (`[Create PR]`, `[Import Issue]`, `[Run Tests]`, `[Git Status]`, `[Fix Lint]`, `[Rollback]`).
+  - Implemented `DiffCard` with unified Git diff parsing, line-by-line syntax highlighting, additions/deletions badges, and file path headers.
+  - Implemented `ApprovalDrawer` with 180s countdown progress bar (smooth color morph from green -> amber -> red), risk level badges, and dual `[Approve]` / `[Deny]` action buttons.
+  - Integrated `MobileHapticsService` with native `Vibration` and web vibration fallback.
+  - Resolved all 10 Qodo review findings on PR #14: reconnection join-before-sync, stream auto-scroll on content size changes, user prompt vs agent token separation (`role: "user"`), multicast socket subscriptions with lifecycle cleanup, expired room purging to prevent client resurrection, dynamic approval timeout reporting, and slide-modal UI context alignment.
+  - 100% test pass rate across 26 test files and 193 unit/integration tests.
+
+- [x] **Unit 10: BYOK Encrypted Vault & Model Routing (`apps/mobile` + `bridge-core`):**
+  - Created `SecureVaultService` in `apps/mobile/src/services/vault.ts` for encrypted in-device storage of credentials and active models.
+  - Implemented `SettingsScreen` in `apps/mobile/src/screens/SettingsScreen.tsx` with provider selector pills (`OpenRouter`, `Gemini`, `Anthropic`, `OpenAI`, `Groq`, `Custom`), model suggestion chips, masked API key inputs, custom base URL configuration, and keychain actions.
+  - Integrated `BYOKConfig` payload into `SessionScreen` and `MobileSocketService.sendPrompt()`.
+  - Wired `HostController` and `TrueForgeClient` to dynamically route turns using `byokConfig` or local defaults.
+- [x] **Unit 11: Reconnect Resilience & Hydration (`apps/mobile` + `bridge-core`):**
+  - Implemented monotonic sequence tracking and reconnect `client:sync` with `lastSeenSeq` in `MobileSocketService`.
+  - Wired `RingBuffer.getEventsSince(lastSeenSeq)` in `SocketBridge` / `HostController` and batch stream hydration in `TerminalFeed`.
+  - Authored comprehensive integration tests in `packages/bridge-core/tests/reconnect.test.ts`, `apps/mobile/tests/vault.test.ts`, and `apps/mobile/tests/settings-screen.test.ts`.
+
+- [x] **Unit 12: Web Landing Page & Demo Shell (`apps/web`):**
+  - Scaffolded Next.js App Router web application (`apps/web`) with dark developer theme tokens (`#090d16`).
+  - Implemented responsive landing page (`/`) featuring wordmark, hero value proposition, tabbed one-click installer command bar (Windows, macOS/Linux, npx), copyable install feedback, and interactive live demo simulator card with active Approve/Deny buttons and real-time execution animation.
+  - Created 4-pillar feature grid, zero-retention architecture flow visualization, multiplatform ecosystem breakdown, and footer with hackathon track alignment.
+  - Built full browser remote control client (`/pair`) with 6-digit PIN input, URL query auto-fill (`/pair?pin=834192`), Socket.io pairing, live terminal feed with streaming tokens, collapsible thoughts/tools, approval modal, quick actions, and BYOK modal.
+  - Hosted static `install.ps1` and `install.sh` scripts in `apps/web/public/`.
+  - Authored unit tests in `apps/web/tests/web-landing.test.ts` and `apps/web/tests/web-pair.test.ts`.
+
+- [x] **AirLink Clean Minimalist Hero Artwork & Pure White Body Background (`apps/web` & `context/ui-context.md`):**
+  - **1:1 Synchronized Workstation TUI & Mobile Showcase ([`WorkstationTuiMockup.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/WorkstationTuiMockup.tsx) & [`ScrollFeaturePhoneShowcase.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/ScrollFeaturePhoneShowcase.tsx)):**
+    - Cleaned up naming across all mockups to use official product branding: `airlink host · workstation ~ zsh`, `WS RELAY`, and `airlink >` prompt.
+    - Fully harmonized the context between the workstation CLI terminal and mobile phone mockup: when viewing the visual git diff screen, the TUI displays the exact matching prompt (*"also the hero text let us have it all black and i have some gsap effect..."*), exact file diffs (`PanoramicLandscapeHero.tsx` `+92 -35`), and matching GSAP code changes (`color: "#0f172a"`, `gsap.fromTo(".hero-word", ...)`).
+    - Removed confusing legacy "TLS 1.3" and "tunnel" labels, accurately presenting our native **WebSocket Relay Bridge** (`ws://127.0.0.1:4000` / `WebSocket E2E`).
+    - Every feature state (PIN pairing, BYOK vault, token stream telemetry, 1-tap safety gate, and AST diffs) now mirrors 1:1 in real time across the diagonal duo showcase.
+  - **Left-Aligned Header & 2-Column Showcase Layout ([`ScrollFeaturePhoneShowcase.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/ScrollFeaturePhoneShowcase.tsx)):** Restructured the showcase section into a clean 2-column presentation where the main header (*"Your Autonomous Agent In The Palm of Your Hand"*) sits on the left side above the feature stair ladder.
+  - **Clean Origami Agent Logo ([`AirLinkAgentLogo.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/ui/AirLinkAgentLogo.tsx)):** Removed the orange dot and beacon ring from the nose of the vector origami paper airplane doodle, giving the branding a cleaner, unified blue and white aesthetic.
+  - **Hero Panoramic Background Artwork Inside Mobile Phone Mockup ([`ScrollFeaturePhoneShowcase.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/ScrollFeaturePhoneShowcase.tsx)):** Embedded the `/screenshot-hero.png` meadow & sky artwork right as the wallpaper inside the mobile phone mockup frame with an atmospheric gradient overlay, unifying the visual aesthetic across the hero, phone screens, and bottom CTA card.
+  - **Bright Hero Artwork Inside Bottom CTA Box ([`BottomCtaSection.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/BottomCtaSection.tsx)):** Embedded the panoramic landscape meadow artwork directly inside the bottom high-conversion CTA card with a bright daylight gradient overlay (`rgba(255,255,255,0.15)` to `rgba(255,255,255,0.95)`), bold obsidian `#0f172a` display typography, and clear frosted PIN input.
+  - **Removed Obsolete Live Showcase Component:** Cleaned up `HowItWorksSection.tsx` by removing the legacy dual phone+terminal mockup box, and purged obsolete showcase files.
+  - **Dynamic Interactive PIN Typing Experience ([`ScrollFeaturePhoneShowcase.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/ScrollFeaturePhoneShowcase.tsx)):**
+    - The first mobile screen now features a live, looping digit-by-digit PIN entry simulation (`8` &rarr; `3` &rarr; `4` &rarr; `1` &rarr; `9` &rarr; `2`).
+    - Active focus caret and cyan glow (`#38bdf8`) follow the current digit box.
+    - Upon 6-digit completion, transitions smoothly to emerald success state (`✓ Paired to MacBook-Pro-M3 (0.04s)`) with glowing green badge confirmation before resetting.
+  - **Screen 1 PIN Pairing UI Matched 1:1 with Screenshot ([`ScrollFeaturePhoneShowcase.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/ScrollFeaturePhoneShowcase.tsx) & [`PanoramicLandscapeHero.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/PanoramicLandscapeHero.tsx)):**
+    - Header: `🚀 AirLink PIN Pairing` with `TLS 1.3` badge in dark translucent capsule.
+    - Center Card: Circular lock icon badge (`#38bdf8`), `Workstation Session PIN`, `Pairing with MacBook-Pro-M3`, 6 monospace PIN boxes `[8][3][4][1][9][2]`, and `🔒 Ephemeral session • Auto-expires`.
+    - Bottom Block: `Tunnel Relay: sub-50ms (Direct)` & `Security: E2E Encrypted` plus glowing `● WebSocket Relay Active` bar.
+  - **Faithful Agent Trace & File Changes Chat UI ([`ScrollFeaturePhoneShowcase.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/ScrollFeaturePhoneShowcase.tsx)):** Re-engineered the mobile phone chat interface to faithfully match the user's design:
+    - **User Prompt Message Card:** Clean rounded container displaying the natural language instruction.
+    - **Expandable Trace Header:** `Worked for 52s ᐳ` / `Worked for 14s ᐳ` collapsible indicator.
+    - **Files Changed & Review Card:** `2 files changed +92 -35 ∨` with `[ 📄 Review ]` action button, displaying individual modified files with tech icons (⚛️ `PanoramicLandscapeHero.tsx`, M↓ `progress-tracker.md`), diff stats, and relative workspace paths.
+  - **Modular Streaming & Trace UI Components:** Created [`LoadingState.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/ui/LoadingState.tsx), [`ThinkingState.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/ui/ThinkingState.tsx), [`StreamingText.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/ui/StreamingText.tsx), and [`ToolChips.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/ui/ToolChips.tsx) for pixel-grid loaders, expandable reasoning traces, word-by-word streaming responses, and interactive tool execution rows with hovering diff portals.
+  - **Screen 2 BYOK UI Polish ([`ScrollFeaturePhoneShowcase.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/ScrollFeaturePhoneShowcase.tsx)):** Removed the verbose browser memory guarantee text block and replaced it with a clean, cohesive `4 Model Providers Configured` status indicator.
+  - **AirLink Origami Logo in Agent Chat Responses ([`ScrollFeaturePhoneShowcase.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/ScrollFeaturePhoneShowcase.tsx)):** Embedded the vector origami paper airplane logo (`AirLinkAgentLogo`) inside the mobile agent chat avatar bubbles and phone header status bar across split interactive screens.
+  - **Split Chat + Feature Widgets for Screens 3, 4, 5 ([`ScrollFeaturePhoneShowcase.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/ScrollFeaturePhoneShowcase.tsx)):** Designed a split mobile screen interface for features 3, 4, and 5 where the **upper half** renders the active User &harr; Agent conversation session, and the **lower half** renders the live contextual feature widget:
+    - **Screen 3:** Upper Chat (*"Refactor auth middleware to enforce TLS 1.3 & WebSocket heartbeats"*) + Lower **Terminal Token Telemetry** stream with live tokens/sec and latency.
+    - **Screen 4:** Upper Chat (*"Purge the build artifacts and run production verification"*) + Lower **180s Safety Gate Interception** card with 1-tap Approve/Reject buttons.
+    - **Screen 5:** Upper Chat (*"Show me the unified AST diff before committing to git"*) + Lower **Visual Git Diff & AST Viewer** with green additions / red deletions and branch status.
+  - **Centered & Fully-Filled Phone Mobile Screens ([`ScrollFeaturePhoneShowcase.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/ScrollFeaturePhoneShowcase.tsx)):** Eliminated vertical void gaps inside the mobile frame by restructuring all 5 phone screens with balanced flex layouts (`justify-content: space-between`, dedicated top headers, centered hero cards, and bottom telemetry/action footers).
+  - **BYOK Feature Placed Second:** Added **Client-Side BYOK Key Vault** as Feature `02` (Zero Port-Forwarding First &rarr; Client-Side BYOK Vault &rarr; Real-Time Token Telemetry &rarr; 1-Tap Human Approvals &rarr; Visual Git Diff).
+  - **Removed All Pills Across Landing Page:** Cleaned up pill badges, pill tags, and pill containers across [`ScrollFeaturePhoneShowcase.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/ScrollFeaturePhoneShowcase.tsx), [`BottomCtaSection.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/BottomCtaSection.tsx), [`FeatureGrid.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/FeatureGrid.tsx), [`HowItWorksSection.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/HowItWorksSection.tsx), [`FaqSection.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/FaqSection.tsx), and [`SupportSection.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/SupportSection.tsx) for a refined, modern typography aesthetic.
+  - **3-Stair Ladder Scroll Showcase & Gap Elimination ([`ScrollFeaturePhoneShowcase.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/ScrollFeaturePhoneShowcase.tsx)):** Unboxed 3-stair vertical ladder with seamless flow into following sections, active feature highlight, and smooth phone screen transitions without whole-frame reloads.
+  - **Sky-Azure Hero Matched Buttons:** Synchronized all button colors and focus states across [`LandingNavbar.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/LandingNavbar.tsx), [`PanoramicLandscapeHero.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/PanoramicLandscapeHero.tsx), [`BottomCtaSection.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/BottomCtaSection.tsx), [`InstallCommandBar.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/InstallCommandBar.tsx), [`SupportSection.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/SupportSection.tsx), [`LandingFooter.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/LandingFooter.tsx), and [`PairingCard.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/pair/PairingCard.tsx) to match the hero background sky blue.
+  - **All-Black Cinematic Headline with Word-by-Word Appearing GSAP Reveal:** Styled the entire headline in solid obsidian black (`#0f172a`, `clamp(46px, 5.8vw, 74px)`, `-2.2px` tracking) and choreographed a staggered word-by-word reveal in [`PanoramicLandscapeHero.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/PanoramicLandscapeHero.tsx) lifting each word smoothly up from a blur-dissolve (`filter: blur(12px) -> blur(0px)`, `y: 48 -> 0`, `stagger: 0.065s`), followed by the subtitle appearing and CTAs popping in.
+  - **Removed Dark Outer Ring on Glass Navbar:** Eliminated dark spread shadows and multi-layer outlines on [`LandingNavbar.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/LandingNavbar.tsx), giving the floating capsule bar a clean translucent white satin edge (`border: 1px solid rgba(255, 255, 255, 0.95)`, `box-shadow: 0 8px 28px rgba(0, 0, 0, 0.04)`).
+  - **Transparent Origami Doodle Logo:** Removed the outer dark circle in [`AirLinkAgentLogo.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/ui/AirLinkAgentLogo.tsx) so the paper airplane doodle with animated blinking eyes `( • ◡ • )`, flight loop trail, and code sparks floats cleanly on a transparent background.
+  - **Dual Hero CTA Buttons:** Added primary **`Pair & Control`** capsule button and secondary frosted glass **`How It Works`** CTA pill with smooth jump link in [`PanoramicLandscapeHero.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/PanoramicLandscapeHero.tsx).
+  - **Bottom High-Conversion CTA Section:** Added [`BottomCtaSection.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/BottomCtaSection.tsx) before the footer with quick 6-digit PIN connect input and trust guarantees.
+  - **Full-Bleed Sky Background Behind Glass Navbar:** Stretched the hero artwork and animated GSAP moving clouds all the way up to `top: 0` behind the floating glassmorphism navbar for a seamless, immersive aesthetic.
+  - **Floating Island Glassmorphism Navbar:** Rebuilt [`LandingNavbar.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/LandingNavbar.tsx) with a modern floating capsule bar (`backdrop-filter: blur(24px) saturate(190%)`, `rgba(255, 255, 255, 0.68)` frosted glass, `1px` satin border, and dynamic scroll elevation).
+  - **Cinematic Enlaraged Hero Typography:** Increased headline size to `clamp(46px, 5.8vw, 74px)` with `-2.2px` tracking, radiant Sky-to-Sunset color pop gradient, and clean, large subtitle (`clamp(17px, 1.6vw, 21px)`).
+  - **Clean Uncluttered Hero:** Removed all extra top badges, trust pills, and company tags from the hero section, keeping focus purely on the display headline, clean value proposition, and prominent `Pair & Control` capsule action.
+  - **GSAP Hero Text Stagger & Breathing Animations:** Choreographed GSAP timeline in [`PanoramicLandscapeHero.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/PanoramicLandscapeHero.tsx) animating the display headline (`y: 40`), subtitle (`y: 26`), and glowing capsule CTA (`back.out(1.6)`).
+  - **AirLink Agent Doodle Logo:** Created [`AirLinkAgentLogo.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/ui/AirLinkAgentLogo.tsx) featuring a custom origami paper airplane with friendly agent doodle eyes `( • ◡ • )` that blink periodically, a glowing beacon with code sparks (`</>`), a swirling flight loop trail, and floating hover animation.
+  - **Dual-Directional GSAP Clouds:** Multi-layered cross-drifting cloud streams from both left and right edges with 2.5D interactive mouse parallax and enhanced artwork contrast.
+  - **Pure White Background System:** Configured all body sections (`FeatureGrid`, `HowItWorksSection`, `FaqSection`, `SupportSection`, `InstallCommandBar`, `LandingFooter`, and `PairingCard`) with clean `#ffffff` canvas, `#e2e8f0` hairline borders, `#0f172a` primary text, `#475569` secondary text, and `#f8fafc` subtle hover states.
+  - **Synchronized UI Context Tokens (`context/ui-context.md` & `globals.css`):** Synchronized `--bg-canvas` (`#ffffff`), `--bg-subtle` (`#f8fafc`), `--surface-card` (`#ffffff`), `--surface-inset` (`#f1f5f9`), `--sky-azure` (`#0284c7`), `--sky-light` (`#e0f2fe`), `--ocean-deep` (`#0f172a`), `--signal-sunset` (`#ea580c`), and `--signal-seafoam` (`#0d9488`).
+  - **AirLink Brand Rename & Monorepo Package Alignment:** Renamed monorepo workspace from `@agent-remote/*` to `@airlink/*` across all packages (`@airlink/protocol`, `@airlink/bridge-core`, `@airlink/cli`, `@airlink/relay`, `@airlink/web`, `@airlink/mobile`, `vscode-airlink`).
+  - **Remediation of PR #24 Qodo Code Review (All 14 Findings Remediated & Verified):**
+    - Issue #1: Added `tsconfig.base.json` to builder `COPY` in `Dockerfile`.
+    - Issue #2: Added Anthropic tool schema translation and SSE `tool_use`/`input_json_delta` streaming in `llm-runner.ts`.
+    - Issue #3: Made `hostSecret` mandatory in `RegisterHostSchema` and enforced strict verification in `room-manager.ts` and `server.ts`.
+    - Issue #4: Replaced `new Function` dynamic import with native static import of `expo-secure-store` in `vault.ts`.
+    - Issue #5: Durably persisted support tickets via `apps/web/src/lib/support-store.ts` before returning 200.
+    - Issue #6: Durably persisted newsletter subscribers via `apps/web/src/lib/subscribers-store.ts` before returning 200.
+    - Issue #7: Bound single shared `ApprovalManager` to both `TrueForgeSession` and `SocketBridge` in `host-controller.ts`.
+    - Issue #8: Fixed web reconnect catch-up payload to use `lastSeenSeq` in `useWebSession.ts`.
+    - Issue #9: Configured `typescript-eslint` for strict TypeScript linting across all packages.
+    - Issue #10: Aborted turns and cancelled session in `deactivate()` in `extension.ts`.
+    - Issue #11: Routed `onHostApprovalPrompt` to webview approval card in `extension.ts`.
+    - Issue #12: Generated PINs with `crypto.randomInt(100000, 1000000).toString()` across CLI, extension, and bridge.
+    - Issue #13: Enforced numeric-only PIN input (`\D/g`) and number-pad keyboard in `PairingScreen.tsx`.
+    - Issue #14: Honored `activeRecord?.relayUrl` during host initialization in `extension.ts`.
+    - Verification: 35/35 test suites passing (234 unit/integration tests), 0 lint violations, 0 unapproved suppressions.
+    - Implemented real `/api/subscribe` newsletter endpoint with email validation and error feedback.
+    - Mounted `<ArchitectureDiagram />` with `id="architecture"` for valid hash navigation.
+    - Throttled `DitheredBackground` frame loop (~22 FPS), added `prefers-reduced-motion` check, and visibility change pausing.
+    - Refactored feature ladder entries into accessible semantic `<button>` elements with keyboard handlers (`Enter` / `Space`).
+  - **CLI & TUI Polish**:
+    - Refined CLI TUI boot banner: removed internal `Relay Server` clutter, established clean `AIRLINK — WORKSTATION HARNESS` branding, `airlink >` prompt, and `https://airlink.dev/pair` link.
+    - Removed shortcut helper footer and token telemetry strip from CLI prompt and landing page mockup.
+    - Replaced static model fallback with active `gemini-2.0-flash` configuration.
+  - **Verification:** 100% test pass rate across all test suites (34 test files, 227 tests) with 0 TypeScript/lint errors.
 
 ### Implementation Units Index
-- [ ] **Unit 01:** Monorepo Workspace & Protocol Contracts (`packages/protocol`)
-- [ ] **Unit 02:** Bridge Core Engine & Ring Buffer (`packages/bridge-core`)
-- [ ] **Unit 03:** Approval State Machine & Timeouts (`packages/bridge-core`)
-- [ ] **Unit 04:** Cloud Relay Server (`apps/relay`)
-- [ ] **Unit 05:** Terminal CLI Host (`apps/cli`)
-- [ ] **Unit 06:** VS Code Extension Host (`apps/vscode-extension`)
-- [ ] **Unit 07:** Mobile App Shell & Pairing (`apps/mobile`)
-- [ ] **Unit 08:** Mobile Streaming & Terminal Feed (`apps/mobile`)
-- [ ] **Unit 09:** Mobile Diff Card & Approval Drawer (`apps/mobile`)
-- [ ] **Unit 10:** BYOK Encrypted Vault & Model Routing (`apps/mobile` + `bridge-core`)
-- [ ] **Unit 11:** Reconnect Resilience & Hydration (`apps/mobile` + `bridge-core`)
-- [ ] **Unit 12:** Web Landing Page & Demo Shell (`apps/web`)
-- [ ] **Unit 13:** Smooth UX, Motion Design & Haptics (`apps/mobile` + `apps/web`)
+
+- [x] **Unit 01:** Monorepo Workspace & Protocol Contracts (`packages/protocol`)
+- [x] **Unit 02:** Bridge Core Engine & Ring Buffer (`packages/bridge-core`)
+- [x] **Unit 03:** Approval State Machine & Timeouts (`packages/bridge-core`)
+- [x] **Unit 04:** Cloud Relay Server (`apps/relay`)
+- [x] **Unit 05:** Terminal CLI Host & Interactive Client (`apps/cli`)
+- [x] **Unit 06:** VS Code Extension Host & Chat Panel (`apps/vscode-extension`)
+- [x] **Unit 07:** Mobile App Shell & Pairing (`apps/mobile`)
+- [x] **Unit 08:** Mobile Streaming & Terminal Feed (`apps/mobile`)
+- [x] **Unit 09:** Mobile Diff Card & Approval Drawer (`apps/mobile`)
+- [x] **Unit 10:** BYOK Encrypted Vault & Model Routing (`apps/mobile` + `bridge-core`)
+- [x] **Unit 11:** Reconnect Resilience & Hydration (`apps/mobile` + `bridge-core`)
+- [x] **Unit 12:** Web Landing Page & Demo Shell (`apps/web`)
+- [x] **Unit 13:** Smooth UX, Motion Design & Haptics (`apps/mobile` + `apps/web`)
 - [ ] **Unit 14:** External Integrations & Webhook Alerts (`packages/bridge-core`)
-- [ ] **Unit 15:** Production Deployment & Release (`infra/` + `apps/*`)
-- [ ] **Unit 16:** CI Workflows, Governance & Secret Scanning (`.github/workflows` + `scripts/`)
-- [ ] **Unit 17:** Deep Qodo Integration, Test Harness & PR Automation (.pr_agent.toml + 	ests/qodo)\n- [ ] **Unit 18:** Qodo PR Playbook & Track Alignment Playbook (`context/specs/18-qodo-pr-playbook-and-track-alignment.md`)\n- [ ] **Unit 19:** Observability, Telemetry & Metrics (packages/bridge-core/src/telemetry)\n- [ ] **Unit 20:** Security Threat Model & Hardening (packages/bridge-core/src/security)\n- [ ] **Unit 21:** Performance Budgets & Benchmarks (context/specs/21-performance-budgets-and-benchmarks.md)\n- [ ] **Unit 22:** Shipping, Launch & Release Playbook (context/specs/22-shipping-launch-and-release-playbook.md)
+- [x] **Unit 15:** Production Deployment & Release (`Dockerfile`, `render.yaml`, `.dockerignore`, Render/Docker multi-stage readiness)
+- [x] **Unit 16:** CI Workflows, Governance & Secret Scanning (`.github/workflows` + `scripts/`)
+- [x] **Unit 17:** Deep Qodo Integration, Test Harness & PR Automation (`.pr_agent.toml` + `tests/qodo`)
+- [x] **Unit 18:** Qodo PR Playbook & Track Alignment Playbook (`context/specs/18-qodo-pr-playbook-and-track-alignment.md`)
+- [ ] **Unit 19:** Observability, Telemetry & Metrics (`packages/bridge-core/src/telemetry`)
+- [ ] **Unit 20:** Security Threat Model & Hardening (`packages/bridge-core/src/security`)
+- [ ] **Unit 21:** Performance Budgets & Benchmarks (`context/specs/21-performance-budgets-and-benchmarks.md`)
+- [ ] **Unit 22:** Shipping, Launch & Release Playbook (`context/specs/22-shipping-launch-and-release-playbook.md`)

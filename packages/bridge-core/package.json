@@ -1,0 +1,30 @@
+{
+  "name": "@airlink/bridge-core",
+  "version": "0.1.0",
+  "description": "Core bridge engine, in-memory ring buffer, TrueForge connector, and 5-layer prompt builder",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@airlink/protocol": "workspace:*",
+    "@truefoundry/trueforge-sdk": "^0.1.3",
+    "socket.io-client": "^4.7.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}

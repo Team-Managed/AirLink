@@ -4,11 +4,12 @@ Also read `01-monorepo-and-protocol-contracts.md` through `08-mobile-streaming-a
 Implement the end-to-end reconnection recovery protocol and session hydration state machine across mobile, relay, and bridge core.
 
 ## Implementation
+
 1. In `apps/mobile/src/services/socket.ts`:
    - Track `lastReceivedSeqId: number` updated on every incoming `agent:stream` event.
    - On Socket.io `reconnect` or network regain:
      - Automatically emit `client:sync` with the current session ID and `lastSeenSeq`.
-     - Display an inline amber status banner: *"Catching up..."*.
+     - Display an inline amber status banner: _"Catching up..."_.
 2. In `packages/bridge-core/src/socket-bridge.ts`:
    - Handle incoming `client:sync` event from the relay:
      - Query `ringBuffer.getEventsSince(data.lastSeenSeq)`.
@@ -22,17 +23,20 @@ Implement the end-to-end reconnection recovery protocol and session hydration st
    - Assert that the returned batch contains exactly events 5, 6, 7, 8, 9, and 10 in sequential order.
 
 ## Scope Limits
+
 - Do not drop events if the client disconnects mid-stream.
 - Do not duplicate events on the mobile feed upon batch hydration.
 - Do not restart active agent turns when a client reconnects.
 - Do not require database queries to perform stream replay (in-memory ring buffer owns replay).
 
 ## Notes
+
 - Solves the mobile "Elevator Problem" without requiring persistent cloud databases.
 - Ring buffer handles up to 500 queued events during extended network dropouts.
 - Depends on: 00, 01, 02, 04, 07, 08. Required before: 12.
 
 ## Check When Done
+
 - Simulating a network drop during an active turn recovers all missed tokens upon reconnect.
 - Integration tests pass with `pnpm --filter @agent-remote/bridge-core test`.
 - Mobile UI seamlessly renders replayed stream batches with zero duplicate keys.
