@@ -134,7 +134,7 @@
     - Refined CLI TUI boot banner: removed internal `Relay Server` clutter, established clean `AIRLINK — WORKSTATION HARNESS` branding, `airlink >` prompt, and `https://airlink.dev/pair` link.
     - Removed shortcut helper footer and token telemetry strip from CLI prompt and landing page mockup.
     - Replaced static model fallback with active `gemini-2.0-flash` configuration.
-  - **Verification:** 100% test pass rate across all test suites (34 test files, 227 tests) with 0 TypeScript/lint errors.
+  - **Verification:** 100% test pass rate across all test suites (35 test files, 234 tests) with 0 TypeScript/lint errors and live Render cloud relay deployment (`https://airlink-relay.onrender.com/health`).
 
 ### Implementation Units Index
 
