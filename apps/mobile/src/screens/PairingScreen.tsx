@@ -22,7 +22,7 @@ export const PairingScreen: React.FC<PairingScreenProps> = ({
   onConnect,
   isConnecting = false,
   errorMessage = null,
-  defaultRelayUrl = "http://localhost:3001",
+  defaultRelayUrl = (typeof process !== "undefined" && process.env.EXPO_PUBLIC_RELAY_URL) || "https://airlink-relay.onrender.com",
   onOpenSettings,
 }) => {
   const [pin, setPin] = useState<string>("");

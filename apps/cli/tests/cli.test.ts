@@ -5,7 +5,7 @@ describe("CLI Argument Parser Suite", () => {
   it("parses default options and auto-generates a valid 6-digit numeric PIN", () => {
     const options = parseCliArgs([]);
 
-    expect(options.relayUrl).toBe("http://localhost:3001");
+    expect(options.relayUrl).toBe(process.env["RELAY_URL"] || "http://localhost:3001");
     expect(options.pin).toMatch(/^\d{6}$/);
     expect(options.workspacePath).toBe(process.cwd());
     expect(typeof options.model).toBe("string");

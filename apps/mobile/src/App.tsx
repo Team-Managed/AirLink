@@ -51,7 +51,7 @@ export function App(): React.JSX.Element {
       if (typeof localStorage !== "undefined") {
         try {
           const savedPin = localStorage.getItem(STORAGE_PIN_KEY);
-          const savedRelay = localStorage.getItem(STORAGE_RELAY_KEY) || "http://localhost:3001";
+          const savedRelay = localStorage.getItem(STORAGE_RELAY_KEY) || (typeof process !== "undefined" && process.env.EXPO_PUBLIC_RELAY_URL) || "https://airlink-relay.onrender.com";
           if (savedPin && savedPin.replace(/\D/g, "").length === 6) {
             handleConnect(savedPin.replace(/\D/g, ""), savedRelay);
           }
