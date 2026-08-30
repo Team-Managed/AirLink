@@ -1,12 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import * as path from "node:path";
-import {
-  SkillRegistry,
-  parseSkillMarkdown,
-  parseYamlFrontmatter,
-  BUILTIN_SKILLS,
-  PromptBuilder,
-} from "../src/index.js";
+import { describe, it, expect } from "vitest";
+import { SkillRegistry, parseSkillMarkdown, PromptBuilder } from "../src/index.js";
 
 describe("Skill & Plugin Architecture Suite", () => {
   it("parses YAML frontmatter and markdown body correctly", () => {

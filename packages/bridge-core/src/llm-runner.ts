@@ -343,7 +343,7 @@ export class LLMRunner {
   }
 
   /**
-   * Anthropic Messages API streaming.
+   * Anthropic Messages API streaming with tool calling and SSE event accumulation.
    */
   private async *_streamAnthropic(
     params: LLMStreamParams,
@@ -381,6 +381,28 @@ export class LLMRunner {
       payload["system"] = systemMessage;
     }
 
+    if (params.tools && Array.isArray(params.tools) && params.tools.length > 0) {
+      const anthropicTools = params.tools.map((t: unknown) => {
+        if (t && typeof t === "object") {
+          const item = t as Record<string, unknown>;
+          const fn = item["function"] as Record<string, unknown> | undefined;
+          if (fn) {
+            return {
+              name: String(fn["name"] || ""),
+              description: typeof fn["description"] === "string" ? fn["description"] : undefined,
+              input_schema: (fn["parameters"] as Record<string, unknown>) || { type: "object", properties: {} },
+            };
+          }
+          return item;
+        }
+        return t;
+      });
+      payload["tools"] = anthropicTools;
+      if (params.toolChoice) {
+        payload["tool_choice"] = params.toolChoice;
+      }
+    }
+
     const fetchOptions: RequestInit = {
       method: "POST",
       headers,
@@ -403,6 +425,8 @@ export class LLMRunner {
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
+    const accumulatedToolCalls: Map<number, { id: string; name: string; argsText: string }> =
+      new Map();
 
     while (true) {
       if (signal?.aborted) {
@@ -423,17 +447,80 @@ export class LLMRunner {
         if (!jsonStr || jsonStr === "[DONE]") continue;
 
         try {
-          const parsed = JSON.parse(jsonStr);
-          if (parsed.type === "content_block_delta") {
-            if (parsed.delta?.type === "text_delta" && parsed.delta.text) {
+          const parsed = JSON.parse(jsonStr) as {
+            type?: string;
+            index?: number;
+            content_block?: {
+              type?: string;
+              id?: string;
+              name?: string;
+            };
+            delta?: {
+              type?: string;
+              text?: string;
+              thinking?: string;
+              partial_json?: string;
+            };
+          };
+
+          // 1. Tool use start
+          if (
+            parsed.type === "content_block_start" &&
+            parsed.content_block?.type === "tool_use"
+          ) {
+            const idx = parsed.index ?? 0;
+            accumulatedToolCalls.set(idx, {
+              id: parsed.content_block.id || `call_${idx}_${Date.now()}`,
+              name: parsed.content_block.name || "",
+              argsText: "",
+            });
+          }
+
+          // 2. Deltas
+          if (parsed.type === "content_block_delta" && parsed.delta) {
+            if (parsed.delta.type === "text_delta" && parsed.delta.text) {
               yield { type: "token", text: parsed.delta.text };
-            } else if (parsed.delta?.type === "thinking_delta" && parsed.delta.thinking) {
+            } else if (parsed.delta.type === "thinking_delta" && parsed.delta.thinking) {
               yield { type: "thought", text: parsed.delta.thinking };
+            } else if (
+              parsed.delta.type === "input_json_delta" &&
+              typeof parsed.delta.partial_json === "string"
+            ) {
+              const idx = parsed.index ?? 0;
+              const existing = accumulatedToolCalls.get(idx) || {
+                id: `call_${idx}_${Date.now()}`,
+                name: "",
+                argsText: "",
+              };
+              existing.argsText += parsed.delta.partial_json;
+              accumulatedToolCalls.set(idx, existing);
             }
           }
         } catch {
           // Ignore partial stream chunks
         }
+      }
+    }
+
+    // 3. Yield accumulated structured tool calls when stream concludes
+    if (accumulatedToolCalls.size > 0) {
+      for (const [, tc] of accumulatedToolCalls) {
+        if (!tc.name) continue;
+        let parsedArgs: Record<string, unknown> = {};
+        try {
+          parsedArgs = JSON.parse(tc.argsText || "{}");
+        } catch {
+          parsedArgs = { raw: tc.argsText };
+        }
+        yield {
+          type: "tool_call",
+          text: `Executing tool ${tc.name}`,
+          toolCall: {
+            id: tc.id,
+            name: tc.name,
+            args: parsedArgs,
+          },
+        };
       }
     }
   }

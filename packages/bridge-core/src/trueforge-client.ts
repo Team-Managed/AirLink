@@ -393,7 +393,7 @@ export class TrueForgeSession {
 
           if (toolMatch && toolMatch[1]) {
             const toolName = toolMatch[1].trim();
-            let rawArgs = toolMatch[2]?.trim() || "{}";
+            const rawArgs = toolMatch[2]?.trim() || "{}";
             let parsedArgs: Record<string, unknown> = {};
 
             try {

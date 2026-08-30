@@ -1,3 +1,4 @@
+import * as crypto from "node:crypto";
 import { io, Socket } from "socket.io-client";
 import {
   SOCKET_EVENTS,
@@ -50,7 +51,7 @@ export class SocketBridge {
   private readonly _pin: string;
   private readonly _hostName: string;
   private readonly _workspacePath: string;
-  private readonly _hostSecret?: string | undefined;
+  private readonly _hostSecret: string;
   private readonly _approvalManager: ApprovalManager;
   private readonly _reconnectionAttempts: number;
   private readonly _reconnectionDelay: number;
@@ -70,7 +71,7 @@ export class SocketBridge {
     this._pin = options.pin.replace(/\D/g, "");
     this._hostName = options.hostName;
     this._workspacePath = options.workspacePath;
-    this._hostSecret = options.hostSecret;
+    this._hostSecret = options.hostSecret || crypto.randomUUID();
     this._approvalManager = options.approvalManager ?? new ApprovalManager();
     this._reconnectionAttempts = options.reconnectionAttempts ?? Infinity;
     this._reconnectionDelay = options.reconnectionDelay ?? 1000;

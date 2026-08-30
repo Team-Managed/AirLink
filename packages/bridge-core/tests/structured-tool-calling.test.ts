@@ -71,4 +71,55 @@ describe("Structured Tool Calling Suite", () => {
 
     expect(stream).toBeDefined();
   });
+
+  it("LLMRunner parses Anthropic SSE tool_use and input_json_delta stream events", async () => {
+    const sseChunks = [
+      'data: {"type":"message_start","message":{"id":"msg_123"}}\n\n',
+      'data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01","name":"write_file","input":{}}}\n\n',
+      'data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"path\\": \\"index.ts\\""}}\n\n',
+      'data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":", \\"content\\": \\"console.log(1)\\"}"}}\n\n',
+      'data: {"type":"content_block_stop","index":0}\n\n',
+      'data: {"type":"message_stop"}\n\n',
+    ];
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        for (const chunk of sseChunks) {
+          controller.enqueue(encoder.encode(chunk));
+        }
+        controller.close();
+      },
+    });
+
+    const runner = new LLMRunner({
+      provider: "anthropic",
+      model: "claude-3-5-sonnet",
+      apiKey: "sk-ant-test",
+    });
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () =>
+      new Response(stream, {
+        status: 200,
+        headers: { "Content-Type": "text/event-stream" },
+      });
+
+    try {
+      const events: Array<{ type: string; toolCall?: { id?: string; name?: string; args?: Record<string, unknown> } }> = [];
+      for await (const chunk of runner.streamChat({
+        messages: [{ role: "user", content: "Write index.ts" }],
+        tools: WORKSPACE_TOOLS_SCHEMA,
+      })) {
+        events.push(chunk as typeof events[number]);
+      }
+
+      const toolCall = events.find((e) => e.type === "tool_call");
+      expect(toolCall).toBeDefined();
+      expect(toolCall?.toolCall?.name).toBe("write_file");
+      expect(toolCall?.toolCall?.args).toEqual({ path: "index.ts", content: "console.log(1)" });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });

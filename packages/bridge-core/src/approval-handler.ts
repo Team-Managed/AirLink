@@ -1,3 +1,4 @@
+import * as crypto from "node:crypto";
 import {
   ApprovalRequest,
   ApprovalResponse,
@@ -95,7 +96,7 @@ export class ApprovalManager {
    */
   requestApproval(params: RequestApprovalParams): Promise<boolean> {
     const approvalId =
-      params.approvalId || `appr_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      params.approvalId || `appr_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 
     if (this._activeApprovals.has(approvalId)) {
       throw new Error(`Duplicate approvalId "${approvalId}" is already active and pending.`);

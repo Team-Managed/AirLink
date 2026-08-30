@@ -8,6 +8,7 @@ import type {
 } from "@airlink/protocol";
 import { TrueForgeClient, type TrueForgeSession } from "./trueforge-client.js";
 import { SocketBridge } from "./socket-bridge.js";
+import { ApprovalManager } from "./approval-handler.js";
 import { saveActiveSession, loadActiveSession, clearActiveSession } from "./session-persistence.js";
 import {
   getGitDiff,
@@ -36,6 +37,10 @@ export interface HostSessionInfo {
   workspacePath: string;
 }
 
+export type StreamEventListener = (chunk: AgentStream) => void;
+export type PeerConnectedListener = (session: SessionConnected) => void;
+export type ApprovalPromptListener = (request: ApprovalRequest) => Promise<boolean>;
+
 export function formatPin(pin: string): string {
   const cleaned = pin.replace(/\D/g, "");
   if (cleaned.length === 6) {
@@ -45,7 +50,7 @@ export function formatPin(pin: string): string {
 }
 
 export function generatePin(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 /**
@@ -157,10 +162,13 @@ export class AgentHostController {
       this._bridge = null;
     }
 
+    const approvalManager = new ApprovalManager();
+
     this._client = new TrueForgeClient({ defaultModel: this._model });
     this._session = this._client.createSession({
       sessionId: this._pin,
       workspacePath: this._workspacePath,
+      approvalManager,
     });
 
     const existingSession = loadActiveSession(this._workspacePath);
@@ -175,6 +183,7 @@ export class AgentHostController {
       hostName: this._hostName,
       workspacePath: this._workspacePath,
       hostSecret,
+      approvalManager,
       autoConnect: this._autoConnect,
     });
 
