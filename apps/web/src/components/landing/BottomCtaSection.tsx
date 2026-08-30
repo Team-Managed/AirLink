@@ -1,22 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React from "react";
 
 export function BottomCtaSection() {
-  const [pin, setPin] = useState("");
-  const router = useRouter();
-
-  const handlePair = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanPin = pin.replace(/\D/g, "");
-    if (cleanPin.length === 6) {
-      router.push(`/pair?pin=${cleanPin}`);
-    } else {
-      router.push("/pair");
-    }
-  };
-
   return (
     <section style={styles.ctaSection}>
       <div style={styles.cardContainer}>
@@ -37,25 +23,20 @@ export function BottomCtaSection() {
             Leave your workstation with full peace of mind.
           </p>
 
-          <form onSubmit={handlePair} style={styles.ctaForm}>
-            <div style={styles.inputWrapper}>
-              <span style={styles.pinLabel}>PIN</span>
-              <input
-                type="text"
-                maxLength={6}
-                placeholder="Enter 6-digit PIN..."
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                style={styles.pinInput}
-              />
-              <button type="submit" style={styles.pairBtn}>
-                <span>Launch Remote</span>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          </form>
+          {/* Primary Download App Button */}
+          <div style={styles.downloadWrapper}>
+            <a
+              href="https://expo.dev/accounts/tyraaa19/projects/airlink-monorepo/builds/6f4f8f2a-a760-469c-93e0-4f32bedf3e61"
+              target="_blank"
+              rel="noreferrer"
+              style={styles.pairBtn}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+              </svg>
+              <span>Download Android App (.APK)</span>
+            </a>
+          </div>
 
           <div style={styles.trustRow}>
             <span>100% Local-First</span>
@@ -169,21 +150,27 @@ const styles: Record<string, React.CSSProperties> = {
     outline: "none",
     minWidth: 0,
   },
+  downloadWrapper: {
+    display: "flex",
+    justifyContent: "center",
+    marginTop: 10,
+    marginBottom: 4,
+  },
   pairBtn: {
     display: "inline-flex",
     alignItems: "center",
-    gap: 6,
+    gap: 10,
     background: "linear-gradient(135deg, #5b9bd5 0%, #3e82c5 100%)",
     color: "#ffffff",
-    border: "1px solid rgba(255, 255, 255, 0.35)",
+    border: "1px solid rgba(255, 255, 255, 0.4)",
     borderRadius: 9999,
-    padding: "11px 22px",
-    fontSize: 13.5,
-    fontWeight: 700,
+    padding: "16px 36px",
+    fontSize: 15.5,
+    fontWeight: 800,
+    textDecoration: "none",
     cursor: "pointer",
-    boxShadow: "0 4px 14px rgba(62, 130, 197, 0.35)",
+    boxShadow: "0 10px 28px rgba(62, 130, 197, 0.45)",
     transition: "all 0.15s ease",
-    flexShrink: 0,
   },
   trustRow: {
     display: "flex",

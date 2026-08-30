@@ -1,15 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { GsapMovingClouds } from "./GsapMovingClouds";
 
-export function PanoramicLandscapeHero() {
-  const [pinInput, setPinInput] = useState("");
-  const [isInputOpen, setIsInputOpen] = useState(false);
-  const router = useRouter();
+export const APK_DOWNLOAD_URL =
+  "https://expo.dev/accounts/tyraaa19/projects/airlink-monorepo/builds/6f4f8f2a-a760-469c-93e0-4f32bedf3e61";
 
+export function PanoramicLandscapeHero() {
   const heroContainerRef = useRef<HTMLElement>(null);
   const headlineRef = useRef<HTMLHeadingElement>(null);
   const subtitleRef = useRef<HTMLParagraphElement>(null);
@@ -86,16 +84,6 @@ export function PanoramicLandscapeHero() {
     return () => ctx.revert();
   }, []);
 
-  const handlePairSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanPin = pinInput.replace(/\D/g, "");
-    if (cleanPin.length === 6) {
-      router.push(`/pair?pin=${cleanPin}`);
-    } else {
-      router.push("/pair");
-    }
-  };
-
   return (
     <section ref={heroContainerRef} style={styles.heroSection}>
       {/* Full-bleed Landscape Artwork Background */}
@@ -142,125 +130,31 @@ export function PanoramicLandscapeHero() {
 
         {/* Hero CTA Button Row */}
         <div ref={ctaRef} style={styles.ctaWrapper}>
-          {!isInputOpen ? (
-            <div style={styles.dualCtaRow}>
-              {/* Primary Action Capsule Pill */}
-              <div style={styles.capsuleGlowOuter}>
-                <button
-                  type="button"
-                  onClick={() => setIsInputOpen(true)}
-                  style={styles.capsuleBtn}
-                >
-                  <span>Pair &amp; Control</span>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Secondary Frosted Glass CTA */}
-              <a href="#how-it-works" style={styles.secondaryCtaBtn}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                  <circle cx="12" cy="12" r="10" />
-                  <polygon points="10 8 16 12 10 16 10 8" />
+          <div style={styles.dualCtaRow}>
+            {/* Primary Action Capsule Pill - Download Android APK */}
+            <div style={styles.capsuleGlowOuter}>
+              <a
+                href={APK_DOWNLOAD_URL}
+                target="_blank"
+                rel="noreferrer"
+                style={styles.capsuleBtn}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
                 </svg>
-                <span>How It Works</span>
+                <span>Download Android App (.APK)</span>
               </a>
             </div>
-          ) : (
-            <div style={styles.pinModalCard}>
-              <div style={styles.pinModalHeader}>
-                <div style={styles.pinModalHeaderLeft}>
-                  <span style={{ fontSize: 13 }}>🚀</span>
-                  <span style={styles.pinModalTitle}>AirLink PIN Pairing</span>
-                </div>
-                <div style={styles.pinModalHeaderRight}>
-                  <span style={styles.pinModalTls}>WebSocket E2E</span>
-                  <button
-                    type="button"
-                    onClick={() => setIsInputOpen(false)}
-                    style={styles.pinCloseBtn}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
 
-              <div style={styles.pinCenterCardExact}>
-                <div style={styles.pinLockCircleExact}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                </div>
-
-                <span style={styles.pinMainTitleExact}>Workstation Session PIN</span>
-                <span style={styles.pinSubtitleExact}>Pairing with MacBook-Pro-M3</span>
-
-                {/* 6 Interactive PIN Digit Boxes with Hidden Auto-Focused Input */}
-                <form onSubmit={handlePairSubmit} style={{ width: "100%", position: "relative" }}>
-                  <div style={styles.pinBoxesRowExact}>
-                    {[0, 1, 2, 3, 4, 5].map((i) => (
-                      <div
-                        key={i}
-                        style={{
-                          ...styles.pinBoxExact,
-                          borderColor: pinInput.length === i ? "#38bdf8" : "rgba(59, 130, 246, 0.55)",
-                          boxShadow: pinInput.length === i ? "0 0 12px rgba(56, 189, 248, 0.4)" : "0 4px 14px rgba(0, 0, 0, 0.5)",
-                        }}
-                      >
-                        {pinInput[i] || ""}
-                      </div>
-                    ))}
-                  </div>
-
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    autoFocus
-                    value={pinInput}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, "").slice(0, 6);
-                      setPinInput(val);
-                      if (val.length === 6) {
-                        router.push(`/pair?pin=${val}`);
-                      }
-                    }}
-                    style={styles.invisiblePinInput}
-                  />
-
-                  {pinInput.length === 6 && (
-                    <button type="submit" style={styles.connectNowBtn}>
-                      Connect to Session →
-                    </button>
-                  )}
-                </form>
-
-                <span style={styles.pinExpiryTextExact}>
-                  🔒 Ephemeral session • Auto-expires
-                </span>
-              </div>
-
-              <div style={styles.screenBottomBlockExact}>
-                <div style={styles.hostInfoCardExact}>
-                  <div style={styles.hostInfoRowExact}>
-                    <span style={styles.hostInfoLabelExact}>WebSocket Relay:</span>
-                    <span style={styles.hostInfoValueExact}>sub-50ms (Direct)</span>
-                  </div>
-                  <div style={styles.hostInfoRowExact}>
-                    <span style={styles.hostInfoLabelExact}>Security:</span>
-                    <span style={styles.hostInfoValueExact}>E2E Encrypted</span>
-                  </div>
-                </div>
-
-                <div style={styles.tunnelStatusRowExact}>
-                  <span style={styles.tunnelDotExact} />
-                  <span style={styles.tunnelTextExact}>WebSocket Relay Active</span>
-                </div>
-              </div>
-            </div>
-          )}
+            {/* Secondary Frosted Glass CTA */}
+            <a href="#how-it-works" style={styles.secondaryCtaBtn}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <circle cx="12" cy="12" r="10" />
+                <polygon points="10 8 16 12 10 16 10 8" />
+              </svg>
+              <span>How It Works</span>
+            </a>
+          </div>
         </div>
       </div>
     </section>
@@ -391,6 +285,37 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: "none",
     border: "1px solid rgba(15, 23, 42, 0.12)",
     boxShadow: "0 4px 16px rgba(15, 23, 42, 0.06)",
+    transition: "all 0.15s ease",
+  },
+  apkCtaBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 9,
+    backgroundColor: "rgba(15, 23, 42, 0.88)",
+    backdropFilter: "blur(14px)",
+    WebkitBackdropFilter: "blur(14px)",
+    color: "#ffffff",
+    padding: "15px 26px",
+    borderRadius: 9999,
+    fontSize: 14.5,
+    fontWeight: 700,
+    textDecoration: "none",
+    border: "1px solid rgba(255, 255, 255, 0.22)",
+    boxShadow: "0 6px 20px rgba(15, 23, 42, 0.2)",
+    transition: "all 0.15s ease",
+  },
+  pinModalApkLink: {
+    display: "block",
+    textAlign: "center",
+    fontSize: 11.5,
+    fontWeight: 700,
+    color: "#38bdf8",
+    textDecoration: "none",
+    padding: "7px 10px",
+    marginTop: 6,
+    borderRadius: 8,
+    backgroundColor: "rgba(56, 189, 248, 0.08)",
+    border: "1px solid rgba(56, 189, 248, 0.25)",
     transition: "all 0.15s ease",
   },
   pinModalCard: {
