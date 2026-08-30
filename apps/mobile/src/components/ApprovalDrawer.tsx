@@ -166,8 +166,29 @@ export const ApprovalDrawer: React.FC<ApprovalDrawerProps> = ({
               <Text style={styles.safetyIcon}>⚠️</Text>
               <Text style={styles.safetyHeaderTitle}>Safety Gate Interception</Text>
             </View>
-            <View style={styles.countdownBadge}>
-              <Text style={styles.countdownBadgeText}>{secondsRemaining}s Gate</Text>
+            <View style={styles.headerBadgesRow}>
+              <View
+                style={[
+                  styles.riskBadge,
+                  riskLevel === "high" && styles.riskBadgeHigh,
+                  riskLevel === "medium" && styles.riskBadgeMedium,
+                  riskLevel === "low" && styles.riskBadgeLow,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.riskBadgeText,
+                    riskLevel === "high" && styles.riskTextHigh,
+                    riskLevel === "medium" && styles.riskTextMedium,
+                    riskLevel === "low" && styles.riskTextLow,
+                  ]}
+                >
+                  {riskLevel.toUpperCase()} RISK
+                </Text>
+              </View>
+              <View style={styles.countdownBadge}>
+                <Text style={styles.countdownBadgeText}>{secondsRemaining}s</Text>
+              </View>
             </View>
           </View>
 
@@ -291,19 +312,56 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     color: "#ffffff",
   },
-  countdownBadge: {
+  headerBadgesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  riskBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  riskBadgeHigh: {
+    backgroundColor: "rgba(239, 68, 68, 0.25)",
+    borderColor: "rgba(239, 68, 68, 0.5)",
+  },
+  riskBadgeMedium: {
     backgroundColor: "rgba(245, 158, 11, 0.25)",
     borderColor: "rgba(245, 158, 11, 0.5)",
+  },
+  riskBadgeLow: {
+    backgroundColor: "rgba(34, 197, 94, 0.25)",
+    borderColor: "rgba(34, 197, 94, 0.5)",
+  },
+  riskBadgeText: {
+    fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
+    fontSize: 9.5,
+    fontWeight: "800",
+  },
+  riskTextHigh: {
+    color: "#f87171",
+  },
+  riskTextMedium: {
+    color: "#fbbf24",
+  },
+  riskTextLow: {
+    color: "#4ade80",
+  },
+  countdownBadge: {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderColor: "rgba(255, 255, 255, 0.3)",
     borderWidth: 1,
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 6,
   },
   countdownBadgeText: {
-    color: "#fbbf24",
+    color: "#ffffff",
     fontFamily: THEME_TYPOGRAPHY.fontFamily.mono,
-    fontSize: 10.5,
-    fontWeight: THEME_TYPOGRAPHY.fontWeight.bold,
+    fontSize: 10,
+    fontWeight: "800",
   },
   toolRow: {
     flexDirection: "row",

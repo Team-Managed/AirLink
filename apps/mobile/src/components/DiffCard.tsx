@@ -7,6 +7,8 @@ export interface DiffCardProps {
   diffText: string;
   filePath?: string;
   onOpenPR?: () => void;
+  branchName?: string;
+  statusText?: string;
 }
 
 export function parseUnifiedDiff(
@@ -120,8 +122,11 @@ export const DiffCard: React.FC<DiffCardProps> = React.memo(({
   diffText,
   filePath = "workspace/change.diff",
   onOpenPR,
+  branchName,
+  statusText,
 }) => {
   const parsed = useMemo(() => parseUnifiedDiff(diffText, filePath), [diffText, filePath]);
+  const showFooter = Boolean(onOpenPR || branchName || statusText);
 
   return (
     <View style={styles.cardContainer}>
@@ -192,16 +197,22 @@ export const DiffCard: React.FC<DiffCardProps> = React.memo(({
         </View>
       </ScrollView>
 
-      <View style={styles.diffFooterRow}>
-        <Text style={styles.diffBranchName}>feat/branch-changes</Text>
-        {onOpenPR ? (
-          <TouchableOpacity style={styles.openPRButton} onPress={onOpenPR} activeOpacity={0.8}>
-            <Text style={styles.openPRButtonText}>Create Pull Request →</Text>
-          </TouchableOpacity>
-        ) : (
-          <Text style={styles.diffReadyText}>✓ Ready to commit</Text>
-        )}
-      </View>
+      {showFooter && (
+        <View style={styles.diffFooterRow}>
+          {branchName ? (
+            <Text style={styles.diffBranchName}>{branchName}</Text>
+          ) : (
+            <View />
+          )}
+          {onOpenPR ? (
+            <TouchableOpacity style={styles.openPRButton} onPress={onOpenPR} activeOpacity={0.8}>
+              <Text style={styles.openPRButtonText}>Create Pull Request →</Text>
+            </TouchableOpacity>
+          ) : statusText ? (
+            <Text style={styles.diffReadyText}>{statusText}</Text>
+          ) : null}
+        </View>
+      )}
     </View>
   );
 });
