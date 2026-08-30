@@ -178,10 +178,10 @@ export function useWebSession(options: UseWebSessionOptions = {}): UseWebSession
           setReconnectToast("Paired with Workstation Bridge!");
           setTimeout(() => setReconnectToast(null), 2500);
 
-          // Catch up missed stream events since lastSeqId
+          // Catch up missed stream events since lastSeenSeq
           socket.emit("client:sync", {
             sessionId: parsed.data.sessionId,
-            lastSeqId: lastSeqIdRef.current,
+            lastSeenSeq: lastSeqIdRef.current,
           });
         }
       });

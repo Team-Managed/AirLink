@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { saveSubscriber } from "../../../lib/subscribers-store";
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +17,10 @@ export async function POST(request: Request) {
       );
     }
 
-    console.info(`[AirLink Newsletter Subscription] Added: ${email}`);
+    // Durably store newsletter subscription
+    await saveSubscriber(email);
+
+    console.info(`[AirLink Newsletter Subscription] Added & Stored: ${email}`);
 
     return NextResponse.json(
       {
@@ -25,11 +29,13 @@ export async function POST(request: Request) {
       },
       { status: 200 }
     );
-  } catch {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    console.error("[Subscribe API] Failed to process newsletter subscription:", error);
     return NextResponse.json(
       {
         ok: false,
-        error: "Failed to process newsletter subscription. Please try again.",
+        error: `Failed to process newsletter subscription: ${errorMessage}`,
       },
       { status: 500 }
     );

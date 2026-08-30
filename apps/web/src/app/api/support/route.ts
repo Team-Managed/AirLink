@@ -1,4 +1,6 @@
+import * as crypto from "node:crypto";
 import { NextResponse } from "next/server";
+import { saveSupportTicket } from "../../../lib/support-store";
 
 export async function POST(request: Request) {
   try {
@@ -23,25 +25,39 @@ export async function POST(request: Request) {
       );
     }
 
-    const ticketId = `AIR-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000).toString().padStart(3, "0")}`;
+    const randomSuffix = crypto.randomInt(100, 1000).toString();
+    const ticketId = `AIR-${Date.now().toString(36).toUpperCase()}-${randomSuffix}`;
     const receivedAt = new Date().toISOString();
 
-    console.info(`[AirLink Support Ticket Logged] ID: ${ticketId} | From: ${name} <${email}> | Topic: ${subject}`);
+    // Durably store support ticket
+    await saveSupportTicket({
+      ticketId,
+      name,
+      email,
+      subject,
+      message,
+      receivedAt,
+      status: "open",
+    });
+
+    console.info(`[AirLink Support Ticket Logged & Stored] ID: ${ticketId} | From: ${name} <${email}> | Topic: ${subject}`);
 
     return NextResponse.json(
       {
         ok: true,
         ticketId,
         receivedAt,
-        message: "Support ticket successfully registered with engineering team.",
+        message: "Support ticket successfully registered and persisted with engineering team.",
       },
       { status: 200 }
     );
-  } catch {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    console.error("[Support API] Failed to process support ticket:", error);
     return NextResponse.json(
       {
         ok: false,
-        error: "Failed to process support ticket. Please check your network and try again.",
+        error: `Failed to process support ticket: ${errorMessage}`,
       },
       { status: 500 }
     );
