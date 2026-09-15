@@ -54,30 +54,32 @@ const FEATURE_DATA: Record<number, FeatureData> = {
     prompt: "airlink vault --status",
   },
 
-  // Screen 2: Real-Time Token Telemetry
+  // Screen 2: Real-Time Token Telemetry (Matches Screenshot 2 1:1)
   2: {
     reasoning:
-      "I'm focusing on refactoring the auth middleware in src/server/routes/v1/session.ts to enforce WebSocket heartbeats and instant reconnects. I'll verify AST export nodes, apply code patches, and stream all ANSI terminal tokens directly to your mobile remote.",
+      "I will retrieve the current uncommitted git changes in the workspace using the get_git_diff tool to see what files are currently modified.",
     fileDiff: {
-      file: "src/server/websocket-relay.ts",
-      addCount: 38,
-      delCount: 14,
+      file: "vitest.config.ts",
+      addCount: 18,
+      delCount: 1,
       lines: [
-        { num: 33, type: "neutral", code: "  const ws = new WebSocket(url);" },
-        { num: 34, type: "del", code: "  ws.timeout = 30000;" },
-        { num: 34, type: "add", code: "  ws.setHeartbeatInterval(15_000);" },
-        { num: 35, type: "add", code: "  ws.enableBinaryWebSocketRelay();" },
-        { num: 36, type: "neutral", code: "  return ws;" },
+        { num: 5, type: "neutral", code: "import * as fs from \"node:fs\";" },
+        { num: 6, type: "neutral", code: "import * as path from \"node:path\";" },
+        { num: 7, type: "neutral", code: "import * as crypto from \"node:crypto\";" },
+        { num: 8, type: "neutral", code: "import chalk from \"chalk\";" },
+        { num: 9, type: "add", code: "+ import boxen from \"boxen\";" },
+        { num: 10, type: "neutral", code: "import dotenv from \"dotenv\";" },
+        { num: 11, type: "neutral", code: "import {" },
       ],
     },
     commands: [
-      "pnpm --filter @airlink/web test",
-      "git status -sb",
+      "git status -s",
+      "get_git_diff vitest.config.ts",
     ],
     streamingSummary:
-      "Session router now enforces end-to-end WebSocket relay and automatic socket reconnects. All 12 automated security rules verified clean.",
-    nextStep: "Streaming token buffer at 64.2 tok/s to mobile phone.",
-    prompt: "Refactor auth middleware to enforce WebSocket heartbeats",
+      "Executing get_git_diff on workstation repository. Streaming unified token diff to mobile remote with sub-50ms latency.",
+    nextStep: "Diff ready for handheld review. All 18 additions and 1 deletion staged.",
+    prompt: "Check git status and explain modified files",
   },
 
   // Screen 3: 1-Tap Safety Gate / Human Approvals

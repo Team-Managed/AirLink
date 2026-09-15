@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { AirLinkAgentLogo } from "../ui/AirLinkAgentLogo";
 import { WorkstationTuiMockup } from "./WorkstationTuiMockup";
 
 interface FeatureStep {
@@ -24,7 +23,7 @@ const features: FeatureStep[] = [
     stepNumber: "02",
     title: "Client-Side BYOK Key Vault",
     description:
-      "Bring Your Own API Keys with zero cloud retention. Store and switch Anthropic, OpenAI, and DeepSeek credentials client-side with AES-256 encryption. Your keys never touch our servers.",
+      "Bring Your Own API Keys with zero cloud retention. Store and switch Anthropic, OpenAI, DeepSeek, and Gemini credentials client-side with AES-256 encryption. Your keys never touch our servers.",
   },
   {
     id: "telemetry",
@@ -92,12 +91,12 @@ export function ScrollFeaturePhoneShowcase() {
     return () => clearInterval(timer);
   }, [isApproved]);
 
-  // Auto-advance every 7 seconds when user is not manually hovering
+  // Auto-advance every 8 seconds when user is not manually hovering
   useEffect(() => {
     if (isPaused) return;
     const interval = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % features.length);
-    }, 7000);
+    }, 8000);
     return () => clearInterval(interval);
   }, [isPaused]);
 
@@ -148,111 +147,100 @@ export function ScrollFeaturePhoneShowcase() {
               />
             </div>
 
-          {/* Staircase Item Stack */}
-          <div style={styles.ladderItemsWrapper}>
-            {features.map((feature, idx) => {
-              const diff = idx - activeIndex;
-              const isActive = diff === 0;
-              const isUpper = diff === -1;
-              const isLower = diff === 1;
-              const isVisible = isActive || isUpper || isLower;
+            {/* Feature Stair Ladder Items */}
+            <div style={styles.ladderItemsWrapper}>
+              {features.map((feature, idx) => {
+                const isActive = activeIndex === idx;
+                const isUpper = idx < activeIndex;
+                const isLower = idx > activeIndex;
 
-              if (!isVisible) return null;
-
-              return (
-                <button
-                  key={feature.id}
-                  type="button"
-                  onClick={() => setActiveIndex(idx)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setActiveIndex(idx);
-                    }
-                  }}
-                  aria-pressed={isActive}
-                  style={{
-                    ...styles.ladderItem,
-                    ...(isActive
-                      ? styles.ladderItemActive
-                      : isUpper
-                      ? styles.ladderItemUpper
-                      : styles.ladderItemLower),
-                  }}
-                >
-                  <div style={styles.itemHeaderRow}>
-                    <span
-                      style={{
-                        ...styles.stepNumberText,
-                        color: isActive ? "#2563eb" : "#94a3b8",
-                      }}
-                    >
-                      {feature.stepNumber}
-                    </span>
-                  </div>
-
-                  <h3
+                return (
+                  <button
+                    key={feature.id}
+                    type="button"
+                    onClick={() => setActiveIndex(idx)}
                     style={{
-                      ...styles.ladderTitle,
+                      ...styles.ladderItem,
                       ...(isActive
-                        ? styles.ladderTitleActive
-                        : styles.ladderTitleFaded),
+                        ? styles.ladderItemActive
+                        : isUpper
+                        ? styles.ladderItemUpper
+                        : isLower
+                        ? styles.ladderItemLower
+                        : {}),
                     }}
                   >
-                    {feature.title}
-                  </h3>
-
-                  {isActive && (
-                    <div style={styles.activeDetailBox}>
-                      <p style={styles.ladderDescription}>{feature.description}</p>
+                    <div style={styles.itemHeaderRow}>
+                      <span
+                        style={{
+                          ...styles.stepNumberText,
+                          color: isActive ? "#2563eb" : "#94a3b8",
+                        }}
+                      >
+                        {feature.stepNumber}
+                      </span>
                     </div>
-                  )}
-                </button>
-              );
-            })}
 
-            {/* Step Switcher Controls */}
-            <div style={styles.stepControlsRow}>
-              <button
-                type="button"
-                onClick={handlePrev}
-                style={styles.navArrowBtn}
-                title="Previous Feature"
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <div style={styles.pillsList}>
-                {features.map((_, dotIdx) => (
-                  <button
-                    key={dotIdx}
-                    type="button"
-                    onClick={() => setActiveIndex(dotIdx)}
-                    style={{
-                      ...styles.stepDot,
-                      ...(activeIndex === dotIdx ? styles.stepDotActive : {}),
-                    }}
-                    title={`Feature ${dotIdx + 1}`}
-                  />
-                ))}
+                    <h3
+                      style={{
+                        ...styles.ladderTitle,
+                        ...(isActive ? styles.ladderTitleActive : styles.ladderTitleFaded),
+                      }}
+                    >
+                      {feature.title}
+                    </h3>
+
+                    {isActive && (
+                      <div style={styles.activeDetailBox}>
+                        <p style={styles.ladderDescription}>{feature.description}</p>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+
+              {/* Step Switcher Controls */}
+              <div style={styles.stepControlsRow}>
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  style={styles.navArrowBtn}
+                  title="Previous Feature"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <div style={styles.pillsList}>
+                  {features.map((_, dotIdx) => (
+                    <button
+                      key={dotIdx}
+                      type="button"
+                      onClick={() => setActiveIndex(dotIdx)}
+                      style={{
+                        ...styles.stepDot,
+                        ...(activeIndex === dotIdx ? styles.stepDotActive : {}),
+                      }}
+                      title={`Feature ${dotIdx + 1}`}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  style={styles.navArrowBtn}
+                  title="Next Feature"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={handleNext}
-                style={styles.navArrowBtn}
-                title="Next Feature"
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </button>
             </div>
           </div>
         </div>
-        </div>
 
-        {/* RIGHT: Diagonal Duo Showcase (Workstation Local TUI + Phone Remote Mockup) */}
+        {/* RIGHT: Diagonal Duo Showcase (Workstation Local TUI + iOS Phone Remote Mockup) */}
         <div style={styles.duoStageColumn}>
           {/* Workstation Local Daemon TUI Window (Diagonally Behind) */}
           <div style={styles.tuiWrapperDiagonal}>
@@ -265,7 +253,7 @@ export function ScrollFeaturePhoneShowcase() {
             />
           </div>
 
-          {/* Realistic Phone Mockup (Diagonally Foreground) */}
+          {/* Authentic iOS iPhone Device Frame (Foreground) */}
           <div style={styles.phoneDeviceFrame}>
             {/* Dynamic Island Notch */}
             <div style={styles.dynamicIsland}>
@@ -273,475 +261,514 @@ export function ScrollFeaturePhoneShowcase() {
               <div style={styles.sensorDot} />
             </div>
 
-            {/* Phone Status Bar */}
+            {/* iOS Status Bar */}
             <div style={styles.phoneStatusBar}>
               <span style={styles.statusTime}>9:41</span>
               <div style={styles.statusIcons}>
-                <svg width="14" height="10" viewBox="0 0 24 24" fill="#ffffff">
+                {/* 4 iOS Signal Bars */}
+                <div style={styles.iosSignalBars}>
+                  <span style={{ ...styles.signalBar, height: 4 }} />
+                  <span style={{ ...styles.signalBar, height: 6 }} />
+                  <span style={{ ...styles.signalBar, height: 8 }} />
+                  <span style={{ ...styles.signalBar, height: 10 }} />
+                </div>
+                {/* Wi-Fi Icon */}
+                <svg width="13" height="10" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 18.97c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.36-1.36C8.67 19.64 10.26 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9z" />
                 </svg>
-                <span style={styles.statusBattery}>100%</span>
+                {/* iOS Battery with Outline & Terminal */}
+                <div style={styles.iosBatteryContainer}>
+                  <div style={styles.iosBatteryOutline}>
+                    <div style={styles.iosBatteryFill} />
+                  </div>
+                  <div style={styles.iosBatteryTip} />
+                </div>
               </div>
             </div>
 
-            {/* Mobile Screen Interior with Hero Background Artwork */}
+            {/* Mobile Screen Interior with Real Wallpaper Artwork */}
             <div style={styles.phoneScreenContent}>
-              {/* Hero Panoramic Artwork Background */}
+              {/* Wallpaper Background Artwork */}
               <div style={styles.phoneScreenArtwork} />
               <div style={styles.phoneScreenArtworkOverlay} />
 
               {/* Screen Contents Layer */}
               <div style={styles.phoneScreenInner}>
-                {/* SCREEN 1: 6-Digit Encrypted PIN Pairing (Matches User Screenshot 1:1) */}
+                {/* ========================================================= */}
+                {/* SCREEN 1: PIN PAIRING (Screenshot 1 Match)               */}
+                {/* ========================================================= */}
                 {activeIndex === 0 && (
-                <div key="screen-0" style={styles.fullScreenWrapper}>
-                  {/* Top Header Bar */}
-                  <div style={styles.pinScreenHeader}>
-                    <div style={styles.pinHeaderLeft}>
-                      <span style={{ fontSize: 13 }}>🚀</span>
-                      <span style={styles.pinHeaderTitle}>AirLink PIN Pairing</span>
+                  <div key="screen-0" style={styles.fullScreenWrapper}>
+                    {/* Top Row: • WebSocket E2E & ••• */}
+                    <div style={styles.screen1TopRow}>
+                      <div style={styles.e2eBadgePill}>
+                        <span style={styles.whiteDotMini} />
+                        <span>WebSocket E2E</span>
+                      </div>
+                      <div style={styles.threeDotsCircle}>•••</div>
                     </div>
-                    <span style={styles.pinHeaderMeta}>WebSocket E2E</span>
-                  </div>
 
-                  {/* Center Card with Dynamic PIN Typing Simulation */}
-                  <div style={styles.pinCenterCardExact}>
+                    {/* Centered Brand Title & Subtitle */}
+                    <div style={styles.brandCenterHeader}>
+                      <h4 style={styles.brandAirlinkTitle}>AirLink</h4>
+                      <p style={styles.brandAirlinkSubtitle}>
+                        Control your local coding agent from your phone with zero port-forwarding.
+                      </p>
+                    </div>
+
+                    {/* Frosted Glass PIN Card */}
+                    <div style={styles.pinCardExact}>
+                      <div style={styles.pinCardTitle}>Workstation Session PIN</div>
+                      <div style={styles.pinCardSubtitle}>
+                        {isPairedSuccess ? "✓ Paired to Workstation Daemon" : "Enter 6-digit PIN from terminal"}
+                      </div>
+
+                      {/* 6 Discrete Boxes */}
+                      <div style={styles.pinBoxesRow}>
+                        {[0, 1, 2, 3, 4, 5].map((dIdx) => {
+                          const digit = typedPin[dIdx] || "";
+                          const isActiveBox = typedPin.length === dIdx && !isPairedSuccess;
+
+                          return (
+                            <div
+                              key={dIdx}
+                              style={{
+                                ...styles.pinBox,
+                                ...(isActiveBox ? styles.pinBoxActive : {}),
+                                ...(digit ? styles.pinBoxFilled : {}),
+                                ...(isPairedSuccess ? styles.pinBoxSuccess : {}),
+                              }}
+                            >
+                              {digit ? (
+                                <span>{digit}</span>
+                              ) : isActiveBox ? (
+                                <span style={styles.blinkingCaret}>|</span>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div style={styles.pinCardFooter}>
+                        <span>✧ Ephemeral session • Auto-expires</span>
+                      </div>
+                    </div>
+
+                    {/* Wide Connect Button */}
                     <div
                       style={{
-                        ...styles.pinLockCircleExact,
-                        borderColor: isPairedSuccess ? "rgba(34, 197, 94, 0.45)" : "rgba(59, 130, 246, 0.35)",
-                        backgroundColor: isPairedSuccess ? "rgba(34, 197, 94, 0.15)" : "rgba(37, 99, 235, 0.18)",
-                        transition: "all 0.25s ease",
+                        ...styles.connectBtnWide,
+                        ...(isPairedSuccess ? styles.connectBtnWideSuccess : {}),
                       }}
                     >
-                      {isPairedSuccess ? (
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      ) : (
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg>
-                      )}
+                      {isPairedSuccess ? "Connected to Workstation ✓" : "Connect to Workstation →"}
                     </div>
 
-                    <span style={styles.pinMainTitleExact}>Workstation Session PIN</span>
-                    <span
-                      style={{
-                        ...styles.pinSubtitleExact,
-                        color: isPairedSuccess ? "#4ade80" : "#94a3b8",
-                        fontWeight: isPairedSuccess ? 700 : 400,
-                      }}
-                    >
-                      {isPairedSuccess ? "✓ Paired to MacBook-Pro-M3 (0.04s)" : "Pairing with MacBook-Pro-M3"}
-                    </span>
+                    {/* Telemetry Strip & Green Active Pill */}
+                    <div style={styles.screen1BottomBlock}>
+                      <div style={styles.telemetryCardFrosted}>
+                        <div style={styles.telemetryRow}>
+                          <span style={styles.telemetryLabel}>WebSocket Relay:</span>
+                          <span style={styles.telemetryValue}>sub-50ms (Direct)</span>
+                        </div>
+                        <div style={styles.telemetryRow}>
+                          <span style={styles.telemetryLabel}>Security:</span>
+                          <span style={styles.telemetryValue}>E2E Encrypted</span>
+                        </div>
+                      </div>
 
-                    <div style={styles.pinBoxesRowExact}>
-                      {[0, 1, 2, 3, 4, 5].map((dIdx) => {
-                        const digit = typedPin[dIdx] || "";
-                        const isCurrentActive = typedPin.length === dIdx && !isPairedSuccess;
-                        return (
-                          <div
-                            key={dIdx}
-                            style={{
-                              ...styles.pinBoxExact,
-                              borderColor: isPairedSuccess
-                                ? "rgba(34, 197, 94, 0.6)"
-                                : isCurrentActive
-                                ? "#38bdf8"
-                                : digit
-                                ? "rgba(59, 130, 246, 0.65)"
-                                : "rgba(255, 255, 255, 0.12)",
-                              boxShadow: isCurrentActive
-                                ? "0 0 12px rgba(56, 189, 248, 0.5)"
-                                : isPairedSuccess
-                                ? "0 0 12px rgba(34, 197, 94, 0.3)"
-                                : "0 4px 14px rgba(0, 0, 0, 0.5)",
-                              backgroundColor: isPairedSuccess
-                                ? "rgba(22, 101, 52, 0.2)"
-                                : isCurrentActive
-                                ? "rgba(30, 58, 138, 0.25)"
-                                : "#0a101f",
-                              color: isPairedSuccess ? "#4ade80" : "#ffffff",
-                              transition: "all 0.15s ease",
-                            }}
-                          >
-                            {digit ? (
-                              <span style={{ animation: "pop-in 180ms ease-out both" }}>{digit}</span>
-                            ) : isCurrentActive ? (
-                              <span style={{ color: "#38bdf8", animation: "fade-in 400ms infinite alternate", fontSize: 16 }}>|</span>
-                            ) : (
-                              ""
-                            )}
+                      <div style={styles.greenRelayActivePill}>
+                        <span style={styles.greenDotSmall} />
+                        <span>WebSocket Relay Active</span>
+                      </div>
+
+                      <div style={styles.relayUrlSubtext}>
+                        ▾ Relay: https://airlink-relay.onrender.com
+                      </div>
+
+                      <div style={styles.footerBrandSubtext}>
+                        AirLink Universal Agent Remote • Zero Retention
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ========================================================= */}
+                {/* SCREEN 2: BYOK KEY VAULT (Screenshot 3 Match)            */}
+                {/* ========================================================= */}
+                {activeIndex === 1 && (
+                  <div key="screen-1" style={styles.fullScreenWrapper}>
+                    {/* Header Card */}
+                    <div style={styles.byokHeaderCard}>
+                      <div style={styles.byokHeaderLeft}>
+                        <span style={{ fontSize: 20 }}>🔒</span>
+                        <div>
+                          <div style={styles.byokHeaderTitle}>Client-Side BYOK Vault</div>
+                          <div style={styles.byokHeaderSubtitle}>Zero Cloud Retention</div>
+                        </div>
+                      </div>
+                      <div style={styles.byokHeaderRight}>
+                        <span style={styles.aesPill}>AES-256</span>
+                        <span style={styles.doneBtnPill}>Done</span>
+                      </div>
+                    </div>
+
+                    {/* Content Form Scroll */}
+                    <div style={styles.byokFormSection}>
+                      {/* Section 1: CONFIGURE PROVIDER */}
+                      <div style={styles.byokSectionLabel}>CONFIGURE PROVIDER</div>
+                      <div style={styles.providerPillsStack}>
+                        <div style={styles.providerRow}>
+                          <div style={styles.providerPill}>OpenRouter / 0x</div>
+                          <div style={styles.providerPillSelected}>Google Gemini</div>
+                        </div>
+                        <div style={styles.providerRow}>
+                          <div style={styles.providerPill}>Anthropic Claude</div>
+                          <div style={styles.providerPill}>OpenAI</div>
+                          <div style={styles.providerPill}>Groq Llama</div>
+                        </div>
+                        <div style={styles.providerRow}>
+                          <div style={styles.providerPill}>Custom / Local</div>
+                        </div>
+                      </div>
+
+                      {/* Section 2: MODEL IDENTIFIER */}
+                      <div style={{ ...styles.byokSectionLabel, marginTop: 8 }}>MODEL IDENTIFIER</div>
+                      <div style={styles.byokInputBox}>gemini-3.5-flash</div>
+                      <div style={styles.modelChipsRow}>
+                        <div style={styles.modelChip}>gemini-2.0-flash</div>
+                        <div style={styles.modelChip}>gemini-1.5-pro</div>
+                      </div>
+
+                      {/* Section 3: API KEY */}
+                      <div style={{ ...styles.byokSectionLabel, marginTop: 8 }}>API KEY</div>
+                      <div style={styles.byokKeyInputBox}>
+                        <span style={styles.keyDots}>•••••••••••••••••••••••••••••••••••••</span>
+                        <span style={styles.keyShowBtn}>Show</span>
+                      </div>
+                      <p style={styles.keySecurityNote}>
+                        Keys are stored in your device&apos;s secure vault (hardware keychain on iOS/Android, client storage on Web) and never persisted to the cloud relay.
+                      </p>
+                    </div>
+
+                    {/* Bottom Buttons */}
+                    <div style={styles.byokBottomActions}>
+                      <button type="button" style={styles.saveConfigBtn}>
+                        Save Configuration
+                      </button>
+                      <button type="button" style={styles.clearKeyBtn}>
+                        Clear Key
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ========================================================= */}
+                {/* SCREEN 3: REAL-TIME TOKEN TELEMETRY (Screenshot 2 Match) */}
+                {/* ========================================================= */}
+                {activeIndex === 2 && (
+                  <div key="screen-2" style={styles.chatScreenWrapper}>
+                    {/* Top Header: AirLink Remote */}
+                    <div style={styles.chatScreenHeader}>
+                      <div style={styles.chatHeaderLeft}>
+                        <div style={styles.chatHeaderTitle}>AirLink Remote</div>
+                        <div style={styles.chatHeaderSubtitle}>Tyra • C:\Users\Tyra\age...</div>
+                      </div>
+                      <div style={styles.chatHeaderRight}>
+                        <div style={styles.chatModelPill}>gemini-3.5-flash</div>
+                        <div style={styles.chatCloseBtn}>✕</div>
+                      </div>
+                    </div>
+
+                    {/* Conversation Feed (Screenshot 2 exact components) */}
+                    <div style={styles.chatFeedScroll}>
+                      {/* Thinking Box */}
+                      <div style={styles.thinkingCard}>
+                        <div style={styles.thinkingHeader}>
+                          <div style={styles.thinkingTitleRow}>
+                            <span>Thinking...</span>
+                            <span style={{ fontSize: 9 }}>˅</span>
                           </div>
-                        );
-                      })}
-                    </div>
-
-                    <span style={styles.pinExpiryTextExact}>
-                      🔒 Ephemeral session • Auto-expires
-                    </span>
-                  </div>
-
-                  {/* Bottom Stack: Host Info + Green WebSocket Relay Bar */}
-                  <div style={styles.screenBottomBlockExact}>
-                    <div style={styles.hostInfoCardExact}>
-                      <div style={styles.hostInfoRowExact}>
-                        <span style={styles.hostInfoLabelExact}>WebSocket Relay:</span>
-                        <span style={styles.hostInfoValueExact}>sub-50ms (Direct)</span>
-                      </div>
-                      <div style={styles.hostInfoRowExact}>
-                        <span style={styles.hostInfoLabelExact}>Security:</span>
-                        <span style={styles.hostInfoValueExact}>E2E Encrypted</span>
-                      </div>
-                    </div>
-
-                    <div style={styles.tunnelStatusRowExact}>
-                      <span style={styles.tunnelDotExact} />
-                      <span style={styles.tunnelTextExact}>WebSocket Relay Active</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* SCREEN 2: BYOK Key Vault */}
-              {activeIndex === 1 && (
-                <div key="screen-1" style={styles.fullScreenWrapper}>
-                  <div style={styles.screenHeader}>
-                    <div style={styles.headerLeft}>
-                      <AirLinkAgentLogo size={16} animated={false} textColor="#ffffff" />
-                      <span style={styles.screenHeaderTitle}>Client-Side BYOK Vault</span>
-                    </div>
-                    <span style={styles.headerMetaText}>AES-256</span>
-                  </div>
-
-                  <div style={styles.byokList}>
-                    <div style={styles.byokItem}>
-                      <div style={styles.byokTopRow}>
-                        <span style={styles.byokProviderName}>Anthropic Claude 3.7</span>
-                        <span style={styles.byokStatusActive}>● Active</span>
-                      </div>
-                      <div style={styles.byokKeyMask}>sk-ant-api03-••••••••4f8a</div>
-                    </div>
-
-                    <div style={styles.byokItem}>
-                      <div style={styles.byokTopRow}>
-                        <span style={styles.byokProviderName}>DeepSeek R1 / V3</span>
-                        <span style={styles.byokStatusActive}>● Active</span>
-                      </div>
-                      <div style={styles.byokKeyMask}>sk-dsk-••••••••92b1</div>
-                    </div>
-
-                    <div style={styles.byokItem}>
-                      <div style={styles.byokTopRow}>
-                        <span style={styles.byokProviderName}>OpenAI o3-mini</span>
-                        <span style={styles.byokStatusActive}>● Active</span>
-                      </div>
-                      <div style={styles.byokKeyMask}>sk-proj-••••••••e19c</div>
-                    </div>
-
-                    <div style={styles.byokItem}>
-                      <div style={styles.byokTopRow}>
-                        <span style={styles.byokProviderName}>Google Gemini 2.0</span>
-                        <span style={styles.byokStatusActive}>● Active</span>
-                      </div>
-                      <div style={styles.byokKeyMask}>AIzaSy••••••••7x9b</div>
-                    </div>
-                  </div>
-
-                  <div style={styles.screenBottomBlock}>
-                    <div style={styles.tunnelStatusRow}>
-                      <span style={styles.tunnelDot} />
-                      <span style={styles.tunnelText}>4 Model Providers Configured</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* SCREEN 3: Real-Time Token Telemetry (Upper: User Message + Worked Trace + File Changes | Lower: Terminal) */}
-              {activeIndex === 2 && (
-                <div key="screen-2" style={styles.splitScreenWrapper}>
-                  {/* Top Header */}
-                  <div style={styles.screenHeader}>
-                    <div style={styles.headerLeft}>
-                      <AirLinkAgentLogo size={16} animated={false} textColor="#ffffff" />
-                      <span style={styles.screenHeaderTitle}>AirLink Remote</span>
-                    </div>
-                    <span style={styles.headerMetaText}>DeepSeek-R1</span>
-                  </div>
-
-                  {/* UPPER HALF: User Message + Worked Trace + File Changes Card */}
-                  <div style={styles.chatUpperSection}>
-                    {/* User Prompt Message Card */}
-                    <div style={styles.userMessageCard}>
-                      Refactor auth middleware to enforce TLS 1.3 and WebSocket heartbeats
-                    </div>
-
-                    {/* Worked Trace Header */}
-                    <div style={styles.traceWorkedHeader}>
-                      <span>Worked for 14s</span>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    </div>
-
-                    {/* File Changes Card */}
-                    <div style={styles.fileChangesCard}>
-                      <div style={styles.fileChangesTopRow}>
-                        <div style={styles.fileStatsLeft}>
-                          <span>2 files changed</span>
-                          <span style={styles.addStat}>+38</span>
-                          <span style={styles.delStat}>-14</span>
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" style={{ marginLeft: 3 }}>
-                            <polyline points="6 9 12 15 18 9" />
-                          </svg>
+                          <span style={styles.thinkingCollapse}>Collapse</span>
                         </div>
-                        <button type="button" style={styles.reviewBtnMini}>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                            <line x1="16" y1="13" x2="8" y2="13" />
-                            <line x1="16" y1="17" x2="8" y2="17" />
-                          </svg>
-                          <span>Review</span>
-                        </button>
+                        <div style={styles.thinkingDirective}>
+                          Analyzing directive: &quot;Check git status and explain modified files.&quot;
+                        </div>
                       </div>
 
-                      {/* File List Items */}
-                      <div style={styles.fileListStack}>
-                        <div style={styles.fileItemRow}>
-                          <span style={styles.reactFileIcon}>⚛️</span>
-                          <span style={styles.fileNameText}>session.ts</span>
-                          <span style={styles.filePathText}>...apps/web/src/server</span>
+                      {/* Agent Explanation Prose (Directly on canvas) */}
+                      <div style={styles.agentProseMessage}>
+                        I will retrieve the current uncommitted git changes in the workspace using the{" "}
+                        <code style={styles.inlineCodePill}>get_git_diff</code> tool to see what files are currently modified.
+                      </div>
+
+                      {/* Tool Execution Card */}
+                      <div style={styles.toolExecCard}>
+                        <div style={styles.toolExecHeader}>
+                          <div style={styles.toolNameBadge}>get_git_diff</div>
+                          <div style={styles.toolExecStatus}>Executing...</div>
                         </div>
-                        <div style={styles.fileItemRow}>
-                          <span style={styles.tsFileIcon}>⚡</span>
-                          <span style={styles.fileNameText}>relay-tunnel.ts</span>
-                          <span style={styles.filePathText}>...apps/web/src/server</span>
+                        <div style={styles.toolExecBody}>
+                          Executing get_git_diff
+                        </div>
+                      </div>
+
+                      {/* Code Diff Card with Jump to Live */}
+                      <div style={styles.codeDiffCard}>
+                        <div style={styles.codeDiffHeader}>
+                          <div style={styles.codeDiffFileName}>vitest.config.ts</div>
+                          <div style={styles.codeDiffStats}>
+                            <span style={styles.badgeAdd}>+18</span>
+                            <span style={styles.badgeDel}>-1</span>
+                          </div>
+                        </div>
+
+                        <div style={styles.codeDiffView}>
+                          <div style={styles.diffHeaderLine}>@@ -5,6 +5,7 @@ import * as fs from &quot;node:fs&quot;;</div>
+                          <div style={styles.diffCodeLine}>import * as path from &quot;node:path&quot;;</div>
+                          <div style={styles.diffCodeLine}>import * as crypto from &quot;node:crypto&quot;;</div>
+                          <div style={styles.diffCodeLine}>import chalk from &quot;chalk&quot;;</div>
+                          <div style={styles.diffCodeLineAdd}>+ import boxen from &quot;boxen&quot;;</div>
+                          <div style={styles.diffCodeLine}>import dotenv from &quot;dotenv&quot;;</div>
+                          <div style={styles.diffCodeLine}>import &#123;</div>
+                        </div>
+
+                        {/* Floating Jump to Live Pill */}
+                        <div style={styles.jumpToLiveFloat}>
+                          <span>↓ Jump to Live</span>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* LOWER HALF: Live Token Stream Terminal Widget */}
-                  <div style={styles.widgetLowerSection}>
-                    <div style={styles.widgetSectionHeader}>
-                      <span style={styles.widgetTitle}>Terminal Token Telemetry</span>
-                      <span style={styles.widgetMeta}>64.2 tok/s</span>
-                    </div>
-
-                    <div style={styles.terminalBoxSplit}>
-                      <div style={styles.terminalPrompt}>$ trueforge --agent deepseek-r1</div>
-                      <div style={styles.tokenOutput}>
-                        <span style={{ color: "#38bdf8" }}>[Task: Refactor auth middleware]</span>
-                        <br />
-                        <span style={{ color: "#94a3b8" }}>&gt; routes/v1/session.ts</span>
-                        <br />
-                        <span style={{ color: "#4ade80" }}>+ 12 security rules verified</span>
-                        <br />
-                        <span style={{ color: "#f8fafc" }}>
-                          &gt; Streaming diff...
-                          <span style={styles.blinkingCursor}>█</span>
-                        </span>
+                    {/* Bottom Dock: Suggestion Pills directly ABOVE Text Input Bar */}
+                    <div style={styles.chatBottomDock}>
+                      {/* Suggestion Pills / Quick Action Chips */}
+                      <div style={styles.quickChipsRow}>
+                        <div style={styles.quickChip}>Create PR</div>
+                        <div style={styles.quickChip}>Import Issue</div>
+                        <div style={styles.quickChip}>Run Tests</div>
+                        <div style={styles.quickChip}>Git Sta...</div>
                       </div>
-                    </div>
 
-                    <div style={styles.telemetryQuickBar}>
-                      <span style={styles.telemetryStat}>Latency: <strong>12ms</strong></span>
-                      <span style={styles.telemetryStat}>Buffer: <strong>1.4 KB</strong></span>
-                      <span style={styles.telemetryLiveDot}>● Stream Active</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* SCREEN 4: 1-Tap Human Approvals (Upper: User Message + Worked Trace + Files | Lower: Safety Gate) */}
-              {activeIndex === 3 && (
-                <div key="screen-3" style={styles.splitScreenWrapper}>
-                  {/* Top Header */}
-                  <div style={styles.screenHeader}>
-                    <div style={styles.headerLeft}>
-                      <AirLinkAgentLogo size={16} animated={false} textColor="#ffffff" />
-                      <span style={styles.screenHeaderTitle}>AirLink Remote</span>
-                    </div>
-                    <span style={styles.countdownBadge}>{countdown}s Gate</span>
-                  </div>
-
-                  {/* UPPER HALF: User Message + Worked Trace + File Changes Card */}
-                  <div style={styles.chatUpperSection}>
-                    {/* User Prompt Message Card */}
-                    <div style={styles.userMessageCard}>
-                      Purge the build artifacts and run production verification
-                    </div>
-
-                    {/* Worked Trace Header */}
-                    <div style={styles.traceWorkedHeader}>
-                      <span>Worked for 28s</span>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    </div>
-
-                    {/* File Changes Card */}
-                    <div style={styles.fileChangesCard}>
-                      <div style={styles.fileChangesTopRow}>
-                        <div style={styles.fileStatsLeft}>
-                          <span>1 directory target</span>
-                          <span style={styles.delStat}>-1,240</span>
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" style={{ marginLeft: 3 }}>
-                            <polyline points="6 9 12 15 18 9" />
-                          </svg>
+                      {/* Handheld Bottom Prompt Input Bar */}
+                      <div style={styles.promptInputContainer}>
+                        <div style={styles.promptPlaceholder}>
+                          Ask agent to build, refactor, or fix...
                         </div>
-                        <button type="button" style={styles.reviewBtnMini}>
-                          <span>⚠️ Review</span>
-                        </button>
+                        <div style={styles.promptSendArrow}>→</div>
                       </div>
+                    </div>
+                  </div>
+                )}
 
-                      {/* File List Items */}
-                      <div style={styles.fileListStack}>
-                        <div style={styles.fileItemRow}>
-                          <span style={styles.reactFileIcon}>📁</span>
-                          <span style={styles.fileNameText}>dist/</span>
-                          <span style={styles.filePathText}>...apps/web/dist</span>
+                {/* ========================================================= */}
+                {/* SCREEN 4: 1-TAP HUMAN APPROVALS                         */}
+                {/* ========================================================= */}
+                {activeIndex === 3 && (
+                  <div key="screen-3" style={styles.chatScreenWrapper}>
+                    {/* Top Header */}
+                    <div style={styles.chatScreenHeader}>
+                      <div style={styles.chatHeaderLeft}>
+                        <div style={styles.chatHeaderTitle}>AirLink Remote</div>
+                        <div style={styles.chatHeaderSubtitle}>Tyra • C:\Users\Tyra\age...</div>
+                      </div>
+                      <div style={styles.chatHeaderRight}>
+                        <div style={styles.chatModelPill}>gemini-3.5-flash</div>
+                        <div style={styles.chatCloseBtn}>✕</div>
+                      </div>
+                    </div>
+
+                    <div style={styles.chatFeedScroll}>
+                      {/* Thinking Box */}
+                      <div style={styles.thinkingCard}>
+                        <div style={styles.thinkingHeader}>
+                          <div style={styles.thinkingTitleRow}>
+                            <span>Thinking...</span>
+                            <span style={{ fontSize: 9 }}>˅</span>
+                          </div>
+                          <span style={styles.thinkingCollapse}>Collapse</span>
+                        </div>
+                        <div style={styles.thinkingDirective}>
+                          Analyzing directive: &quot;Purge build artifacts and verify production release.&quot;
                         </div>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* LOWER HALF: 180s Safety Gate Approval Card */}
-                  <div style={styles.widgetLowerSection}>
-                    <div style={styles.safetyGateCardSplit}>
-                      <div style={styles.safetyHeader}>
-                        <span style={styles.safetyIcon}>⚠️</span>
-                        <span style={styles.safetyTitle}>Safety Gate Interception</span>
+                      {/* Agent Message */}
+                      <div style={styles.agentProseMessage}>
+                        Detected high-risk file purge command. Intercepting execution at the Safety Gate for your 1-tap mobile approval.
                       </div>
 
-                      <div style={styles.commandCodeBlock}>
-                        <code>rm -rf dist/ &amp;&amp; pnpm build:prod</code>
+                      {/* Tool Call Card */}
+                      <div style={styles.toolExecCard}>
+                        <div style={styles.toolExecHeader}>
+                          <div style={styles.toolNameBadge}>execute_bash</div>
+                          <div style={{ ...styles.toolExecStatus, color: "#f59e0b" }}>Paused at Gate</div>
+                        </div>
+                        <div style={styles.toolExecBody}>
+                          rm -rf dist/ &amp;&amp; pnpm build:prod
+                        </div>
                       </div>
 
-                      {isApproved ? (
-                        <div style={styles.approvedSuccessBanner}>
-                          <span>✓ Command Authorized &amp; Executing...</span>
+                      {/* Safety Gate Interception Card */}
+                      <div style={styles.safetyGateCard}>
+                        <div style={styles.safetyGateHeader}>
+                          <div style={styles.safetyGateTitle}>
+                            <span>⚠️</span>
+                            <span>Safety Gate Interception</span>
+                          </div>
+                          <div style={styles.safetyCountdownBadge}>{countdown}s Gate</div>
                         </div>
-                      ) : (
-                        <div style={styles.approvalButtonsRow}>
-                          <button
-                            type="button"
-                            onClick={handleApprove}
-                            style={styles.approveBtn}
-                          >
-                            <span>Approve (1-Tap)</span>
-                          </button>
-                          <button type="button" style={styles.rejectBtn}>
-                            <span>Reject</span>
-                          </button>
+
+                        <div style={styles.safetyCommandBox}>
+                          <code>rm -rf dist/ &amp;&amp; pnpm build:prod</code>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
 
-              {/* SCREEN 5: Visual Git Diff & AST Viewer (Matches User's Exact Screenshot!) */}
-              {activeIndex === 4 && (
-                <div key="screen-4" style={styles.splitScreenWrapper}>
-                  {/* Top Header */}
-                  <div style={styles.screenHeader}>
-                    <div style={styles.headerLeft}>
-                      <AirLinkAgentLogo size={16} animated={false} textColor="#ffffff" />
-                      <span style={styles.screenHeaderTitle}>AirLink Remote</span>
-                    </div>
-                    <span style={styles.headerMetaText}>+92 / -35</span>
-                  </div>
-
-                  {/* UPPER HALF: User Message + Worked for 52s + File Changes Card (Exact Screenshot Match) */}
-                  <div style={styles.chatUpperSection}>
-                    {/* User Prompt Message Card */}
-                    <div style={styles.userMessageCard}>
-                      also the hero text let us have it all black and i have some gsap effect like something appearing sort of
+                        {isApproved ? (
+                          <div style={styles.approvedBanner}>
+                            ✓ Command Authorized &amp; Executing...
+                          </div>
+                        ) : (
+                          <div style={styles.approvalButtons}>
+                            <button
+                              type="button"
+                              onClick={handleApprove}
+                              style={styles.btnApprove}
+                            >
+                              Approve (1-Tap)
+                            </button>
+                            <button type="button" style={styles.btnReject}>
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Worked for 52s Trace Header */}
-                    <div style={styles.traceWorkedHeader}>
-                      <span>Worked for 52s</span>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    </div>
-
-                    {/* File Changes Card */}
-                    <div style={styles.fileChangesCard}>
-                      <div style={styles.fileChangesTopRow}>
-                        <div style={styles.fileStatsLeft}>
-                          <span>2 files changed</span>
-                          <span style={styles.addStat}>+92</span>
-                          <span style={styles.delStat}>-35</span>
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" style={{ marginLeft: 3 }}>
-                            <polyline points="6 9 12 15 18 9" />
-                          </svg>
-                        </div>
-                        <button type="button" style={styles.reviewBtnMini}>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                            <line x1="16" y1="13" x2="8" y2="13" />
-                            <line x1="16" y1="17" x2="8" y2="17" />
-                          </svg>
-                          <span>Review</span>
-                        </button>
+                    {/* Bottom Dock: Suggestion Pills ABOVE Input Bar */}
+                    <div style={styles.chatBottomDock}>
+                      <div style={styles.quickChipsRow}>
+                        <div style={styles.quickChip}>Create PR</div>
+                        <div style={styles.quickChip}>Import Issue</div>
+                        <div style={styles.quickChip}>Run Tests</div>
+                        <div style={styles.quickChip}>Git Sta...</div>
                       </div>
 
-                      {/* File List Items */}
-                      <div style={styles.fileListStack}>
-                        <div style={styles.fileItemRow}>
-                          <span style={styles.reactFileIcon}>⚛️</span>
-                          <span style={styles.fileNameText}>PanoramicLandscapeHero.tsx</span>
-                          <span style={styles.filePathText}>...gent-harness/apps/web/src/components/hero</span>
+                      <div style={styles.promptInputContainer}>
+                        <div style={styles.promptPlaceholder}>
+                          Ask agent to build, refactor, or fix...
                         </div>
-                        <div style={styles.fileItemRow}>
-                          <span style={styles.markdownFileIcon}>M↓</span>
-                          <span style={styles.fileNameText}>progress-tracker.md</span>
-                          <span style={styles.filePathText}>/c:/Users/Tyra/agent-harness/context</span>
-                        </div>
+                        <div style={styles.promptSendArrow}>→</div>
                       </div>
                     </div>
                   </div>
+                )}
 
-                  {/* LOWER HALF: Visual Git Diff Inspector Widget */}
-                  <div style={styles.widgetLowerSection}>
-                    <div style={styles.diffFilePathSplit}>src/components/hero/PanoramicLandscapeHero.tsx</div>
-                    <div style={styles.diffContainerSplit}>
-                      <div style={styles.diffLineDel}>
-                        - color: &quot;transparent&quot;, backgroundClip: &quot;text&quot;,
+                {/* ========================================================= */}
+                {/* SCREEN 5: VISUAL GIT DIFF & AST VIEWER                   */}
+                {/* ========================================================= */}
+                {activeIndex === 4 && (
+                  <div key="screen-4" style={styles.chatScreenWrapper}>
+                    {/* Top Header */}
+                    <div style={styles.chatScreenHeader}>
+                      <div style={styles.chatHeaderLeft}>
+                        <div style={styles.chatHeaderTitle}>AirLink Remote</div>
+                        <div style={styles.chatHeaderSubtitle}>Tyra • C:\Users\Tyra\age...</div>
                       </div>
-                      <div style={styles.diffLineAdd}>
-                        + color: &quot;#0f172a&quot;, fontWeight: 900,
-                      </div>
-                      <div style={styles.diffLineAdd}>
-                        + gsap.fromTo(&quot;.hero-word&quot;, &#123; filter: &quot;blur(12px)&quot;, y: 48 &#125;,
-                      </div>
-                      <div style={styles.diffLineNeutral}>
-                        &nbsp;&nbsp;&#123; filter: &quot;blur(0px)&quot;, y: 0, stagger: 0.065 &#125;);
-                      </div>
-                      <div style={styles.diffLineAdd}>
-                        + emitTelemetry(&quot;gsap_reveal_completed&quot;);
+                      <div style={styles.chatHeaderRight}>
+                        <div style={styles.chatModelPill}>gemini-3.5-flash</div>
+                        <div style={styles.chatCloseBtn}>✕</div>
                       </div>
                     </div>
 
-                    <div style={styles.diffFooterRow}>
-                      <span style={styles.diffBranchName}>feat/gsap-cinematic-reveal</span>
-                      <span style={styles.diffReadyText}>✓ Ready to commit</span>
+                    <div style={styles.chatFeedScroll}>
+                      {/* Thinking Box */}
+                      <div style={styles.thinkingCard}>
+                        <div style={styles.thinkingHeader}>
+                          <div style={styles.thinkingTitleRow}>
+                            <span>Thinking...</span>
+                            <span style={{ fontSize: 9 }}>˅</span>
+                          </div>
+                          <span style={styles.thinkingCollapse}>Collapse</span>
+                        </div>
+                        <div style={styles.thinkingDirective}>
+                          Analyzing directive: &quot;Make hero text all black with GSAP appearing reveal.&quot;
+                        </div>
+                      </div>
+
+                      {/* Agent Explanation */}
+                      <div style={styles.agentProseMessage}>
+                        I am applying the GSAP word blur-reveal animation to PanoramicLandscapeHero.tsx and updating the context logs.
+                      </div>
+
+                      {/* Files Summary Strip */}
+                      <div style={styles.filesSummaryCard}>
+                        <div style={styles.filesSummaryTop}>
+                          <div style={styles.filesSummaryLeft}>
+                            <span>2 files changed</span>
+                            <span style={styles.badgeAdd}>+92</span>
+                            <span style={styles.badgeDel}>-35</span>
+                          </div>
+                          <div style={styles.reviewBtn}>[ Review ]</div>
+                        </div>
+                        <div style={styles.filesListStack}>
+                          <div style={styles.fileRowItem}>
+                            <span>⚛️</span>
+                            <span style={styles.fileNameWhite}>PanoramicLandscapeHero.tsx</span>
+                          </div>
+                          <div style={styles.fileRowItem}>
+                            <span>M↓</span>
+                            <span style={styles.fileNameWhite}>progress-tracker.md</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Diff Viewer Card */}
+                      <div style={styles.codeDiffCard}>
+                        <div style={styles.codeDiffHeader}>
+                          <div style={styles.codeDiffFileName}>PanoramicLandscapeHero.tsx</div>
+                          <div style={styles.codeDiffStats}>
+                            <span style={styles.badgeAdd}>+92</span>
+                            <span style={styles.badgeDel}>-35</span>
+                          </div>
+                        </div>
+
+                        <div style={styles.codeDiffView}>
+                          <div style={styles.diffHeaderLine}>@@ -40,8 +40,10 @@ export function PanoramicLandscapeHero() &#123;</div>
+                          <div style={styles.diffCodeLineDel}>- color: &quot;transparent&quot;, backgroundClip: &quot;text&quot;,</div>
+                          <div style={styles.diffCodeLineAdd}>+ color: &quot;#0f172a&quot;, fontWeight: 900,</div>
+                          <div style={styles.diffCodeLineAdd}>+ gsap.fromTo(&quot;.hero-word&quot;, &#123; filter: &quot;blur(12px)&quot;, y: 48 &#125;,</div>
+                          <div style={styles.diffCodeLine}>&nbsp;&nbsp;&#123; filter: &quot;blur(0px)&quot;, y: 0, stagger: 0.065 &#125;);</div>
+                        </div>
+
+                        <div style={styles.jumpToLiveFloat}>
+                          <span>↓ Jump to Live</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Dock: Suggestion Pills ABOVE Input Bar */}
+                    <div style={styles.chatBottomDock}>
+                      <div style={styles.quickChipsRow}>
+                        <div style={styles.quickChip}>Create PR</div>
+                        <div style={styles.quickChip}>Import Issue</div>
+                        <div style={styles.quickChip}>Run Tests</div>
+                        <div style={styles.quickChip}>Git Sta...</div>
+                      </div>
+
+                      <div style={styles.promptInputContainer}>
+                        <div style={styles.promptPlaceholder}>
+                          Ask agent to build, refactor, or fix...
+                        </div>
+                        <div style={styles.promptSendArrow}>→</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
               </div>
             </div>
 
-            {/* Phone Bottom Home Indicator */}
-            <div style={styles.phoneHomeBar} />
+            {/* iOS Home Indicator Bar */}
+            <div style={styles.iosHomeIndicator} />
           </div>
         </div>
       </div>
@@ -757,6 +784,15 @@ const styles: Record<string, React.CSSProperties> = {
     position: "relative",
     zIndex: 10,
     borderTop: "1px solid #f1f5f9",
+    fontFamily: "var(--font-sans)",
+  },
+  stageGrid: {
+    maxWidth: 1260,
+    margin: "0 auto",
+    display: "grid",
+    gridTemplateColumns: "1fr 1.15fr",
+    gap: 40,
+    alignItems: "center",
   },
   leftColumn: {
     display: "flex",
@@ -777,25 +813,18 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "clamp(32px, 3.8vw, 48px)",
     fontWeight: 900,
     lineHeight: 1.12,
-    letterSpacing: -1.4,
+    letterSpacing: "-0.03em",
     color: "#0f172a",
     margin: 0,
   },
   mainSubtitle: {
+    fontFamily: "var(--font-sans)",
     fontSize: "clamp(15px, 1.35vw, 17px)",
     color: "#475569",
     lineHeight: 1.6,
     maxWidth: 520,
-    fontWeight: 500,
+    fontWeight: 450,
     margin: 0,
-  },
-  stageGrid: {
-    maxWidth: 1260,
-    margin: "0 auto",
-    display: "grid",
-    gridTemplateColumns: "1fr 1.15fr",
-    gap: 40,
-    alignItems: "center",
   },
   ladderColumn: {
     display: "flex",
@@ -871,7 +900,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "var(--font-display)",
     margin: 0,
     lineHeight: 1.2,
-    letterSpacing: -0.6,
+    letterSpacing: "-0.025em",
   },
   ladderTitleActive: {
     fontSize: "clamp(26px, 2.5vw, 33px)",
@@ -891,6 +920,7 @@ const styles: Record<string, React.CSSProperties> = {
     animation: "fadeIn 0.25s ease-out",
   },
   ladderDescription: {
+    fontFamily: "var(--font-sans)",
     fontSize: 15,
     color: "#475569",
     lineHeight: 1.65,
@@ -936,6 +966,8 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: "#2563eb",
     borderRadius: 9999,
   },
+
+  /* Duo Stage Column */
   duoStageColumn: {
     display: "flex",
     alignItems: "center",
@@ -953,39 +985,42 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 340,
     width: "100%",
   },
+
+  /* Device Frame (iOS Titanium) */
   phoneDeviceFrame: {
     position: "relative",
     zIndex: 2,
-    width: 295,
-    height: 575,
+    width: 304,
+    height: 618,
     backgroundColor: "#000000",
-    borderRadius: 42,
+    borderRadius: 44,
     border: "9px solid #1e293b",
-    boxShadow: "-12px 25px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.25)",
+    boxShadow: "-14px 28px 70px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.12)",
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
-    transform: "translateY(12px) rotate(1deg)",
+    transform: "translateY(10px) rotate(1deg)",
     transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+    fontFamily: "var(--font-sans)",
   },
   dynamicIsland: {
     position: "absolute",
-    top: 9,
+    top: 8,
     left: "50%",
     transform: "translateX(-50%)",
-    width: 86,
-    height: 20,
+    width: 82,
+    height: 22,
     backgroundColor: "#000000",
     borderRadius: 20,
-    zIndex: 20,
+    zIndex: 30,
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "0 12px",
+    padding: "0 11px",
   },
   cameraLens: {
-    width: 7,
-    height: 7,
+    width: 7.5,
+    height: 7.5,
     borderRadius: "50%",
     backgroundColor: "#1e293b",
   },
@@ -996,31 +1031,70 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: "#0f172a",
   },
   phoneStatusBar: {
-    height: 36,
+    height: 38,
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "0 22px",
+    padding: "0 22px 0 20px",
     color: "#ffffff",
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: 700,
-    zIndex: 15,
+    zIndex: 20,
+    backgroundColor: "transparent",
   },
   statusTime: {
     fontFamily: "var(--font-sans)",
+    fontSize: 12.5,
+    fontWeight: 700,
+    letterSpacing: "-0.015em",
   },
   statusIcons: {
     display: "flex",
     alignItems: "center",
     gap: 6,
   },
-  statusBattery: {
-    fontSize: 9.5,
-    fontFamily: "var(--font-mono)",
+  iosSignalBars: {
+    display: "flex",
+    alignItems: "flex-end",
+    gap: 1.5,
+    height: 10,
   },
+  signalBar: {
+    width: 2.2,
+    backgroundColor: "#ffffff",
+    borderRadius: 0.5,
+  },
+  iosBatteryContainer: {
+    display: "flex",
+    alignItems: "center",
+    gap: 1,
+  },
+  iosBatteryOutline: {
+    width: 18,
+    height: 10,
+    border: "1.2px solid #ffffff",
+    borderRadius: 3,
+    padding: 1,
+    display: "flex",
+    alignItems: "center",
+  },
+  iosBatteryFill: {
+    width: "75%",
+    height: "100%",
+    backgroundColor: "#ffffff",
+    borderRadius: 1.5,
+  },
+  iosBatteryTip: {
+    width: 1.5,
+    height: 4,
+    backgroundColor: "#ffffff",
+    borderTopRightRadius: 1,
+    borderBottomRightRadius: 1,
+  },
+
+  /* Phone Interior */
   phoneScreenContent: {
     flex: 1,
-    backgroundColor: "#090d16",
     position: "relative",
     overflow: "hidden",
     display: "flex",
@@ -1029,27 +1103,23 @@ const styles: Record<string, React.CSSProperties> = {
   phoneScreenArtwork: {
     position: "absolute",
     inset: 0,
-    backgroundImage: "url('/screenshot-hero.png')",
+    backgroundImage: "url('/pairing_bg.png')",
     backgroundSize: "cover",
-    backgroundPosition: "center center",
+    backgroundPosition: "center",
     backgroundRepeat: "no-repeat",
-    filter: "contrast(1.2) saturate(1.15) brightness(0.68)",
     zIndex: 0,
   },
   phoneScreenArtworkOverlay: {
     position: "absolute",
     inset: 0,
-    background:
-      "radial-gradient(ellipse at center, rgba(9, 13, 22, 0.45) 0%, rgba(9, 13, 22, 0.85) 100%)",
-    backdropFilter: "blur(1.5px)",
-    WebkitBackdropFilter: "blur(1.5px)",
+    backgroundColor: "rgba(10, 16, 30, 0.28)",
     zIndex: 1,
   },
   phoneScreenInner: {
     position: "relative",
     zIndex: 2,
     flex: 1,
-    padding: "10px 10px 12px",
+    padding: "6px 10px 8px",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
@@ -1061,558 +1131,794 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     animation: "fadeIn 0.22s ease-out",
   },
-  splitScreenWrapper: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    gap: 7,
-    animation: "fadeIn 0.22s ease-out",
-  },
-  screenHeader: {
+
+  /* SCREEN 1: PIN Pairing Styles (Photo 1 Match) */
+  screen1TopRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: 8,
-    padding: "6px 10px",
+    marginTop: 2,
   },
-  headerLeft: {
+  e2eBadgePill: {
     display: "flex",
     alignItems: "center",
-    gap: 7,
-  },
-  headerStatusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: "50%",
-    backgroundColor: "#10b981",
-    boxShadow: "0 0 6px #10b981",
-  },
-  warningDot: {
-    width: 6,
-    height: 6,
-    borderRadius: "50%",
-    backgroundColor: "#f59e0b",
-    boxShadow: "0 0 6px #f59e0b",
-  },
-  screenHeaderTitle: {
-    fontSize: 11.5,
-    fontWeight: 700,
-    color: "#f8fafc",
-  },
-  headerMetaText: {
-    fontSize: 10.5,
-    fontFamily: "var(--font-mono)",
-    color: "#94a3b8",
+    gap: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    border: "1px solid rgba(255, 255, 255, 0.24)",
+    borderRadius: 9999,
+    padding: "4px 10px",
+    fontSize: 10,
+    color: "#ffffff",
     fontWeight: 600,
+    backdropFilter: "blur(8px)",
   },
-  countdownBadge: {
-    fontSize: 10,
-    fontFamily: "var(--font-mono)",
-    backgroundColor: "rgba(245, 158, 11, 0.2)",
-    color: "#fbbf24",
-    padding: "2px 6px",
-    borderRadius: 4,
-    fontWeight: 800,
+  whiteDotMini: {
+    width: 5,
+    height: 5,
+    borderRadius: "50%",
+    backgroundColor: "#ffffff",
   },
-  chatUpperSection: {
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
-    border: "1px solid rgba(255, 255, 255, 0.07)",
-    borderRadius: 10,
-    padding: "8px 8px 9px",
+  threeDotsCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: "50%",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    border: "1px solid rgba(255, 255, 255, 0.22)",
     display: "flex",
-    flexDirection: "column",
-    gap: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 11,
+    color: "#ffffff",
+    cursor: "pointer",
   },
-  userMessageCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    border: "1px solid rgba(255, 255, 255, 0.08)",
-    borderRadius: 10,
-    padding: "7px 9px",
-    color: "#f1f5f9",
-    fontSize: 10,
-    lineHeight: 1.38,
+  brandCenterHeader: {
+    textAlign: "center",
+    margin: "12px 0 6px",
+  },
+  brandAirlinkTitle: {
+    fontSize: 25,
+    fontWeight: 800,
+    color: "#ffffff",
+    letterSpacing: "-0.03em",
+    margin: "0 0 4px",
+    fontFamily: "var(--font-sans)",
+  },
+  brandAirlinkSubtitle: {
+    fontSize: 11,
+    lineHeight: 1.4,
+    color: "rgba(255, 255, 255, 0.88)",
+    maxWidth: 215,
+    margin: "0 auto",
     fontWeight: 450,
   },
-  traceWorkedHeader: {
+  pinCardExact: {
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    border: "1px solid rgba(255, 255, 255, 0.18)",
+    borderRadius: 14,
+    padding: "16px 10px 14px",
+    textAlign: "center",
+    backdropFilter: "blur(14px)",
+    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.18)",
+  },
+  pinCardTitle: {
+    fontSize: 13.5,
+    fontWeight: 700,
+    color: "#ffffff",
+    letterSpacing: "-0.01em",
+  },
+  pinCardSubtitle: {
+    fontSize: 10,
+    color: "rgba(255, 255, 255, 0.72)",
+    marginTop: 2,
+    marginBottom: 12,
+  },
+  pinBoxesRow: {
+    display: "flex",
+    gap: 5,
+    justifyContent: "center",
+  },
+  pinBox: {
+    width: 33,
+    height: 44,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    border: "1px solid rgba(255, 255, 255, 0.22)",
+    borderRadius: 9,
     display: "flex",
     alignItems: "center",
-    gap: 3,
-    color: "#94a3b8",
-    fontSize: 9.5,
+    justifyContent: "center",
+    fontSize: 19,
+    fontWeight: 800,
+    color: "#ffffff",
     fontFamily: "var(--font-mono)",
+    transition: "all 0.15s ease",
+  },
+  pinBoxActive: {
+    border: "1.8px solid #ffffff",
+    backgroundColor: "rgba(255, 255, 255, 0.16)",
+    boxShadow: "0 0 12px rgba(255, 255, 255, 0.4)",
+  },
+  pinBoxFilled: {
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    border: "1px solid rgba(255, 255, 255, 0.4)",
+  },
+  pinBoxSuccess: {
+    borderColor: "rgba(74, 222, 128, 0.7)",
+    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    color: "#4ade80",
+  },
+  blinkingCaret: {
+    color: "#ffffff",
+    fontSize: 15,
+    animation: "fadeIn 0.5s infinite alternate",
+  },
+  pinCardFooter: {
+    marginTop: 10,
+    fontSize: 9,
+    color: "rgba(255, 255, 255, 0.65)",
+    fontFamily: "var(--font-sans)",
+  },
+  connectBtnWide: {
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    border: "1px solid rgba(255, 255, 255, 0.24)",
+    borderRadius: 11,
+    padding: "10px 12px",
+    textAlign: "center",
+    color: "#ffffff",
+    fontSize: 12,
     fontWeight: 600,
-    padding: "2px 2px 0",
+    letterSpacing: "-0.01em",
+    backdropFilter: "blur(10px)",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  },
+  connectBtnWideSuccess: {
+    backgroundColor: "rgba(34, 197, 94, 0.25)",
+    borderColor: "rgba(74, 222, 128, 0.5)",
+    color: "#4ade80",
+  },
+  screen1BottomBlock: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+  },
+  telemetryCardFrosted: {
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    border: "1px solid rgba(255, 255, 255, 0.14)",
+    borderRadius: 9,
+    padding: "8px 11px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+  telemetryRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    fontSize: 10,
+  },
+  telemetryLabel: {
+    color: "rgba(255, 255, 255, 0.72)",
+  },
+  telemetryValue: {
+    color: "#ffffff",
+    fontWeight: 700,
+    fontFamily: "var(--font-sans)",
+  },
+  greenRelayActivePill: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "rgba(34, 197, 94, 0.22)",
+    border: "1px solid rgba(74, 222, 128, 0.38)",
+    borderRadius: 8,
+    padding: "7px",
+    color: "#4ade80",
+    fontSize: 11,
+    fontWeight: 700,
+  },
+  greenDotSmall: {
+    width: 6.5,
+    height: 6.5,
+    borderRadius: "50%",
+    backgroundColor: "#4ade80",
+    boxShadow: "0 0 7px #4ade80",
+  },
+  relayUrlSubtext: {
+    fontSize: 8.5,
+    color: "rgba(255, 255, 255, 0.65)",
+    textAlign: "center",
+    fontFamily: "var(--font-sans)",
+  },
+  footerBrandSubtext: {
+    fontSize: 8,
+    color: "rgba(255, 255, 255, 0.5)",
+    textAlign: "center",
+    fontFamily: "var(--font-sans)",
+  },
+
+  /* SCREEN 2: BYOK Vault Styles (Photo 3 Match) */
+  byokHeaderCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    border: "1px solid rgba(255, 255, 255, 0.16)",
+    borderRadius: 12,
+    padding: "8px 10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backdropFilter: "blur(12px)",
+  },
+  byokHeaderLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  byokHeaderTitle: {
+    fontSize: 12.5,
+    fontWeight: 700,
+    color: "#ffffff",
+    letterSpacing: "-0.01em",
+  },
+  byokHeaderSubtitle: {
+    fontSize: 9,
+    color: "rgba(255, 255, 255, 0.7)",
+  },
+  byokHeaderRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: 5,
+  },
+  aesPill: {
+    fontSize: 8.5,
+    fontWeight: 700,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    border: "1px solid rgba(255, 255, 255, 0.2)",
+    color: "#ffffff",
+    padding: "2px 6px",
+    borderRadius: 9999,
+  },
+  doneBtnPill: {
+    fontSize: 10,
+    fontWeight: 700,
+    backgroundColor: "rgba(255, 255, 255, 0.16)",
+    border: "1px solid rgba(255, 255, 255, 0.3)",
+    color: "#ffffff",
+    padding: "3px 9px",
+    borderRadius: 9999,
     cursor: "pointer",
   },
-  fileChangesCard: {
-    backgroundColor: "#030712",
-    border: "1px solid rgba(255, 255, 255, 0.12)",
+  byokFormSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    marginTop: 4,
+  },
+  byokSectionLabel: {
+    fontSize: 9,
+    fontWeight: 800,
+    color: "rgba(255, 255, 255, 0.85)",
+    letterSpacing: "0.06em",
+  },
+  providerPillsStack: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+  providerRow: {
+    display: "flex",
+    gap: 4,
+  },
+  providerPill: {
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    border: "1px solid rgba(255, 255, 255, 0.16)",
     borderRadius: 8,
-    padding: "7px 8px",
+    padding: "4px 8px",
+    fontSize: 9.5,
+    color: "#ffffff",
+    fontWeight: 600,
+  },
+  providerPillSelected: {
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    border: "1.5px solid #ffffff",
+    borderRadius: 8,
+    padding: "4px 8px",
+    fontSize: 9.5,
+    color: "#ffffff",
+    fontWeight: 700,
+    boxShadow: "0 0 8px rgba(255, 255, 255, 0.25)",
+  },
+  byokInputBox: {
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    border: "1px solid rgba(255, 255, 255, 0.2)",
+    borderRadius: 8,
+    padding: "6px 8px",
+    fontSize: 10.5,
+    color: "#ffffff",
+    fontFamily: "var(--font-sans)",
+  },
+  modelChipsRow: {
+    display: "flex",
+    gap: 4,
+  },
+  modelChip: {
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    border: "1px solid rgba(255, 255, 255, 0.15)",
+    borderRadius: 6,
+    padding: "2px 7px",
+    fontSize: 8.5,
+    color: "rgba(255, 255, 255, 0.85)",
+  },
+  byokKeyInputBox: {
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    border: "1px solid rgba(255, 255, 255, 0.2)",
+    borderRadius: 8,
+    padding: "6px 8px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  keyDots: {
+    fontSize: 10,
+    color: "#ffffff",
+    letterSpacing: 1,
+  },
+  keyShowBtn: {
+    fontSize: 9.5,
+    fontWeight: 700,
+    color: "#ffffff",
+    cursor: "pointer",
+  },
+  keySecurityNote: {
+    fontSize: 8,
+    lineHeight: 1.35,
+    color: "rgba(255, 255, 255, 0.68)",
+    margin: "2px 0 0",
+  },
+  byokBottomActions: {
     display: "flex",
     flexDirection: "column",
     gap: 5,
+    marginTop: "auto",
   },
-  fileChangesTopRow: {
+  saveConfigBtn: {
+    backgroundColor: "#ffffff",
+    color: "#0f172a",
+    border: "none",
+    borderRadius: 10,
+    padding: "8px",
+    fontSize: 11.5,
+    fontWeight: 800,
+    cursor: "pointer",
+    textAlign: "center",
+  },
+  clearKeyBtn: {
+    backgroundColor: "rgba(220, 38, 38, 0.28)",
+    border: "1px solid rgba(248, 113, 113, 0.35)",
+    color: "#fca5a5",
+    borderRadius: 10,
+    padding: "7px",
+    fontSize: 11,
+    fontWeight: 700,
+    cursor: "pointer",
+    textAlign: "center",
+  },
+
+  /* CHAT / ACTIVE REMOTE SCREENS (Photo 2 Match) */
+  chatScreenWrapper: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    animation: "fadeIn 0.22s ease-out",
+  },
+  chatScreenHeader: {
+    backgroundColor: "rgba(255, 255, 255, 0.09)",
+    border: "1px solid rgba(255, 255, 255, 0.16)",
+    borderRadius: 11,
+    padding: "6px 9px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backdropFilter: "blur(12px)",
+  },
+  chatHeaderLeft: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  chatHeaderTitle: {
+    fontSize: 13,
+    fontWeight: 800,
+    color: "#ffffff",
+    letterSpacing: "-0.01em",
+  },
+  chatHeaderSubtitle: {
+    fontSize: 9,
+    color: "rgba(255, 255, 255, 0.72)",
+  },
+  chatHeaderRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: 5,
+  },
+  chatModelPill: {
+    fontSize: 9.5,
+    fontWeight: 700,
+    backgroundColor: "rgba(255, 255, 255, 0.14)",
+    border: "1px solid rgba(255, 255, 255, 0.22)",
+    color: "#ffffff",
+    padding: "2px 7px",
+    borderRadius: 9999,
+  },
+  chatCloseBtn: {
+    width: 20,
+    height: 20,
+    borderRadius: "50%",
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 10,
+    color: "#ffffff",
+    cursor: "pointer",
+  },
+  chatFeedScroll: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+    margin: "4px 0",
+    overflowY: "hidden",
+  },
+  thinkingCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    border: "1px solid rgba(255, 255, 255, 0.15)",
+    borderRadius: 10,
+    padding: "7px 9px",
+    backdropFilter: "blur(10px)",
+  },
+  thinkingHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+    fontSize: 10.5,
+    color: "#ffffff",
+    fontWeight: 700,
   },
-  fileStatsLeft: {
+  thinkingTitleRow: {
     display: "flex",
-    alignItems: "center",
-    fontSize: 9.5,
-    fontWeight: 600,
-    color: "#f8fafc",
-  },
-  addStat: {
-    color: "#4ade80",
-    marginLeft: 4,
-    fontFamily: "var(--font-mono)",
-    fontWeight: 700,
-  },
-  delStat: {
-    color: "#f87171",
-    marginLeft: 3,
-    fontFamily: "var(--font-mono)",
-    fontWeight: 700,
-  },
-  reviewBtnMini: {
-    display: "inline-flex",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.07)",
-    border: "1px solid rgba(255, 255, 255, 0.12)",
-    borderRadius: 5,
-    padding: "2px 6px",
-    color: "#cbd5e1",
-    fontSize: 9,
-    fontWeight: 600,
-    cursor: "pointer",
   },
-  fileListStack: {
+  thinkingCollapse: {
+    fontSize: 9,
+    color: "rgba(255, 255, 255, 0.7)",
+  },
+  thinkingDirective: {
+    fontSize: 9.5,
+    color: "rgba(255, 255, 255, 0.85)",
+    marginTop: 3,
+    lineHeight: 1.35,
+  },
+  agentProseMessage: {
+    fontSize: 10.5,
+    lineHeight: 1.4,
+    color: "#ffffff",
+    padding: "1px 2px",
+  },
+  inlineCodePill: {
+    backgroundColor: "rgba(255, 255, 255, 0.14)",
+    padding: "1px 5px",
+    borderRadius: 4,
+    fontFamily: "var(--font-mono)",
+    fontSize: 9.5,
+  },
+  toolExecCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    border: "1px solid rgba(255, 255, 255, 0.15)",
+    borderRadius: 9,
+    padding: "6px 8px",
     display: "flex",
     flexDirection: "column",
+    gap: 4,
+  },
+  toolExecHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  toolNameBadge: {
+    fontSize: 9.5,
+    fontWeight: 700,
+    fontFamily: "var(--font-mono)",
+    backgroundColor: "rgba(255, 255, 255, 0.16)",
+    border: "1px solid rgba(255, 255, 255, 0.22)",
+    padding: "2px 6px",
+    borderRadius: 4,
+    color: "#ffffff",
+  },
+  toolExecStatus: {
+    fontSize: 9,
+    color: "rgba(255, 255, 255, 0.75)",
+  },
+  toolExecBody: {
+    backgroundColor: "rgba(0, 0, 0, 0.28)",
+    borderRadius: 6,
+    padding: "4px 7px",
+    fontSize: 9.5,
+    color: "rgba(255, 255, 255, 0.9)",
+    fontFamily: "var(--font-mono)",
+  },
+  codeDiffCard: {
+    backgroundColor: "#080e1a",
+    border: "1px solid rgba(255, 255, 255, 0.14)",
+    borderRadius: 9,
+    padding: "6px 8px 16px",
+    position: "relative",
+    overflow: "hidden",
+  },
+  codeDiffHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 5,
+  },
+  codeDiffFileName: {
+    fontSize: 10.5,
+    fontWeight: 800,
+    color: "#ffffff",
+    fontFamily: "var(--font-mono)",
+  },
+  codeDiffStats: {
+    display: "flex",
     gap: 3,
   },
-  fileItemRow: {
+  badgeAdd: {
+    backgroundColor: "rgba(34, 197, 94, 0.25)",
+    border: "1px solid rgba(74, 222, 128, 0.4)",
+    color: "#4ade80",
+    fontSize: 8.5,
+    fontWeight: 800,
+    padding: "1px 5px",
+    borderRadius: 3,
+    fontFamily: "var(--font-mono)",
+  },
+  badgeDel: {
+    backgroundColor: "rgba(239, 68, 68, 0.25)",
+    border: "1px solid rgba(248, 113, 113, 0.4)",
+    color: "#f87171",
+    fontSize: 8.5,
+    fontWeight: 800,
+    padding: "1px 5px",
+    borderRadius: 3,
+    fontFamily: "var(--font-mono)",
+  },
+  codeDiffView: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+    fontFamily: "var(--font-mono)",
+    fontSize: 8.5,
+    lineHeight: 1.4,
+  },
+  diffHeaderLine: {
+    color: "#38bdf8",
+    opacity: 0.85,
+  },
+  diffCodeLine: {
+    color: "rgba(255, 255, 255, 0.78)",
+  },
+  diffCodeLineAdd: {
+    color: "#4ade80",
+    backgroundColor: "rgba(34, 197, 94, 0.22)",
+    padding: "1.5px 3px",
+    borderRadius: 2,
+    display: "block",
+    width: "100%",
+  },
+  diffCodeLineDel: {
+    color: "#f87171",
+    backgroundColor: "rgba(239, 68, 68, 0.18)",
+    padding: "1.5px 3px",
+    borderRadius: 2,
+    display: "block",
+    width: "100%",
+  },
+  jumpToLiveFloat: {
+    position: "absolute",
+    bottom: 5,
+    left: "50%",
+    transform: "translateX(-50%)",
+    backgroundColor: "rgba(0, 0, 0, 0.65)",
+    border: "1px solid rgba(255, 255, 255, 0.45)",
+    backdropFilter: "blur(8px)",
+    borderRadius: 9999,
+    padding: "2px 9px",
+    fontSize: 8.5,
+    fontWeight: 700,
+    color: "#ffffff",
+    cursor: "pointer",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.4)",
+  },
+
+  /* Bottom Dock: Chips ABOVE Prompt Input Bar */
+  chatBottomDock: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    marginTop: "auto",
+  },
+  quickChipsRow: {
+    display: "flex",
+    gap: 4,
+    overflowX: "hidden",
+    padding: "1px 0",
+  },
+  quickChip: {
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    border: "1px solid rgba(255, 255, 255, 0.22)",
+    borderRadius: 9999,
+    padding: "4px 9px",
+    fontSize: 9,
+    fontWeight: 600,
+    color: "#ffffff",
+    whiteSpace: "nowrap",
+    backdropFilter: "blur(6px)",
+  },
+  promptInputContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.09)",
+    border: "1px solid rgba(255, 255, 255, 0.22)",
+    borderRadius: 9999,
+    padding: "5px 6px 5px 12px",
     display: "flex",
     alignItems: "center",
-    gap: 5,
+    justifyContent: "space-between",
+    backdropFilter: "blur(12px)",
+  },
+  promptPlaceholder: {
     fontSize: 9.5,
-    overflow: "hidden",
-  },
-  reactFileIcon: {
-    fontSize: 10,
-  },
-  tsFileIcon: {
-    fontSize: 10,
-    color: "#38bdf8",
-  },
-  markdownFileIcon: {
-    fontSize: 8.5,
-    fontFamily: "var(--font-mono)",
-    color: "#38bdf8",
-    fontWeight: 800,
-    backgroundColor: "rgba(56, 189, 248, 0.15)",
-    padding: "1px 3px",
-    borderRadius: 2,
-  },
-  fileNameText: {
-    fontWeight: 700,
-    color: "#f8fafc",
+    color: "rgba(255, 255, 255, 0.58)",
     whiteSpace: "nowrap",
-  },
-  filePathText: {
-    color: "#64748b",
-    fontSize: 8,
-    fontFamily: "var(--font-mono)",
     overflow: "hidden",
     textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
   },
-  widgetLowerSection: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    gap: 5,
-  },
-  widgetSectionHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "0 2px",
-  },
-  widgetTitle: {
-    fontSize: 10.5,
-    fontWeight: 700,
-    color: "#f8fafc",
-  },
-  widgetMeta: {
-    fontSize: 9.5,
-    fontFamily: "var(--font-mono)",
-    color: "#38bdf8",
-    fontWeight: 700,
-  },
-  terminalBoxSplit: {
-    flex: 1,
-    backgroundColor: "#030712",
-    border: "1px solid rgba(255, 255, 255, 0.12)",
-    borderRadius: 8,
-    padding: "7px 8px",
-    fontFamily: "var(--font-mono)",
-    fontSize: 9.5,
-    lineHeight: 1.4,
-    overflowY: "auto",
-  },
-  terminalPrompt: {
-    color: "#fb923c",
-    fontWeight: 700,
-    marginBottom: 3,
-  },
-  tokenOutput: {
-    color: "#e2e8f0",
-  },
-  blinkingCursor: {
-    color: "#38bdf8",
-  },
-  telemetryQuickBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
-    border: "1px solid rgba(255, 255, 255, 0.08)",
-    borderRadius: 6,
-    padding: "4px 8px",
-    fontSize: 9,
-    color: "#94a3b8",
-  },
-  telemetryStat: {
-    fontFamily: "var(--font-mono)",
-  },
-  telemetryLiveDot: {
-    color: "#34d399",
-    fontWeight: 700,
-    fontFamily: "var(--font-mono)",
-  },
-  safetyGateCardSplit: {
-    flex: 1,
-    backgroundColor: "rgba(234, 88, 12, 0.08)",
-    border: "1px solid rgba(234, 88, 12, 0.3)",
-    borderRadius: 10,
-    padding: "9px 8px",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-    gap: 5,
-  },
-  safetyHeader: {
+  promptSendArrow: {
+    width: 20,
+    height: 20,
+    borderRadius: "50%",
+    backgroundColor: "rgba(255, 255, 255, 0.22)",
     display: "flex",
     alignItems: "center",
-    gap: 6,
-  },
-  safetyIcon: {
-    fontSize: 13,
-  },
-  safetyTitle: {
+    justifyContent: "center",
     fontSize: 11,
-    fontWeight: 800,
-    color: "#ea580c",
+    color: "#ffffff",
+    fontWeight: 700,
   },
-  commandCodeBlock: {
-    backgroundColor: "#030712",
-    border: "1px solid rgba(234, 88, 12, 0.25)",
-    borderRadius: 6,
-    padding: "5px 7px",
-    fontFamily: "var(--font-mono)",
-    fontSize: 9.5,
-    color: "#fdba74",
-    overflowX: "auto",
-  },
-  approvalButtonsRow: {
+
+  /* Safety Gate Screen 4 */
+  safetyGateCard: {
+    backgroundColor: "rgba(234, 88, 12, 0.12)",
+    border: "1px solid rgba(234, 88, 12, 0.35)",
+    borderRadius: 9,
+    padding: "7px 8px",
     display: "flex",
-    gap: 6,
+    flexDirection: "column",
+    gap: 5,
   },
-  approveBtn: {
+  safetyGateHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  safetyGateTitle: {
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    fontSize: 9.5,
+    fontWeight: 800,
+    color: "#fb923c",
+  },
+  safetyCountdownBadge: {
+    fontSize: 8.5,
+    fontWeight: 800,
+    fontFamily: "var(--font-mono)",
+    backgroundColor: "rgba(234, 88, 12, 0.3)",
+    color: "#fdba74",
+    padding: "1px 5px",
+    borderRadius: 4,
+  },
+  safetyCommandBox: {
+    backgroundColor: "#030712",
+    borderRadius: 5,
+    padding: "4px 6px",
+    fontFamily: "var(--font-mono)",
+    fontSize: 8.5,
+    color: "#fdba74",
+  },
+  approvalButtons: {
+    display: "flex",
+    gap: 5,
+  },
+  btnApprove: {
     flex: 1,
     backgroundColor: "#16a34a",
     color: "#ffffff",
     border: "none",
     borderRadius: 6,
-    padding: "8px",
-    fontSize: 11,
+    padding: "6px",
+    fontSize: 9.5,
     fontWeight: 700,
     cursor: "pointer",
   },
-  rejectBtn: {
+  btnReject: {
     backgroundColor: "rgba(220, 38, 38, 0.2)",
-    color: "#f87171",
     border: "1px solid rgba(220, 38, 38, 0.4)",
+    color: "#fca5a5",
     borderRadius: 6,
-    padding: "8px 12px",
-    fontSize: 11,
+    padding: "6px 10px",
+    fontSize: 9.5,
     fontWeight: 700,
     cursor: "pointer",
   },
-  approvedSuccessBanner: {
-    backgroundColor: "rgba(22, 163, 74, 0.2)",
-    border: "1px solid rgba(22, 163, 74, 0.4)",
-    borderRadius: 7,
-    padding: "8px",
-    textAlign: "center",
+  approvedBanner: {
+    backgroundColor: "rgba(22, 163, 74, 0.25)",
+    border: "1px solid rgba(74, 222, 128, 0.45)",
     color: "#4ade80",
-    fontSize: 10.5,
-    fontWeight: 700,
-  },
-  diffFilePathSplit: {
-    fontFamily: "var(--font-mono)",
-    fontSize: 9.5,
-    color: "#94a3b8",
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
-    padding: "3px 6px",
-    borderRadius: 4,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  diffContainerSplit: {
-    flex: 1,
-    backgroundColor: "#030712",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: 7,
-    padding: 7,
-    fontFamily: "var(--font-mono)",
-    fontSize: 9,
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
-    overflowY: "auto",
-  },
-  diffLineDel: {
-    color: "#f87171",
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
-    padding: "2px 4px",
-    borderRadius: 3,
-  },
-  diffLineAdd: {
-    color: "#4ade80",
-    backgroundColor: "rgba(34, 197, 94, 0.12)",
-    padding: "2px 4px",
-    borderRadius: 3,
-  },
-  diffLineNeutral: {
-    color: "#94a3b8",
-    padding: "2px 4px",
-  },
-  diffFooterRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
-    padding: "4px 8px",
-    borderRadius: 5,
-    fontSize: 9.5,
-  },
-  diffBranchName: {
-    color: "#94a3b8",
-    fontFamily: "var(--font-mono)",
-  },
-  diffReadyText: {
-    color: "#38bdf8",
-    fontWeight: 600,
-  },
-  pinScreenHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    border: "1px solid rgba(255, 255, 255, 0.09)",
-    borderRadius: 9,
-    padding: "8px 12px",
-  },
-  pinHeaderLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: 7,
-  },
-  pinHeaderTitle: {
-    fontSize: 12,
-    fontWeight: 700,
-    color: "#ffffff",
-  },
-  pinHeaderMeta: {
-    fontSize: 11,
-    fontFamily: "var(--font-mono)",
-    color: "#94a3b8",
-    fontWeight: 600,
-  },
-  pinCenterCardExact: {
-    backgroundColor: "#0c1322",
-    border: "1px solid rgba(255, 255, 255, 0.08)",
-    borderRadius: 16,
-    padding: "24px 14px",
+    padding: "6px",
+    borderRadius: 6,
     textAlign: "center",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    margin: "12px 0",
-  },
-  pinLockCircleExact: {
-    width: 48,
-    height: 48,
-    borderRadius: "50%",
-    backgroundColor: "rgba(37, 99, 235, 0.18)",
-    border: "1.5px solid rgba(59, 130, 246, 0.35)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  pinMainTitleExact: {
-    fontSize: 15,
-    fontWeight: 800,
-    color: "#ffffff",
-    letterSpacing: -0.2,
-  },
-  pinSubtitleExact: {
-    fontSize: 11.5,
-    color: "#94a3b8",
-    marginTop: 4,
-    marginBottom: 14,
-  },
-  pinBoxesRowExact: {
-    display: "flex",
-    gap: 5.5,
-    justifyContent: "center",
-  },
-  pinBoxExact: {
-    width: 35,
-    height: 44,
-    backgroundColor: "#0a101f",
-    border: "1.5px solid rgba(59, 130, 246, 0.55)",
-    borderRadius: 8,
-    color: "#ffffff",
-    fontFamily: "var(--font-mono)",
-    fontSize: 20,
-    fontWeight: 900,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    boxShadow: "0 4px 14px rgba(0, 0, 0, 0.5)",
-  },
-  pinExpiryTextExact: {
-    fontSize: 10,
-    color: "#64748b",
-    fontFamily: "var(--font-mono)",
-    marginTop: 14,
-  },
-  screenBottomBlockExact: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-  },
-  hostInfoCardExact: {
-    backgroundColor: "#0c1322",
-    border: "1px solid rgba(255, 255, 255, 0.08)",
-    borderRadius: 9,
-    padding: "10px 12px",
-    display: "flex",
-    flexDirection: "column",
-    gap: 5,
-  },
-  hostInfoRowExact: {
-    display: "flex",
-    justifyContent: "space-between",
-    fontSize: 11,
-  },
-  hostInfoLabelExact: {
-    color: "#94a3b8",
-    fontSize: 10.5,
-  },
-  hostInfoValueExact: {
-    color: "#ffffff",
-    fontWeight: 700,
-    fontFamily: "var(--font-mono)",
-    fontSize: 11,
-  },
-  tunnelStatusRowExact: {
-    display: "flex",
-    alignItems: "center",
-    gap: 7,
-    justifyContent: "center",
-    backgroundColor: "rgba(6, 78, 59, 0.35)",
-    border: "1px solid rgba(16, 185, 129, 0.35)",
-    borderRadius: 8,
-    padding: "9px 12px",
-  },
-  tunnelDotExact: {
-    width: 7,
-    height: 7,
-    borderRadius: "50%",
-    backgroundColor: "#10b981",
-    boxShadow: "0 0 8px #10b981",
-  },
-  tunnelTextExact: {
-    fontSize: 11.5,
-    color: "#34d399",
+    fontSize: 9.5,
     fontWeight: 700,
   },
-  tunnelStatusRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    justifyContent: "center",
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
-    border: "1px solid rgba(16, 185, 129, 0.25)",
+
+  /* Diff Viewer Screen 5 */
+  filesSummaryCard: {
+    backgroundColor: "rgba(0, 0, 0, 0.35)",
+    border: "1px solid rgba(255, 255, 255, 0.12)",
     borderRadius: 7,
-    padding: "8px 10px",
-  },
-  byokList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    margin: "10px 0",
-  },
-  byokItem: {
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
-    border: "1px solid rgba(255, 255, 255, 0.08)",
-    borderRadius: 8,
-    padding: "8px 10px",
+    padding: "5px 7px",
     display: "flex",
     flexDirection: "column",
     gap: 3,
   },
-  byokTopRow: {
+  filesSummaryTop: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  byokProviderName: {
-    fontSize: 11,
+  filesSummaryLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: 3,
+    fontSize: 9,
     fontWeight: 700,
-    color: "#f8fafc",
+    color: "#ffffff",
   },
-  byokStatusActive: {
-    fontSize: 9.5,
-    fontFamily: "var(--font-mono)",
-    color: "#34d399",
+  reviewBtn: {
+    fontSize: 8.5,
+    color: "#38bdf8",
     fontWeight: 700,
+    cursor: "pointer",
   },
-  byokKeyMask: {
-    fontSize: 10,
+  filesListStack: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  },
+  fileRowItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    fontSize: 8.5,
+  },
+  fileNameWhite: {
+    color: "rgba(255, 255, 255, 0.85)",
     fontFamily: "var(--font-mono)",
-    color: "#94a3b8",
-    backgroundColor: "#030712",
-    padding: "3px 6px",
-    borderRadius: 4,
   },
-  phoneHomeBar: {
-    width: 100,
-    height: 3.5,
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
+
+  /* iOS Home Indicator */
+  iosHomeIndicator: {
+    width: 108,
+    height: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.65)",
     borderRadius: 9999,
-    margin: "8px auto 5px",
+    margin: "6px auto 5px",
   },
 };
