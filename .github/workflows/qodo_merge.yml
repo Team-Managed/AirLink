@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Qodo Merge PR Agent
-        uses: qodo-ai/pr-agent@01b7e8344672f5f02b76073334151cf2f4099ebc # v0.34.2
+        uses: qodo-ai/pr-agent@e04d8ae8d698fb516ed8682855a5ce57c1784369 # v0.34.2
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_KEY || secrets.QODO_API_KEY }}
           GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
