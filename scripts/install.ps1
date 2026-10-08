@@ -1,6 +1,5 @@
 # AirLink Workstation Harness — Windows Installer (PowerShell)
-# Usage: irm https://airlink.dev/install.ps1 | iex
-#    or: irm https://airlink-green.vercel.app/install.ps1 | iex
+# Usage: irm https://airlink-green.vercel.app/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
 
@@ -36,7 +35,7 @@ try {
     Write-Host "  To launch your remote agent harness in any repository, run:" -ForegroundColor Cyan
     Write-Host "     airlink" -ForegroundColor Green
     Write-Host ""
-    Write-Host "  Pair your phone at: https://airlink.dev/pair" -ForegroundColor White
+    Write-Host "  Pair your phone at: https://airlink-green.vercel.app/pair" -ForegroundColor White
     Write-Host ""
 } catch {
     Write-Host "[WARN] Global install encountered permission restrictions." -ForegroundColor Yellow

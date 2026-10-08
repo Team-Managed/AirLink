@@ -41,7 +41,7 @@ describe("Terminal UI Component Suite", () => {
       });
 
       expect(banner).toContain("834-192");
-      expect(banner).toContain("https://airlink.dev/pair?pin=834192");
+      expect(banner).toContain("https://airlink-green.vercel.app/pair?pin=834192");
       expect(banner).toContain("/workspace/project");
       expect(banner).toContain("0x-alpha");
       expect(banner).toMatch(/airlink/i);

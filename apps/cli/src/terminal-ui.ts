@@ -164,7 +164,8 @@ export function formatInlineMarkdown(text: string): string {
 export function formatBootBannerText(options: BootBannerOptions): string {
   const pinDisplay = formatPinDisplay(options.pin);
   const rawPinDigits = options.pin.replace(/\D/g, "");
-  const pairUrl = `https://airlink.dev/pair?pin=${rawPinDigits}`;
+  const baseUrl = process.env.AIRLINK_WEB_URL || "https://airlink-green.vercel.app";
+  const pairUrl = `${baseUrl}/pair?pin=${rawPinDigits}`;
 
   const introText = chalk.hex("#94a3b8")(
     `I'm initializing the AirLink workstation daemon. I'll establish a secure WebSocket relay bridge and generate an ephemeral 6-digit session PIN (${pinDisplay}) so you can pair securely from your phone in 3 seconds with zero port-forwarding.`

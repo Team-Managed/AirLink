@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # AirLink Workstation Harness — macOS & Linux Installer
-# Usage: curl -fsSL https://airlink.dev/install.sh | bash
-#    or: curl -fsSL https://airlink-green.vercel.app/install.sh | bash
+# Usage: curl -fsSL https://airlink-green.vercel.app/install.sh | bash
 
 set -e
 
@@ -31,7 +30,7 @@ if npm install -g @airlink/cli --loglevel=error 2>/dev/null; then
     echo -e "\033[1;36m  To launch your remote agent harness in any repository, run:\033[0m"
     echo -e "     \033[1;32mairlink\033[0m"
     echo ""
-    echo -e "  Pair your phone at: https://airlink.dev/pair"
+    echo -e "  Pair your phone at: https://airlink-green.vercel.app/pair"
     echo ""
 else
     echo -e "\033[1;33m[WARN] Global install requires sudo or configured npm prefix.\033[0m"

@@ -8,8 +8,8 @@ export function InstallCommandBar() {
   const [copied, setCopied] = useState<boolean>(false);
 
   const installCommands: Record<InstallTab, string> = {
-    windows: "irm https://airlink.dev/install.ps1 | iex",
-    posix: "curl -fsSL https://airlink.dev/install.sh | bash",
+    windows: "irm https://airlink-green.vercel.app/install.ps1 | iex",
+    posix: "curl -fsSL https://airlink-green.vercel.app/install.sh | bash",
     npx: "npx @airlink/cli",
   };
 
