@@ -681,23 +681,20 @@ export function ScrollFeaturePhoneShowcase() {
                     </div>
 
                     <div style={styles.chatFeedScroll}>
-                      {/* Thinking Box */}
-                      <div style={styles.thinkingCard}>
-                        <div style={styles.thinkingHeader}>
-                          <div style={styles.thinkingTitleRow}>
-                            <span>Thinking...</span>
-                            <span style={{ fontSize: 9 }}>˅</span>
-                          </div>
-                          <span style={styles.thinkingCollapse}>Collapse</span>
+                      {/* User Prompt Bubble (Matches User's Mobile Remote Screenshot) */}
+                      <div style={styles.humanPromptBubble}>
+                        <div style={styles.humanPromptHeader}>
+                          <span style={styles.humanPromptDot} />
+                          <span>YOU (MOBILE REMOTE)</span>
                         </div>
-                        <div style={styles.thinkingDirective}>
-                          Analyzing directive: &quot;Make hero text all black with GSAP appearing reveal.&quot;
+                        <div style={styles.humanPromptText}>
+                          also the hero text let us have it all black and i have some gsap effect like something appearing sort of
                         </div>
                       </div>
 
-                      {/* Agent Explanation */}
-                      <div style={styles.agentProseMessage}>
-                        I am applying the GSAP word blur-reveal animation to PanoramicLandscapeHero.tsx and updating the context logs.
+                      {/* Worked Status Line */}
+                      <div style={styles.workedStatusLine}>
+                        Worked for 52s &gt;
                       </div>
 
                       {/* Files Summary Strip */}
@@ -707,23 +704,24 @@ export function ScrollFeaturePhoneShowcase() {
                             <span>2 files changed</span>
                             <span style={styles.badgeAdd}>+92</span>
                             <span style={styles.badgeDel}>-35</span>
+                            <span style={{ fontSize: 9, opacity: 0.7 }}>v</span>
                           </div>
                           <div style={styles.reviewBtn}>[ Review ]</div>
                         </div>
                         <div style={styles.filesListStack}>
                           <div style={styles.fileRowItem}>
-                            <span>⚛️</span>
+                            <span style={{ fontSize: 10 }}>⚛</span>
                             <span style={styles.fileNameWhite}>PanoramicLandscapeHero.tsx</span>
                           </div>
                           <div style={styles.fileRowItem}>
-                            <span>M↓</span>
+                            <span style={{ fontSize: 9, opacity: 0.8 }}>M↓</span>
                             <span style={styles.fileNameWhite}>progress-tracker.md</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Diff Viewer Card */}
-                      <div style={styles.codeDiffCard}>
+                      {/* Diff Viewer Card (Fills down to suggestion chips) */}
+                      <div style={styles.codeDiffCardFilled}>
                         <div style={styles.codeDiffHeader}>
                           <div style={styles.codeDiffFileName}>PanoramicLandscapeHero.tsx</div>
                           <div style={styles.codeDiffStats}>
@@ -733,11 +731,12 @@ export function ScrollFeaturePhoneShowcase() {
                         </div>
 
                         <div style={styles.codeDiffView}>
-                          <div style={styles.diffHeaderLine}>@@ -40,8 +40,10 @@ export function PanoramicLandscapeHero() &#123;</div>
                           <div style={styles.diffCodeLineDel}>- color: &quot;transparent&quot;, backgroundClip: &quot;text&quot;,</div>
                           <div style={styles.diffCodeLineAdd}>+ color: &quot;#0f172a&quot;, fontWeight: 900,</div>
                           <div style={styles.diffCodeLineAdd}>+ gsap.fromTo(&quot;.hero-word&quot;, &#123; filter: &quot;blur(12px)&quot;, y: 48 &#125;,</div>
                           <div style={styles.diffCodeLine}>&nbsp;&nbsp;&#123; filter: &quot;blur(0px)&quot;, y: 0, stagger: 0.065 &#125;);</div>
+                          <div style={styles.diffCodeLine}>&nbsp;&nbsp;return (</div>
+                          <div style={styles.diffCodeLine}>&nbsp;&nbsp;&nbsp;&nbsp;&lt;div className=&quot;hero-wrapper&quot;&gt;</div>
                         </div>
 
                         <div style={styles.jumpToLiveFloat}>
