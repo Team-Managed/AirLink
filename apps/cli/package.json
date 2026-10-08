@@ -29,15 +29,13 @@
     "test": "vitest run",
     "dev": "node dist/bin.cjs"
   },
-  "dependencies": {
+  "devDependencies": {
     "@airlink/bridge-core": "workspace:*",
     "@airlink/protocol": "workspace:*",
+    "@types/node": "^22.0.0",
     "boxen": "^7.1.1",
     "chalk": "^5.3.0",
-    "dotenv": "^16.4.5"
-  },
-  "devDependencies": {
-    "@types/node": "^22.0.0",
+    "dotenv": "^16.4.5",
     "esbuild": "^0.28.2",
     "typescript": "^5.5.4",
     "vitest": "^2.0.5"
