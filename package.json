@@ -19,7 +19,9 @@
     "dev:relay": "pnpm --filter @airlink/relay dev",
     "dev:cli": "pnpm --filter @airlink/cli dev",
     "dev:mobile": "pnpm --filter @airlink/mobile start",
-    "dev:web": "pnpm --filter @airlink/web dev"
+    "dev:web": "pnpm --filter @airlink/web dev",
+    "build:cli": "pnpm --filter @airlink/cli build",
+    "publish:cli": "pnpm build:cli && pnpm --filter @airlink/cli publish --access public --no-git-checks"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
