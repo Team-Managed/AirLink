@@ -344,7 +344,7 @@ export function createRelayServer(options: RelayServerOptions = {}): RelayServer
   const start = (overridePort?: number): Promise<{ port: number }> => {
     const listenPort = overridePort ?? port;
     return new Promise<{ port: number }>((resolve, reject) => {
-      httpServer.listen(listenPort, () => {
+      httpServer.listen(listenPort, "0.0.0.0", () => {
         const addr = httpServer.address();
         const actualPort = typeof addr === "object" && addr !== null ? addr.port : listenPort;
         resolve({ port: actualPort });

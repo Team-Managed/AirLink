@@ -3,6 +3,7 @@ services:
     name: airlink-relay
     env: docker
     dockerfilePath: Dockerfile
+    dockerContext: .
     plan: free
     region: oregon
     healthCheckPath: /health

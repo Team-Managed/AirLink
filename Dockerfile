@@ -3,8 +3,8 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install pnpm globally
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm globally matching packageManager
+RUN npm install -g pnpm@9.7.0
 
 # Copy workspace configurations and manifests
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
@@ -13,8 +13,8 @@ COPY packages/protocol/tsconfig.json ./packages/protocol/
 COPY apps/relay/package.json ./apps/relay/
 COPY apps/relay/tsconfig.json ./apps/relay/
 
-# Install dependencies for targeted packages
-RUN pnpm install --frozen-lockfile --filter "@airlink/protocol..." --filter "@airlink/relay..."
+# Install dependencies for targeted packages (skip lifecycle scripts until source code is present)
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter "@airlink/protocol..." --filter "@airlink/relay..."
 
 # Copy source code
 COPY packages/protocol ./packages/protocol
