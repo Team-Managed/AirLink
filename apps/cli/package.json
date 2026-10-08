@@ -4,8 +4,15 @@
   "description": "AirLink interactive terminal CLI host and client for remote coding agent control",
   "type": "module",
   "bin": {
-    "airlink": "./dist/bin.js",
-    "agent-remote": "./dist/bin.js"
+    "airlink": "./dist/bin.cjs",
+    "agent-remote": "./dist/bin.cjs"
+  },
+  "files": [
+    "dist/bin.cjs",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,11 +23,11 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
+    "build": "node esbuild.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "test": "vitest run",
-    "dev": "node dist/bin.js"
+    "dev": "node dist/bin.cjs"
   },
   "dependencies": {
     "@airlink/bridge-core": "workspace:*",
@@ -31,6 +38,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "esbuild": "^0.28.2",
     "typescript": "^5.5.4",
     "vitest": "^2.0.5"
   }
