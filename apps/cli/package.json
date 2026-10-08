@@ -4,8 +4,8 @@
   "description": "AirLink interactive terminal CLI host and client for remote coding agent control",
   "type": "module",
   "bin": {
-    "airlink": "./dist/bin.cjs",
-    "agent-remote": "./dist/bin.cjs"
+    "airlink": "dist/bin.cjs",
+    "agent-remote": "dist/bin.cjs"
   },
   "files": [
     "dist/bin.cjs",
