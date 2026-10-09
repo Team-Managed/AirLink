@@ -50,7 +50,7 @@ export function WebPromptBar({ isStreaming, onSendPrompt }: WebPromptBarProps) {
       </div>
 
       {/* Prompt Input Row */}
-      <div style={styles.inputBar}>
+      <div className="pair-prompt-input-row-responsive" style={styles.inputBar}>
         <input
           type="text"
           style={styles.promptInput}
@@ -66,6 +66,7 @@ export function WebPromptBar({ isStreaming, onSendPrompt }: WebPromptBarProps) {
           disabled={isStreaming}
         />
         <button
+          className="pair-send-btn-responsive"
           style={styles.sendButton}
           onClick={() => handleSend()}
           disabled={!promptInput.trim() || isStreaming}

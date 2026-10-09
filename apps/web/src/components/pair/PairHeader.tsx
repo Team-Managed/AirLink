@@ -21,8 +21,8 @@ export function PairHeader({
   onDisconnect,
 }: PairHeaderProps) {
   return (
-    <header style={styles.header}>
-      <div style={styles.headerLeft}>
+    <header className="pair-header-responsive" style={styles.header}>
+      <div className="pair-header-left-responsive" style={styles.headerLeft}>
         <Link href="/" style={styles.backLink}>
           <svg
             width="14"
@@ -41,14 +41,14 @@ export function PairHeader({
           <span style={styles.brandTitle}>AIRLINK WEB REMOTE</span>
         </div>
         {isConnected && (
-          <span style={styles.connectedBadge}>
+          <span className="pair-connected-badge-responsive" style={styles.connectedBadge}>
             Connected: {sessionData?.deviceName || "Workstation"} (
             {sessionData?.workspacePath?.split("/").pop() || "workspace"})
           </span>
         )}
       </div>
 
-      <div style={styles.headerRight}>
+      <div className="pair-header-right-responsive" style={styles.headerRight}>
         <button style={styles.settingsBtn} onClick={onToggleSettings}>
           {showSettings ? "Close Settings" : "BYOK Settings"}
         </button>

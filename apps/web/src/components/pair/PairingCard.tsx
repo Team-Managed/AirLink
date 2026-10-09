@@ -21,7 +21,7 @@ export function PairingCard({
 }: PairingCardProps) {
   return (
     <div style={styles.pairingContainer}>
-      <div style={styles.pairingCard}>
+      <div className="pairing-card-responsive" style={styles.pairingCard}>
         <div style={styles.badgeRow}>
           <div style={styles.pairingIconBadge}>
             <span style={styles.pulseDot} />
@@ -38,6 +38,7 @@ export function PairingCard({
           <input
             type="text"
             maxLength={6}
+            className="pin-input-responsive"
             style={styles.pinInput}
             value={pin}
             onChange={(e) => {
