@@ -23,19 +23,19 @@
   },
   "dependencies": {
     "@airlink/protocol": "workspace:*",
-    "@expo/metro-runtime": "^6.1.2",
-    "expo": "~54.0.27",
-    "expo-secure-store": "~14.0.1",
-    "react": "19.1.0",
-    "react-dom": "^19.1.0",
-    "react-native": "0.81.5",
-    "react-native-safe-area-context": "^5.9.1",
+    "@expo/metro-runtime": "~57.0.16",
+    "expo": "~57.0.27",
+    "expo-secure-store": "~57.0.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
     "react-native-web": "^0.21.2",
     "socket.io-client": "^4.7.5"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@types/react": "~19.1.10",
+    "@types/react": "~19.2.4",
     "@types/react-native": "^0.73.0",
     "typescript": "^5.5.4",
     "vitest": "^2.0.5"

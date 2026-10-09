@@ -40,6 +40,7 @@
   - Implemented `ApprovalDrawer` with 180s countdown progress bar (smooth color morph from green -> amber -> red), risk level badges, and dual `[Approve]` / `[Deny]` action buttons.
   - Integrated `MobileHapticsService` with native `Vibration` and web vibration fallback.
   - Resolved all 10 Qodo review findings on PR #14: reconnection join-before-sync, stream auto-scroll on content size changes, user prompt vs agent token separation (`role: "user"`), multicast socket subscriptions with lifecycle cleanup, expired room purging to prevent client resurrection, dynamic approval timeout reporting, and slide-modal UI context alignment.
+  - Upgraded mobile app dependencies to **Expo SDK 57** (`expo@~57.0.27`, `react-native@0.86.3`, `react@19.2.3`, `react-native-safe-area-context@~5.7.0`, `expo-secure-store@~57.0.4`, `@expo/metro-runtime@~57.0.16`) to ensure compatibility with modern Expo Go clients. Updated `StyleSheet.absoluteFill` usages for RN 0.86 typings.
   - 100% test pass rate across 26 test files and 193 unit/integration tests.
 
 - [x] **Unit 10: BYOK Encrypted Vault & Model Routing (`apps/mobile` + `bridge-core`):**

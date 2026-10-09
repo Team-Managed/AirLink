@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     backgroundColor: THEME_COLORS.backgroundBase,
   },
   overlayTint: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(10, 16, 30, 0.38)",
   },
   container: {
