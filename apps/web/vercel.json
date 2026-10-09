@@ -1,5 +1,5 @@
 {
   "framework": "nextjs",
-  "buildCommand": "pnpm --filter @airlink/web build",
+  "buildCommand": "pnpm --filter @airlink/web... build",
   "installCommand": "pnpm install"
 }

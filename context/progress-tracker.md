@@ -199,6 +199,10 @@
     - **Issue 5 (npm Package Manifest & README):** Added dedicated [`apps/cli/README.md`](file:///c:/Users/Tyra/agent-harness/apps/cli/README.md) emphasizing the primary `airlink` terminal command, verified zero-warning `npm pack --dry-run` and verified membership in the `@airlink` npm organization.
     - **Verification:** 100% test pass rate across 35 test files and 239 unit/integration tests, verified `pnpm --dir apps/cli pack` tarball generation, 0 ESLint errors (`pnpm lint`), 0 TypeScript errors (`pnpm typecheck`), and 0 unapproved suppressions (`node scripts/check-suppressions.mjs`).
   - **3-Minute Hackathon Demo Video Script & Dossier ([`docs/DEMO_VIDEO_SCRIPT_AND_GUIDE.md`](file:///c:/Users/Tyra/agent-harness/docs/DEMO_VIDEO_SCRIPT_AND_GUIDE.md)):** Crafted complete 180-second second-by-second presentation script, screen layout storyboard (52% CLI workstation + 48% Mobile app), live rehearsal cheat sheet, and explicit judging criteria crosswalk for TrueForge Double-O, Qodo Q Branch, Savile Row Best UI, and Universal Exports tracks.
+  - **Vercel Monorepo Build Command Alignment (`apps/web/vercel.json`):**
+    - Updated `buildCommand` from `pnpm --filter @airlink/web build` to `pnpm --filter @airlink/web... build`.
+    - Leverages pnpm filter ellipsis (`...`) syntax to recursively build workspace dependencies (`@airlink/protocol`) before compiling the Next.js production bundle, eliminating `Module not found: Can't resolve '@airlink/protocol'` failures in clean cloud environments.
+    - Verified 100% test pass rate (35 test files, 239 tests), 0 TypeScript errors, 0 lint errors, and 0 unapproved suppressions.
 
 ### Implementation Units Index
 
