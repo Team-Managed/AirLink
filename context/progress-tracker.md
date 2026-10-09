@@ -60,6 +60,12 @@
   - Hosted static `install.ps1` and `install.sh` scripts in `apps/web/public/`.
   - Authored unit tests in `apps/web/tests/web-landing.test.ts` and `apps/web/tests/web-pair.test.ts`.
 
+- [x] **Landing Page Editorial Refinement & Interactive Origami Mascot:**
+  - **Screen 5 Match & Responsive Device Mockup Scaling:** Harmonized Screen 5 in [`ScrollFeaturePhoneShowcase.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/ScrollFeaturePhoneShowcase.tsx) to mirror Screen 4's exact card hierarchy, buttons (`Commit Diff (1-Tap)` and `Revert`), and typography; widened phone mockup base width to 336px and enabled responsive mobile scaling (`min(356px, 94vw)`) with zero horizontal overflow.
+  - **Removed Redundant Landing Sections:** Removed `FeatureGrid` ("Engineered for Autonomous Reliability"), `ArchitectureDiagram` ("Zero Retention. Total Control."), `SupportSection` ("We're Here to Help"), and `BottomCtaSection`.
+  - **Interactive Animated Origami Glide Track:** Created [`OrigamiGlideTrack.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/OrigamiGlideTrack.tsx) in [`HowItWorksSection.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/HowItWorksSection.tsx) featuring an interactive smiling origami airplane mascot that glides across Steps 01, 02, and 03 on hover/click, drops code spark particles (`>_ host`, `PIN: 849`, `✓ Approved`), and performs a 360° barrel roll upon click.
+  - **Minimalist Black Developer Footer:** Overhauled [`LandingFooter.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/landing/LandingFooter.tsx) with a sleek obsidian black palette (`#090d16`), clean navigation links, operational relay indicator, and copyright simplified to strictly `© 2026 AirLink`.
+  - **HTML Metadata Simplification:** Updated [`layout.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/app/layout.tsx) metadata title to simply `AirLink`.
 - [x] **AirLink Clean Minimalist Hero Artwork & Pure White Body Background (`apps/web` & `context/ui-context.md`):**
   - **1:1 Synchronized Workstation TUI & Mobile Showcase ([`WorkstationTuiMockup.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/WorkstationTuiMockup.tsx) & [`ScrollFeaturePhoneShowcase.tsx`](file:///c:/Users/Tyra/agent-harness/apps/web/src/components/hero/ScrollFeaturePhoneShowcase.tsx)):**
     - Cleaned up naming across all mockups to use official product branding: `airlink host · workstation ~ zsh`, `WS RELAY`, and `airlink >` prompt.
