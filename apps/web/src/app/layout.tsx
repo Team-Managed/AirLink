@@ -8,7 +8,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "AirLink | Autonomous Coding Agent Teleoperation & Safety Gate",
+  title: "AirLink",
   description:
     "Over-the-air coding agent teleoperation and human-in-the-loop safety gate. Stream tokens, inspect diffs, and approve workstation commands from any phone or browser.",
   keywords: [
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "AirLink Team" }],
   openGraph: {
-    title: "AirLink | Autonomous Coding Agent Teleoperation & Safety Gate",
+    title: "AirLink",
     description:
       "Stream tokens, inspect visual diffs, and approve critical bash commands from any phone or browser.",
     url: "https://airlink.dev",

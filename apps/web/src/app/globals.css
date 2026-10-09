@@ -253,6 +253,27 @@ a {
   }
 }
 
+@keyframes sparkDrift {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.6) translateY(24px);
+  }
+}
+
+.flight-path-pulse {
+  animation: dashPulse 6s linear infinite;
+}
+
+@keyframes dashPulse {
+  to {
+    stroke-dashoffset: -48;
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -289,3 +310,488 @@ a {
     transform: rotate(360deg);
   }
 }
+
+/* ========================================================= */
+/* Responsive Design System & Breakpoints                   */
+/* ========================================================= */
+
+/* Mobile Navigation */
+.nav-mobile-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #0f172a;
+  padding: 6px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.nav-mobile-toggle:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.nav-mobile-drawer {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 16px 40px -8px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: fade-up 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 105;
+  pointer-events: auto !important;
+}
+
+.nav-mobile-link {
+  color: #0f172a;
+  font-size: 14.5px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  pointer-events: auto !important;
+}
+
+.nav-mobile-link:hover,
+.nav-mobile-link:active {
+  background: #f1f5f9;
+  color: #0284c7;
+}
+
+/* Tablet & Mobile Media Queries */
+@media (max-width: 1024px) {
+  .showcase-stage-grid {
+    grid-template-columns: 1fr !important;
+    gap: 36px !important;
+  }
+
+  .showcase-header-container {
+    text-align: center !important;
+    align-items: center !important;
+    margin: 0 auto !important;
+  }
+
+  .showcase-ladder-column {
+    justify-content: center !important;
+  }
+
+  .showcase-duo-scaler {
+    transform: scale(0.85);
+    transform-origin: top center;
+    height: 560px;
+    margin: 0 auto;
+    width: 620px;
+    max-width: 100%;
+  }
+
+  .footer-top-row-responsive {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 36px !important;
+  }
+
+  .support-grid-responsive {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Navbar */
+  .nav-desktop-links {
+    display: none !important;
+  }
+
+  .nav-mobile-toggle {
+    display: flex !important;
+  }
+
+  .nav-header-wrapper {
+    padding: 0 12px !important;
+    top: 8px !important;
+  }
+
+  .nav-download-text-desktop {
+    display: none !important;
+  }
+
+  .nav-download-text-mobile {
+    display: inline !important;
+  }
+
+  .nav-launch-btn {
+    padding: 8px 14px !important;
+    font-size: 12px !important;
+    gap: 6px !important;
+  }
+
+  /* Hero */
+  .hero-section-responsive {
+    padding: 100px 16px 60px !important;
+    min-height: auto !important;
+  }
+
+  .hero-headline-responsive {
+    font-size: clamp(34px, 8.5vw, 48px) !important;
+    letter-spacing: -1.2px !important;
+    line-height: 1.12 !important;
+  }
+
+  .hero-subtitle-responsive {
+    font-size: 15px !important;
+    line-height: 1.55 !important;
+  }
+
+  .hero-dual-cta-responsive {
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 12px !important;
+  }
+
+  .hero-capsule-glow-outer {
+    width: 100% !important;
+  }
+
+  .hero-capsule-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 14px 20px !important;
+    font-size: 14px !important;
+  }
+
+  .hero-secondary-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 13px 20px !important;
+    font-size: 13.5px !important;
+  }
+
+  /* Showcase Section */
+  .showcase-section-responsive {
+    padding: 40px 16px !important;
+  }
+
+  .showcase-main-title {
+    font-size: 28px !important;
+    text-align: center !important;
+  }
+
+  .showcase-main-subtitle {
+    font-size: 14px !important;
+    text-align: center !important;
+  }
+
+  .showcase-duo-wrapper-outer {
+    width: 100% !important;
+    overflow: visible !important;
+    display: flex !important;
+    justify-content: center !important;
+    padding: 12px 0 20px !important;
+  }
+
+  .showcase-duo-scaler {
+    transform: none !important;
+    height: auto !important;
+    width: 100% !important;
+    max-width: 420px !important;
+    margin: 0 auto !important;
+    position: relative !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .showcase-duo-stage {
+    position: relative !important;
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+  }
+
+  .showcase-tui-diagonal {
+    position: absolute !important;
+    top: 6px !important;
+    left: -12px !important;
+    width: 320px !important;
+    max-width: 86vw !important;
+    opacity: 0.22 !important;
+    transform: rotate(-3deg) scale(0.92) !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
+  }
+
+  .showcase-phone-frame {
+    position: relative !important;
+    z-index: 2 !important;
+    width: min(356px, 94vw) !important;
+    max-width: 100% !important;
+    height: 640px !important;
+    margin: 0 auto !important;
+    transform: none !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.12) !important;
+  }
+
+  /* Architecture Pipeline */
+  .arch-section-responsive {
+    padding: 0 16px !important;
+    margin-bottom: 60px !important;
+  }
+
+  .arch-pipeline-responsive {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .arch-step-card-responsive {
+    max-width: 100% !important;
+    width: 100% !important;
+    flex: 1 1 auto !important;
+  }
+
+  .arch-arrow-responsive {
+    transform: rotate(90deg) !important;
+    margin: 4px auto !important;
+  }
+
+  /* How It Works */
+  .how-it-works-section-responsive {
+    padding: 0 16px !important;
+    margin-bottom: 60px !important;
+  }
+
+  .how-it-works-grid-responsive {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Install Command Bar */
+  .install-box-responsive {
+    padding: 16px 14px !important;
+  }
+
+  .install-top-responsive {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .install-tabs-responsive {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px !important;
+  }
+
+  .install-command-row-responsive {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+
+  .install-copy-btn-responsive {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 9px !important;
+  }
+
+  /* Support Section */
+  .support-section-responsive {
+    padding: 0 16px !important;
+    margin-bottom: 60px !important;
+  }
+
+  .support-form-card-responsive {
+    padding: 20px 16px !important;
+  }
+
+  .support-input-row-responsive {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* FAQs */
+  .faq-section-responsive {
+    padding: 0 16px !important;
+    margin-bottom: 60px !important;
+  }
+
+  .faq-question-btn-responsive {
+    padding: 16px 14px !important;
+  }
+
+  .faq-question-text-responsive {
+    font-size: 15px !important;
+  }
+
+  /* Bottom CTA */
+  .bottom-cta-section-responsive {
+    padding: 0 16px !important;
+    margin: 20px auto 60px !important;
+  }
+
+  .bottom-cta-card-responsive {
+    padding: 40px 16px !important;
+    border-radius: 20px !important;
+  }
+
+  .bottom-cta-btn-responsive {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 14px 20px !important;
+    font-size: 14px !important;
+  }
+
+  /* Footer */
+  .footer-responsive {
+    padding: 40px 16px 28px !important;
+  }
+
+  .footer-top-row-responsive {
+    flex-direction: column !important;
+    gap: 24px !important;
+  }
+
+  /* Web Remote (/pair) */
+  .pair-header-responsive {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 10px 14px !important;
+  }
+
+  .pair-header-left-responsive {
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .pair-header-right-responsive {
+    justify-content: flex-end !important;
+    width: 100% !important;
+  }
+
+  .pair-connected-badge-responsive {
+    display: block !important;
+    width: 100% !important;
+    text-align: center !important;
+    margin-top: 4px !important;
+  }
+
+  .pair-prompt-input-row-responsive {
+    flex-direction: column !important;
+  }
+
+  .pair-send-btn-responsive {
+    padding: 12px 18px !important;
+  }
+}
+
+/* Extra Small Phones (<= 480px) */
+@media (max-width: 480px) {
+  .showcase-duo-scaler {
+    transform: none !important;
+    height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+  }
+
+  .showcase-phone-frame {
+    width: min(348px, 95vw) !important;
+    height: 628px !important;
+    border-radius: 40px !important;
+  }
+
+  .showcase-tui-diagonal {
+    left: -8px !important;
+    width: 290px !important;
+    opacity: 0.18 !important;
+  }
+
+  .hero-headline-responsive {
+    font-size: 30px !important;
+    letter-spacing: -1px !important;
+  }
+
+  .bottom-cta-title-responsive {
+    font-size: 26px !important;
+    letter-spacing: -0.8px !important;
+  }
+}
+
+/* Very Small Phones (<= 360px) */
+@media (max-width: 360px) {
+  .showcase-duo-scaler {
+    transform: none !important;
+    height: auto !important;
+    width: 100% !important;
+  }
+
+  .showcase-phone-frame {
+    width: min(312px, 96vw) !important;
+    height: 600px !important;
+    border-radius: 36px !important;
+  }
+
+  .showcase-tui-diagonal {
+    display: none !important;
+  }
+}
+
+/* Cascade Steps & Black Terminal Responsive Layout */
+@media (max-width: 900px) {
+  .cascade-grid-responsive {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  .cascade-step-card {
+    transform: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .install-top-responsive {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .install-tabs-responsive {
+    width: 100% !important;
+    overflow-x: auto !important;
+    padding-bottom: 4px !important;
+  }
+
+  .install-command-row-responsive {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .install-copy-btn-responsive {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
