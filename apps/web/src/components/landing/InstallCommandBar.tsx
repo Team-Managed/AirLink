@@ -21,9 +21,9 @@ export function InstallCommandBar() {
 
   return (
     <section id="install" style={styles.installSection}>
-      <div className="saas-card" style={styles.installBox}>
-        <div style={styles.installTop}>
-          <div style={styles.installTabs}>
+      <div className="install-box-responsive" style={styles.installBox}>
+        <div className="install-top-responsive" style={styles.installTop}>
+          <div className="install-tabs-responsive" style={styles.installTabs}>
             <button
               style={{
                 ...styles.tabButton,
@@ -59,10 +59,13 @@ export function InstallCommandBar() {
           </div>
         </div>
 
-        <div style={styles.commandRow}>
-          <span style={styles.promptSymbol}>$</span>
-          <code style={styles.commandCode}>{installCommands[activeTab]}</code>
+        <div className="install-command-row-responsive" style={styles.commandRow}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, overflowX: "auto" }}>
+            <span style={styles.promptSymbol}>$</span>
+            <code style={styles.commandCode}>{installCommands[activeTab]}</code>
+          </div>
           <button
+            className="install-copy-btn-responsive"
             style={{
               ...styles.copyButton,
               ...(copied ? styles.copyButtonActive : {}),
@@ -91,24 +94,24 @@ export function InstallCommandBar() {
 
 const styles: Record<string, React.CSSProperties> = {
   installSection: {
-    maxWidth: 920,
-    margin: "0 auto 64px",
-    padding: "0 24px",
+    maxWidth: 960,
+    margin: "0 auto",
+    padding: 0,
     position: "relative",
     zIndex: 10,
   },
   installBox: {
-    padding: "20px 22px",
-    backgroundColor: "#ffffff",
-    border: "1px solid #e2e8f0",
-    borderRadius: 14,
-    boxShadow: "0 4px 20px -2px rgba(15, 23, 42, 0.05)",
+    padding: "20px 24px",
+    backgroundColor: "#090d16",
+    border: "1px solid rgba(255, 255, 255, 0.12)",
+    borderRadius: 18,
+    boxShadow: "0 24px 50px -12px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05)",
   },
   installTop: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    borderBottom: "1px solid #e2e8f0",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
     paddingBottom: 14,
     marginBottom: 14,
     flexWrap: "wrap",
@@ -116,41 +119,41 @@ const styles: Record<string, React.CSSProperties> = {
   },
   installTabs: {
     display: "flex",
-    gap: 6,
+    gap: 8,
     overflowX: "auto",
   },
   tabButton: {
     backgroundColor: "transparent",
     border: "1px solid transparent",
-    color: "#475569",
+    color: "#94a3b8",
     fontSize: 12.5,
     fontWeight: 600,
-    padding: "6px 12px",
-    borderRadius: 7,
+    padding: "6px 14px",
+    borderRadius: 8,
     cursor: "pointer",
     whiteSpace: "nowrap",
     transition: "all 0.15s ease",
   },
   tabButtonActive: {
-    backgroundColor: "#0f172a",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
     color: "#ffffff",
-    border: "1px solid #0f172a",
-    boxShadow: "0 2px 6px rgba(15, 23, 42, 0.15)",
+    border: "1px solid rgba(255, 255, 255, 0.22)",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.35)",
   },
   hintWrapper: {
     display: "flex",
     alignItems: "center",
-    gap: 6,
+    gap: 7,
   },
   liveIndicatorDot: {
     width: 6,
     height: 6,
     borderRadius: "50%",
-    backgroundColor: "#228a7a",
-    boxShadow: "0 0 6px #228a7a",
+    backgroundColor: "#10b981",
+    boxShadow: "0 0 8px #10b981",
   },
   installHint: {
-    color: "#687a94",
+    color: "#94a3b8",
     fontSize: 12,
     fontFamily: "var(--font-mono)",
     fontWeight: 600,
@@ -158,14 +161,14 @@ const styles: Record<string, React.CSSProperties> = {
   commandRow: {
     display: "flex",
     alignItems: "center",
-    backgroundColor: "#161e2e",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: 10,
-    padding: "10px 14px",
-    gap: 12,
+    backgroundColor: "#000000",
+    border: "1px solid rgba(255, 255, 255, 0.09)",
+    borderRadius: 12,
+    padding: "12px 16px",
+    gap: 14,
   },
   promptSymbol: {
-    color: "#e08a5b",
+    color: "#38bdf8",
     fontFamily: "var(--font-mono)",
     fontWeight: 800,
     fontSize: 14,
@@ -174,27 +177,27 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     color: "#f8fafc",
     fontFamily: "var(--font-mono)",
-    fontSize: 13,
+    fontSize: 13.5,
     overflowX: "auto",
     whiteSpace: "nowrap",
   },
   copyButton: {
-    background: "linear-gradient(135deg, #5b9bd5 0%, #3e82c5 100%)",
-    border: "1px solid rgba(255, 255, 255, 0.35)",
+    background: "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)",
+    border: "1px solid rgba(255, 255, 255, 0.2)",
     color: "#ffffff",
-    padding: "7px 15px",
-    borderRadius: 7,
+    padding: "8px 16px",
+    borderRadius: 8,
     fontSize: 12,
     fontWeight: 700,
     cursor: "pointer",
     whiteSpace: "nowrap",
-    boxShadow: "0 2px 8px rgba(62, 130, 197, 0.35)",
+    boxShadow: "0 2px 10px rgba(2, 132, 199, 0.35)",
     transition: "all 0.15s ease",
   },
   copyButtonActive: {
-    background: "#0d9488",
-    borderColor: "#0d9488",
+    background: "#10b981",
+    borderColor: "#10b981",
     color: "#ffffff",
-    boxShadow: "0 2px 8px rgba(13, 148, 136, 0.3)",
+    boxShadow: "0 2px 10px rgba(16, 185, 129, 0.4)",
   },
 };
