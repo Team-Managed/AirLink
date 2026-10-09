@@ -116,27 +116,28 @@ export function ScrollFeaturePhoneShowcase() {
   return (
     <section
       id="features"
+      className="showcase-section-responsive"
       style={styles.showcaseSection}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
       {/* Main Presentation Container (2 Columns: Left Header + Ladder | Right Phone Mockup) */}
-      <div style={styles.stageGrid}>
+      <div className="showcase-stage-grid" style={styles.stageGrid}>
         {/* LEFT COLUMN: Header + 3-Stair Vertical Ladder */}
         <div style={styles.leftColumn}>
           {/* Left-Aligned Header */}
-          <div style={styles.headerContainer}>
-            <h2 style={styles.mainTitle}>
+          <div className="showcase-header-container" style={styles.headerContainer}>
+            <h2 className="showcase-main-title" style={styles.mainTitle}>
               Your Autonomous Agent <br />
               In The Palm of Your Hand.
             </h2>
-            <p style={styles.mainSubtitle}>
+            <p className="showcase-main-subtitle" style={styles.mainSubtitle}>
               Explore the core mobile surfaces designed for high-speed supervision from anywhere.
             </p>
           </div>
 
           {/* 3-Stair Vertical Ladder (Active unfaded, upper & lower faded) */}
-          <div style={styles.ladderColumn}>
+          <div className="showcase-ladder-column" style={styles.ladderColumn}>
             {/* Vertical Staircase Progress Line */}
             <div style={styles.ladderRail}>
               <div
@@ -241,20 +242,22 @@ export function ScrollFeaturePhoneShowcase() {
         </div>
 
         {/* RIGHT: Diagonal Duo Showcase (Workstation Local TUI + iOS Phone Remote Mockup) */}
-        <div style={styles.duoStageColumn}>
-          {/* Workstation Local Daemon TUI Window (Diagonally Behind) */}
-          <div style={styles.tuiWrapperDiagonal}>
-            <WorkstationTuiMockup
-              activeIndex={activeIndex}
-              typedPin={typedPin}
-              isPairedSuccess={isPairedSuccess}
-              isApproved={isApproved}
-              countdown={countdown}
-            />
-          </div>
+        <div className="showcase-duo-wrapper-outer">
+          <div className="showcase-duo-scaler">
+            <div className="showcase-duo-stage" style={styles.duoStageColumn}>
+              {/* Workstation Local Daemon TUI Window (Diagonally Behind) */}
+              <div className="showcase-tui-diagonal" style={styles.tuiWrapperDiagonal}>
+                <WorkstationTuiMockup
+                  activeIndex={activeIndex}
+                  typedPin={typedPin}
+                  isPairedSuccess={isPairedSuccess}
+                  isApproved={isApproved}
+                  countdown={countdown}
+                />
+              </div>
 
-          {/* Authentic iOS iPhone Device Frame (Foreground) */}
-          <div style={styles.phoneDeviceFrame}>
+              {/* Authentic iOS iPhone Device Frame (Foreground) */}
+              <div className="showcase-phone-frame" style={styles.phoneDeviceFrame}>
             {/* Dynamic Island Notch */}
             <div style={styles.dynamicIsland}>
               <div style={styles.cameraLens} />
@@ -681,47 +684,38 @@ export function ScrollFeaturePhoneShowcase() {
                     </div>
 
                     <div style={styles.chatFeedScroll}>
-                      {/* User Prompt Bubble (Matches User's Mobile Remote Screenshot) */}
-                      <div style={styles.humanPromptBubble}>
-                        <div style={styles.humanPromptHeader}>
-                          <span style={styles.humanPromptDot} />
-                          <span>YOU (MOBILE REMOTE)</span>
+                      {/* Thinking Box */}
+                      <div style={styles.thinkingCard}>
+                        <div style={styles.thinkingHeader}>
+                          <div style={styles.thinkingTitleRow}>
+                            <span>Thinking...</span>
+                            <span style={{ fontSize: 9 }}>˅</span>
+                          </div>
+                          <span style={styles.thinkingCollapse}>Collapse</span>
                         </div>
-                        <div style={styles.humanPromptText}>
-                          also the hero text let us have it all black and i have some gsap effect like something appearing sort of
+                        <div style={styles.thinkingDirective}>
+                          Analyzing directive: &quot;also the hero text let us have it all black and i have some gsap effect sort of&quot;
                         </div>
                       </div>
 
-                      {/* Worked Status Line */}
-                      <div style={styles.workedStatusLine}>
-                        Worked for 52s &gt;
+                      {/* Agent Message */}
+                      <div style={styles.agentProseMessage}>
+                        Hero text styled in bold solid obsidian (#0f172a) with smooth GSAP blur-to-focus reveal. 2 files modified (+92 -35). AST validated clean.
                       </div>
 
-                      {/* Files Summary Strip */}
-                      <div style={styles.filesSummaryCard}>
-                        <div style={styles.filesSummaryTop}>
-                          <div style={styles.filesSummaryLeft}>
-                            <span>2 files changed</span>
-                            <span style={styles.badgeAdd}>+92</span>
-                            <span style={styles.badgeDel}>-35</span>
-                            <span style={{ fontSize: 9, opacity: 0.7 }}>v</span>
-                          </div>
-                          <div style={styles.reviewBtn}>[ Review ]</div>
+                      {/* Tool Call Card */}
+                      <div style={styles.toolExecCard}>
+                        <div style={styles.toolExecHeader}>
+                          <div style={styles.toolNameBadge}>git_diff_viewer</div>
+                          <div style={{ ...styles.toolExecStatus, color: "#4ade80" }}>✓ Ready to commit</div>
                         </div>
-                        <div style={styles.filesListStack}>
-                          <div style={styles.fileRowItem}>
-                            <span style={{ fontSize: 10 }}>⚛</span>
-                            <span style={styles.fileNameWhite}>PanoramicLandscapeHero.tsx</span>
-                          </div>
-                          <div style={styles.fileRowItem}>
-                            <span style={{ fontSize: 9, opacity: 0.8 }}>M↓</span>
-                            <span style={styles.fileNameWhite}>progress-tracker.md</span>
-                          </div>
+                        <div style={styles.toolExecBody}>
+                          diff --git a/PanoramicLandscapeHero.tsx b/PanoramicLandscapeHero.tsx
                         </div>
                       </div>
 
-                      {/* Diff Viewer Card (Fills down to suggestion chips) */}
-                      <div style={styles.codeDiffCardFilled}>
+                      {/* Code Diff Card (Styled matching Photo 2 cards) */}
+                      <div style={styles.codeDiffCard}>
                         <div style={styles.codeDiffHeader}>
                           <div style={styles.codeDiffFileName}>PanoramicLandscapeHero.tsx</div>
                           <div style={styles.codeDiffStats}>
@@ -735,17 +729,27 @@ export function ScrollFeaturePhoneShowcase() {
                           <div style={styles.diffCodeLineAdd}>+ color: &quot;#0f172a&quot;, fontWeight: 900,</div>
                           <div style={styles.diffCodeLineAdd}>+ gsap.fromTo(&quot;.hero-word&quot;, &#123; filter: &quot;blur(12px)&quot;, y: 48 &#125;,</div>
                           <div style={styles.diffCodeLine}>&nbsp;&nbsp;&#123; filter: &quot;blur(0px)&quot;, y: 0, stagger: 0.065 &#125;);</div>
-                          <div style={styles.diffCodeLine}>&nbsp;&nbsp;return (</div>
-                          <div style={styles.diffCodeLine}>&nbsp;&nbsp;&nbsp;&nbsp;&lt;div className=&quot;hero-wrapper&quot;&gt;</div>
                         </div>
 
-                        <div style={styles.jumpToLiveFloat}>
-                          <span>↓ Jump to Live</span>
+                        {/* Interactive 1-Tap Action matching Photo 2 */}
+                        <div style={{ display: "flex", gap: 5, marginTop: 7 }}>
+                          <button
+                            type="button"
+                            style={styles.btnApprove}
+                          >
+                            Commit Diff (1-Tap)
+                          </button>
+                          <button
+                            type="button"
+                            style={styles.btnReject}
+                          >
+                            Revert
+                          </button>
                         </div>
                       </div>
                     </div>
 
-                    {/* Bottom Dock: Suggestion Pills ABOVE Input Bar */}
+                    {/* Bottom Dock: Suggestion Pills directly ABOVE Text Input Bar */}
                     <div style={styles.chatBottomDock}>
                       <div style={styles.quickChipsRow}>
                         <div style={styles.quickChip}>Create PR</div>
@@ -771,6 +775,8 @@ export function ScrollFeaturePhoneShowcase() {
           </div>
         </div>
       </div>
+    </div>
+  </div>
     </section>
   );
 }
@@ -989,8 +995,8 @@ const styles: Record<string, React.CSSProperties> = {
   phoneDeviceFrame: {
     position: "relative",
     zIndex: 2,
-    width: 304,
-    height: 618,
+    width: 336,
+    height: 640,
     backgroundColor: "#000000",
     borderRadius: 44,
     border: "9px solid #1e293b",

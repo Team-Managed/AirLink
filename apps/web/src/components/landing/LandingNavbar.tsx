@@ -6,6 +6,8 @@ import { AirLinkAgentLogo } from "../ui/AirLinkAgentLogo";
 
 export function LandingNavbar() {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const closeMenu = () => setMobileMenuOpen(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -15,8 +17,23 @@ export function LandingNavbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
+    e.preventDefault();
+    setMobileMenuOpen(false);
+    const element = document.getElementById(targetId);
+    if (element) {
+      const navOffset = 90;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - navOffset;
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+    }
+  };
+
   return (
-    <header style={styles.headerWrapper}>
+    <header className="nav-header-wrapper" style={styles.headerWrapper}>
       <nav
         style={{
           ...styles.glassNav,
@@ -24,39 +41,105 @@ export function LandingNavbar() {
         }}
       >
         {/* Animated Origami Airplane & Agent Doodle Logo */}
-        <Link href="/" style={styles.brandLink}>
+        <Link href="/" style={styles.brandLink} onClick={closeMenu}>
           <AirLinkAgentLogo size={32} showText={true} textColor="#0f172a" />
         </Link>
 
-        {/* Center Navigation Links with Frosted Hover Pills */}
-        <div style={styles.navLinks}>
-          <a href="#features" style={styles.navLink}>
+        {/* Center Navigation Links with Frosted Hover Pills (Desktop) */}
+        <div className="nav-desktop-links" style={styles.navLinks}>
+          <a
+            href="#features"
+            style={styles.navLink}
+            onClick={(e) => scrollToSection(e, "features")}
+          >
             Features
           </a>
-          <a href="#how-it-works" style={styles.navLink}>
+          <a
+            href="#how-it-works"
+            style={styles.navLink}
+            onClick={(e) => scrollToSection(e, "how-it-works")}
+          >
             How It Works
           </a>
-          <a href="#faqs" style={styles.navLink}>
+          <a
+            href="#faqs"
+            style={styles.navLink}
+            onClick={(e) => scrollToSection(e, "faqs")}
+          >
             FAQs
-          </a>
-          <a href="#support" style={styles.navLink}>
-            Customer Support
           </a>
         </div>
 
-        {/* Right CTA Button */}
-        <a
-          href="https://expo.dev/accounts/tyraaa19/projects/airlink-monorepo/builds/6f4f8f2a-a760-469c-93e0-4f32bedf3e61"
-          target="_blank"
-          rel="noreferrer"
-          style={styles.launchBtn}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-          </svg>
-          <span>Download App (.APK)</span>
-        </a>
+        {/* Right Action Group */}
+        <div style={styles.rightActions}>
+          {/* Download App CTA Button */}
+          <a
+            href="https://expo.dev/accounts/tyraaa19/projects/airlink-monorepo/builds/6f4f8f2a-a760-469c-93e0-4f32bedf3e61"
+            target="_blank"
+            rel="noreferrer"
+            className="nav-launch-btn"
+            style={styles.launchBtn}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            <span className="nav-download-text-desktop">Download App (.APK)</span>
+            <span className="nav-download-text-mobile" style={{ display: "none" }}>APK</span>
+          </a>
+
+          {/* Mobile Hamburger Toggle */}
+          <button
+            type="button"
+            className="nav-mobile-toggle"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={mobileMenuOpen}
+          >
+            {mobileMenuOpen ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="4" y1="7" x2="20" y2="7" />
+                <line x1="4" y1="12" x2="20" y2="12" />
+                <line x1="4" y1="17" x2="20" y2="17" />
+              </svg>
+            )}
+          </button>
+        </div>
       </nav>
+
+      {/* Mobile Animated Dropdown Drawer */}
+      {mobileMenuOpen && (
+        <div className="nav-mobile-drawer" style={{ pointerEvents: "auto" }}>
+          <a
+            href="#features"
+            className="nav-mobile-link"
+            onClick={(e) => scrollToSection(e, "features")}
+          >
+            <span>Features</span>
+            <span style={{ color: "#94a3b8", fontSize: 13 }}>01</span>
+          </a>
+          <a
+            href="#how-it-works"
+            className="nav-mobile-link"
+            onClick={(e) => scrollToSection(e, "how-it-works")}
+          >
+            <span>How It Works</span>
+            <span style={{ color: "#94a3b8", fontSize: 13 }}>02</span>
+          </a>
+          <a
+            href="#faqs"
+            className="nav-mobile-link"
+            onClick={(e) => scrollToSection(e, "faqs")}
+          >
+            <span>FAQs</span>
+            <span style={{ color: "#94a3b8", fontSize: 13 }}>03</span>
+          </a>
+        </div>
+      )}
     </header>
   );
 }

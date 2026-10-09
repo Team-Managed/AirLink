@@ -85,7 +85,7 @@ export function PanoramicLandscapeHero() {
   }, []);
 
   return (
-    <section ref={heroContainerRef} style={styles.heroSection}>
+    <section ref={heroContainerRef} className="hero-section-responsive" style={styles.heroSection}>
       {/* Full-bleed Landscape Artwork Background */}
       <div style={styles.backgroundArtwork} />
 
@@ -98,7 +98,7 @@ export function PanoramicLandscapeHero() {
       {/* Centered Hero Content Container */}
       <div style={styles.contentContainer}>
         {/* Massive All-Black Display Headline with Appearing Word GSAP Reveal */}
-        <h1 ref={headlineRef} style={styles.headline}>
+        <h1 ref={headlineRef} className="hero-headline-responsive" style={styles.headline}>
           <span style={styles.lineWrapper}>
             {line1.map((word, idx) => (
               <span key={`l1-${idx}`} style={styles.wordWrapper}>
@@ -123,20 +123,21 @@ export function PanoramicLandscapeHero() {
         </h1>
 
         {/* Clean, Large Value Proposition Subtitle */}
-        <p ref={subtitleRef} style={styles.subtitle}>
+        <p ref={subtitleRef} className="hero-subtitle-responsive" style={styles.subtitle}>
           The open-source universal remote for your workstation coding agent.
           Stream tokens with sub-50ms latency, review Git diffs, and approve critical bash commands from anywhere.
         </p>
 
         {/* Hero CTA Button Row */}
         <div ref={ctaRef} style={styles.ctaWrapper}>
-          <div style={styles.dualCtaRow}>
+          <div className="hero-dual-cta-responsive" style={styles.dualCtaRow}>
             {/* Primary Action Capsule Pill - Download Android APK */}
-            <div style={styles.capsuleGlowOuter}>
+            <div className="hero-capsule-glow-outer" style={styles.capsuleGlowOuter}>
               <a
                 href={APK_DOWNLOAD_URL}
                 target="_blank"
                 rel="noreferrer"
+                className="hero-capsule-btn"
                 style={styles.capsuleBtn}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -147,7 +148,7 @@ export function PanoramicLandscapeHero() {
             </div>
 
             {/* Secondary Frosted Glass CTA */}
-            <a href="#how-it-works" style={styles.secondaryCtaBtn}>
+            <a href="#how-it-works" className="hero-secondary-btn" style={styles.secondaryCtaBtn}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <circle cx="12" cy="12" r="10" />
                 <polygon points="10 8 16 12 10 16 10 8" />
