@@ -55,7 +55,7 @@ export function FaqSection() {
   };
 
   return (
-    <section id="faqs" style={styles.section}>
+    <section id="faqs" className="faq-section-responsive" style={styles.section}>
       <div style={styles.header}>
         <h2 style={styles.sectionTitle}>Frequently Asked Questions</h2>
         <p style={styles.sectionDesc}>
@@ -78,12 +78,13 @@ export function FaqSection() {
               <button
                 type="button"
                 onClick={() => toggleFaq(idx)}
+                className="faq-question-btn-responsive"
                 style={styles.faqQuestionBtn}
                 aria-expanded={isOpen}
               >
                 <div style={styles.questionTextCol}>
                   <span style={styles.categoryText}>{faq.category}</span>
-                  <span style={styles.questionText}>{faq.question}</span>
+                  <span className="faq-question-text-responsive" style={styles.questionText}>{faq.question}</span>
                 </div>
                 <div
                   style={{

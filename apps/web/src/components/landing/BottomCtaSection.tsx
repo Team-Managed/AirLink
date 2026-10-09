@@ -4,8 +4,8 @@ import React from "react";
 
 export function BottomCtaSection() {
   return (
-    <section style={styles.ctaSection}>
-      <div style={styles.cardContainer}>
+    <section className="bottom-cta-section-responsive" style={styles.ctaSection}>
+      <div className="bottom-cta-card-responsive" style={styles.cardContainer}>
         {/* Bright, Vivid Hero Artwork Background inside the Box */}
         <div style={styles.cardArtwork} />
 
@@ -14,7 +14,7 @@ export function BottomCtaSection() {
 
         {/* Foreground Content with Solid Black Typography */}
         <div style={styles.content}>
-          <h2 style={styles.title}>
+          <h2 className="bottom-cta-title-responsive" style={styles.title}>
             Teleoperate Your Agents <br />
             From Any Phone or Browser.
           </h2>
@@ -29,6 +29,7 @@ export function BottomCtaSection() {
               href="https://expo.dev/accounts/tyraaa19/projects/airlink-monorepo/builds/6f4f8f2a-a760-469c-93e0-4f32bedf3e61"
               target="_blank"
               rel="noreferrer"
+              className="bottom-cta-btn-responsive"
               style={styles.pairBtn}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

@@ -50,7 +50,7 @@ export function ArchitectureDiagram() {
   ];
 
   return (
-    <section id="architecture" style={styles.section}>
+    <section id="architecture" className="arch-section-responsive" style={styles.section}>
       <div style={styles.header}>
         <span style={styles.sectionTag}>Architecture Pipeline</span>
         <h2 style={styles.sectionTitle}>Zero Retention. Total Control.</h2>
@@ -59,10 +59,10 @@ export function ArchitectureDiagram() {
         </p>
       </div>
 
-      <div style={styles.pipeline}>
+      <div className="arch-pipeline-responsive" style={styles.pipeline}>
         {steps.map((s, idx) => (
           <React.Fragment key={s.num}>
-            <div className="saas-card" style={styles.stepCard}>
+            <div className="saas-card arch-step-card-responsive" style={styles.stepCard}>
               <div style={styles.stepHeader}>
                 <div style={styles.iconCircle}>{s.icon}</div>
                 <span style={{ ...styles.stepNum, color: s.color }}>{s.num}</span>
@@ -72,7 +72,7 @@ export function ArchitectureDiagram() {
               <p style={styles.stepDesc}>{s.desc}</p>
             </div>
             {idx < steps.length - 1 && (
-              <div style={styles.arrowBetween}>
+              <div className="arch-arrow-responsive" style={styles.arrowBetween}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#687a94" strokeWidth="2.5">
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>

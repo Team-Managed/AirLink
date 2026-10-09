@@ -42,7 +42,7 @@ export function SupportSection() {
   };
 
   return (
-    <section id="support" style={styles.section}>
+    <section id="support" className="support-section-responsive" style={styles.section}>
       <div style={styles.header}>
         <h2 style={styles.sectionTitle}>We’re Here to Help</h2>
         <p style={styles.sectionDesc}>
@@ -50,9 +50,9 @@ export function SupportSection() {
         </p>
       </div>
 
-      <div style={styles.grid}>
+      <div className="support-grid-responsive" style={styles.grid}>
         {/* Contact Form Card */}
-        <div className="saas-card" style={styles.formCard}>
+        <div className="saas-card support-form-card-responsive" style={styles.formCard}>
           <h3 style={styles.cardTitle}>Send a Support Request</h3>
           <p style={styles.cardSubtitle}>
             Our engineering team typically responds within 2 hours during active hackathon hours.
@@ -80,7 +80,7 @@ export function SupportSection() {
                   {submitError}
                 </div>
               )}
-              <div style={styles.inputRow}>
+              <div className="support-input-row-responsive" style={styles.inputRow}>
                 <div style={styles.fieldCol}>
                   <label style={styles.label}>Your Name</label>
                   <input
@@ -157,7 +157,7 @@ export function SupportSection() {
                 Open bug reports, feature requests, or browse existing reproducible snippets.
               </p>
               <a
-                href="https://github.com/agent-remote/agent-harness/issues"
+                href="https://github.com/Team-Managed/AirLink/issues"
                 target="_blank"
                 rel="noreferrer"
                 style={styles.channelLink}
@@ -204,7 +204,7 @@ export function SupportSection() {
               <p style={styles.channelDesc}>
                 Read full specifications on the 6-digit PIN handshake and TrueFoundry Double-O track.
               </p>
-              <a href="#architecture" style={styles.channelLink}>
+              <a href="#how-it-works" style={styles.channelLink}>
                 View Technical Specs &rarr;
               </a>
             </div>
